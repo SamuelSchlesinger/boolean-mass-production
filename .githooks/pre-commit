@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+staged_tree="$(mktemp -d "${TMPDIR:-/tmp}/sharing-paper-index.XXXXXX")"
+
+cleanup() {
+  rm -rf -- "$staged_tree"
+}
+trap cleanup EXIT HUP INT TERM
+
+cd -- "$repo_root"
+git checkout-index --all --prefix="$staged_tree/"
+
+if [[ ! -x "$staged_tree/build.sh" ]]; then
+  printf 'pre-commit: staged build.sh is missing or not executable.\n' >&2
+  exit 1
+fi
+
+if ! "$staged_tree/build.sh" --check; then
+  printf 'pre-commit: staged main.pdf does not match the staged manuscript.\n' >&2
+  printf 'Run ./build.sh, then stage main.tex, build.sh, and main.pdf together.\n' >&2
+  exit 1
+fi
