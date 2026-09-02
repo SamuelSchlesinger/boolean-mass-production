@@ -42,14 +42,27 @@
 \newcommand{\bigxor}{\bigoplus}
 \newcommand{\Adm}{\mathsf{Adm}}
 
+% Set \anonymoustrue for a double-blind submission.
+\newif\ifanonymous
+\anonymousfalse
+
 \title{\textbf{Exponential-Range Mass Production of Boolean Functions}\\[0.35em]
 \large Local disjoint recovery and recursive congestion reduction}
-\author{Samuel Schlesinger}
-\date{August 2026}
-\hypersetup{
-  pdftitle={Exponential-Range Mass Production of Boolean Functions},
-  pdfauthor={Samuel Schlesinger}
-}
+\ifanonymous
+  \author{}
+  \date{}
+  \hypersetup{
+    pdftitle={Exponential-Range Mass Production of Boolean Functions},
+    pdfauthor={}
+  }
+\else
+  \author{Samuel Schlesinger}
+  \date{August 2026}
+  \hypersetup{
+    pdftitle={Exponential-Range Mass Production of Boolean Functions},
+    pdfauthor={Samuel Schlesinger}
+  }
+\fi
 
 \begin{document}
 \maketitle
@@ -65,6 +78,8 @@ scale: for every fixed $0\le\gamma<1$,
   \C(f^{\times t})=O_\gamma(2^n/n)
   \qquad\text{for all }t\le 2^{\gamma n}.
 \]
+This establishes the optimal worst-case order of growth, but does not retain
+Uhlig's one-copy leading constant.
 
 The construction encodes restrictions of $f$ by a constant-rate multivariate
 evaluation code.  Each requested restriction is recovered from the non-target
@@ -76,9 +91,7 @@ At the level of admissible exponents, this gives the bootstrap
   \beta\longmapsto\frac{1}{2-\beta}.
 \]
 Starting from the disjoint range $\beta=1/2$, iteration reaches every constant
-below one.  Consequently, every nonnegative lower-bound measure that is
-dominated by unrestricted circuit size and copy-superadditive on independent
-copies is uniformly subexponential on Boolean functions.
+below one.
 \end{abstract}
 
 \section{Introduction}
@@ -103,8 +116,8 @@ account \cite{Uhlig1992}, Wegener's Theorem~10.2.3
 
 We prove, by a different construction, an order-of-growth bound for
 $2^{\gamma n}$ simultaneous evaluations for every fixed $\gamma<1$.  The
-price is that the proof controls only the optimal order $2^n/n$, not the sharp
-one-copy leading constant.
+price is that the proof controls only the optimal worst-case order $2^n/n$,
+not the sharp one-copy leading constant.
 
 \subsection{Main result}
 
@@ -122,6 +135,14 @@ every integer $1\le t\le 2^{\gamma n}$,
 \]
 \end{theorem}
 
+The following elementary bound does not explain the fixed-exponent gap, but it
+shows that the plateau cannot extend to the $2^n$-copy scale.  If $n\ge2$ and
+$f$ depends on all $n$ variables, then every circuit for $f^{\times t}$ has
+size at least $tn/2$.  Consequently, a uniform $O(2^n/n)$ plateau cannot
+persist once $t=\omega(2^n/n^2)$; see the discussion after
+\cref{cor:barrier}.  Thus \cref{thm:main} reaches every fixed exponential rate
+while leaving a genuine near-endpoint transition to be understood.
+
 The proof separates an input into a prefix and a suffix.  For every fixed
 suffix, the $2^p$ prefix restrictions are packed into information symbols of a
 constant-rate low-degree evaluation code over a field $\F_q$.  A requested
@@ -135,15 +156,15 @@ a $C$-fold direct product on the shorter suffix input.  This is the recursive
 step: local disjointness reduces global sharing to a smaller instance of the
 same problem.
 
-\subsection{The exponent bootstrap}
+\subsection{The exponent bootstrap, in outline}
 
 Here is the parameter logic behind the recursion.  To handle
 $t\le 2^{\gamma n}$ requests, the suffix has length $d\approx\gamma n$ and
 the number $C$ of request groups has exponent $c$, so a resource sees at most
 $2^{cn}$ suffixes.  A previously admissible exponent $\beta$ handles that
 recursive demand when $c<\beta\gamma$, while the scheduling overhead requires
-$c>2\gamma-1$, up to slack that vanishes as the fixed code dimension $\ell$
-grows.  Thus a feasible $c$ exists precisely when
+$c>2\gamma-1$, up to slack that vanishes as the fixed number $\ell$ of code
+variables grows.  Thus a feasible $c$ exists precisely when
 $\gamma<1/(2-\beta)$.
 
 Writing $\Adm(\beta)$ for the admissible-exponent property defined formally in
@@ -160,20 +181,70 @@ Starting from $\beta_1=1/2$, the resulting sequence is
 \]
 which converges to one.
 
-\subsection{A lower-bound barrier}
+\subsection{A quantitative consequence}
 
-The theorem rules out a broad direct-sum strategy for unrestricted-circuit
-lower bounds.  Suppose a nonnegative measure $\mu$ is bounded above by circuit
-size and assigns at least $t$ times as much complexity to $t$ independent
-copies.  Then, for every fixed $\varepsilon>0$,
+Suppose a nonnegative measure $\mu$ is bounded above by circuit size and
+assigns at least $t$ times as much complexity to $t$ independent copies.  The
+theorem gives, for every fixed $\varepsilon>0$,
 \[
   \mu(f)=O_\varepsilon(2^{\varepsilon n}/n)
 \]
-uniformly over $f:\bits^n\to\bits$.  Any measure capable of proving an
+uniformly over $f:\bits^n\to\bits$.  Paul's earlier general many-copy bound
+\cite{Paul1976} already implies the qualitative conclusion that such a measure
+is uniformly subexponential; our bound improves its polynomial prefactor from
+$O_\varepsilon(n2^{\varepsilon n})$ to
+$O_\varepsilon(2^{\varepsilon n}/n)$.  Any measure capable of proving an
 exponential unrestricted-circuit lower bound must therefore account for
 cross-instance reorganization rather than charging each copy independently.
 
 \subsection{Relation to earlier work}
+
+The theorem-level comparisons we were able to verify are summarized below.
+Here ``one-copy leading term'' refers to the basis-dependent Shannon--Lupanov
+worst-case asymptotic.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}
+  >{\raggedright\arraybackslash}p{0.14\linewidth}
+  >{\raggedright\arraybackslash}p{0.20\linewidth}
+  >{\raggedright\arraybackslash}p{0.27\linewidth}
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+Result & Copy range & Circuit-size bound & Comparison \\
+\midrule
+Uhlig \cite{Uhlig1992,Wegener1987,Kretschmer2023}
+  & $\log t=o(n/\log n)$
+  & one-copy leading term
+  & optimal order and leading constant in a smaller copy range \\
+Paul, Lemma~2 \cite{Paul1976}
+  & arbitrary $t$
+  & $O(\max\{n2^n,nt\log^2t\})$
+  & $O(n2^n)$ throughout every fixed exponential range below one \\
+This paper
+  & $t\le2^{\gamma n}$ for fixed $\gamma<1$
+  & $O_\gamma(2^n/n)$
+  & optimal worst-case order, without leading-constant control \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+For fixed $\gamma<1$ and $t\le2^{\gamma n}$, Paul's second term is
+$o(n2^n)$, so his displayed bound is $O(n2^n)$.  The theorem proved here
+improves that bound by a factor of $n^2$ at the level of polynomial
+prefactors.  Paul's $g^k$ is the same $k$-fold product task considered here;
+his circuits permit arbitrary binary Boolean gates, which changes our fixed
+basis cost by at most a constant factor.
+
+Albrecht's six-page paper studies the same simultaneous-realization problem
+over a complete binary basis \cite{Albrecht1989}.  Its abstract states that,
+for the corresponding Shannon size and depth functions, a relatively large
+number of simultaneous inputs is compatible with a small enhancement.  The
+available primary-source preview contains the circuit model and opening
+definitions but not the quantitative theorem statements.  We therefore do not
+assign Albrecht a copy range or size bound in the table, and we make no
+historical priority claim or claim that a leading-constant question is open.
+A definitive comparison requires checking the full paper.
 
 The coding interpretation begins with Uhlig's two-copy construction, which is
 the length-$(2^p+1)$ single-parity-check code viewed as a two-request disjoint
@@ -184,20 +255,20 @@ literature, especially Section~3.4 of Ishai--Kushilevitz--Ostrovsky--Sahai
 intersections.  The construction here instead gives a deterministic greedy
 selection circuit, partitions requests into groups, recursively absorbs the
 resulting inter-group congestion, and charges the scheduler and fixed-wire
-routing explicitly.  We make no priority claim for these refinements pending
-the broader historical comparison below.
+routing explicitly.  We make no priority claim for these refinements.
 
 A 2011 manuscript of Lipmaa, subsequently withdrawn, proposed computational
 batch codes in connection with multi-query computation \cite{Lipmaa2011}.
 Later lifted-polynomial constructions also use line-based recovery to obtain
-batch-code guarantees \cite{HolzbaurEtAl2020}.  We use only the elementary
-product-code and affine-line facts proved below.
+batch-code guarantees \cite{HolzbaurEtAl2020}.  PIR codes of Fazeli, Vardy,
+and Yaakobi form a related family in which each information symbol has many
+disjoint recovery options \cite{FazeliVardyYaakobi2015}.  We use only the
+elementary product-code and affine-line facts proved below.
 
-The older literature on simultaneous realization includes work of Paul,
-Uhlig, and Albrecht \cite{Paul1976,Uhlig1974,Uhlig1992,Albrecht1989}.  A full
-quantitative comparison with all of those results remains necessary before
-making a historical novelty claim.  The contribution established here is the
-self-contained construction and recurrence stated in this paper.
+Independently of historical priority, the technical contribution established
+here is a self-contained deterministic disjoint-line scheduler, an explicit
+fixed-wire scatter/gather implementation, and a recursive bounded-congestion
+invariant whose exponent map is $\beta\mapsto1/(2-\beta)$.
 
 \section{Circuit conventions and worst-case notation}
 
@@ -345,7 +416,7 @@ and dimension
   K=s_0^\ell=\Theta_\ell(q^\ell).
 \]
 
-\subsection{Packing Boolean restrictions}
+\subsection{Packing Boolean restrictions}\label{subsec:packing}
 
 Split an $n$-bit input as
 \[
@@ -442,7 +513,8 @@ parameter dictionary
   \qquad
   q=2^{p/\ell+o(p)},
   \qquad
-  D_q=q^{\ell-1+o(1)}.
+  D_q=q^{\ell-1+o(1)}
+      =2^{((\ell-1)/\ell)p+o(p)}.
 \end{equation}
 Two distinct lines through the same target intersect only at that target,
 which is absent from both recovery sets.  Repeated requests for one information
@@ -565,18 +637,19 @@ because
   \le 2\left(\frac{t^2q}{C}+Cq\right).
 \]
 The last inequality is the arithmetic--geometric mean inequality.  The
-construction is valid whenever
+construction is valid whenever \eqref{eq:group-condition} holds for
+$g=\lceil t/C\rceil$, that is, whenever
 \begin{equation}\label{eq:scheduling-condition}
   \left\lceil\frac{t}{C}\right\rceil q<D_q.
 \end{equation}
 
 \subsection{Scatter and gather}
 
-Every selected line produces an incidence record containing a request
-identifier, a group, a line position, a code coordinate $y$, and the suffix to
-be evaluated.
-There are fewer than $tq$ such records.  Inside one group, each coordinate
-appears in at most one record.
+Every non-target point of a selected line produces an incidence record
+containing a request identifier, a group, a line position, the point's code
+coordinate $y$, and the suffix to be evaluated.  There are exactly
+$t(q-1)<tq$ such records.  Inside one group, each coordinate appears in at
+most one record.
 
 The routing consists of four fixed sorting-and-local-update passes.  Here
 ``key'' means $(\text{group},y)$; any unlisted tie is broken by the record's
@@ -610,6 +683,11 @@ Gather order
 \bottomrule
 \end{tabularx}
 \end{center}
+
+Scatter records carry a $d$-bit suffix.  After resource evaluation, value
+records carry the $b$-bit field value $G_y(z)$.  The gather passes are
+payload-agnostic for any payload whose width is polynomial in the displayed
+parameters.
 
 \begin{lemma}[Record routing]\label{lem:routing}
 The suffixes can be scattered into slots indexed by
@@ -694,8 +772,13 @@ $L_C(d)$ applies separately to each induced function $H_{y,k}$, so these
 circuits cost $q^\ell bL_C(d)$ in total.  The complete scatter, gather, and
 fixed-wire compaction pipeline costs
 $\widetilde O_\ell(tq+Cq^\ell)$ by \cref{lem:routing}.  Field addition is
-coordinatewise XOR in the fixed $\F_2$ basis.  Thus, for each request, XORing
-its $q-1$ returned $b$-bit values and selecting bit $j(a)$ costs $O(tqb)$.
+coordinatewise XOR in the fixed $\F_2$ basis, so XORing the $q-1$ returned
+$b$-bit values of a request and selecting bit $j(a)$ costs $O(qb)$ per request
+and $O(tqb)$ in total.  Since each selected line passes through its target
+$u(a)$ and $\deg P_z\le q-2$, \cref{lem:line} shows that this XOR equals
+$P_z(u(a))$ for the request's suffix $z$, and bit $j(a)$ of that symbol is
+$f(a,z)$ by the packing of \cref{subsec:packing}.  The circuit therefore
+computes $f^{\times t}$.
 
 The polynomial $P_z$ and the functions $G_y$ specify the nonuniform resource
 truth tables; no run-time encoder is being assumed.  Since $q\ge2$, all
@@ -874,11 +957,6 @@ iteration they depend only on the target exponent $\gamma$, so their constants
 combine into $A_\gamma$.
 \end{proof}
 
-For reference, the choices in one bootstrap step occur in the order
-$c$ from \eqref{eq:c-window}, then $\rho\in(c/\gamma,\beta)$, then $\ell$
-from \eqref{eq:bootstrap-margin}; afterward $d,C,p$, and $q$ are determined as
-above.
-
 \begin{proof}[Proof of \cref{thm:main}]
 The case $\gamma=0$ is the Shannon--Lupanov upper bound.  Starting from
 $\beta_1=1/2$, define
@@ -945,6 +1023,17 @@ the bound is uniform in $f$
 and holds for every fixed $\varepsilon>0$, the second claim follows.
 \end{proof}
 
+For comparison, applying Paul's bound with
+$r=\lfloor2^{(1-\varepsilon)n}\rfloor$ gives
+\[
+  \mu(f)
+  =O_\varepsilon\!\left(\frac{n2^n}{r}+n\log^2r\right)
+  =O_\varepsilon(n2^{\varepsilon n}+n^3)
+  =O_\varepsilon(n2^{\varepsilon n}).
+\]
+Thus the qualitative subexponential barrier predates \cref{thm:main}; the
+present theorem sharpens its polynomial prefactor by a factor of $n^2$.
+
 The corollary does not obstruct lower-bound measures that fail this
 copy-superadditivity condition or that explicitly track the possibility of
 cross-instance sharing.  Rather, it identifies a structural requirement: a
@@ -954,25 +1043,46 @@ nonshareable charge to every copy of a function.
 \section{Discussion and limitations}
 
 \paragraph{Historical comparison.}
-The theorem and its proof are self-contained, but this manuscript deliberately
-makes no historical novelty claim.  Such a claim requires a full quantitative
-comparison with the simultaneous-realization results of Paul, Uhlig, and
-Albrecht, including their circuit conventions and leading constants.
+The introduction gives theorem-level comparisons with the verified Uhlig and
+Paul bounds and records the limited comparison that the available
+primary-source evidence supports for Albrecht.  Because Albrecht's quantitative
+theorems have not been checked from the full text, this manuscript deliberately
+makes no historical priority claim.  This limitation concerns the novelty
+comparison, not the self-contained argument proved here.
 
 \paragraph{Leading constants.}
-The proof uses a constant-rate code whose rate becomes small as $\ell$ grows,
-generic sorting networks, and repeated bootstrapping.  These choices make no
-attempt to control $A_\gamma$.  Our argument does not determine whether the
-one-copy Shannon--Lupanov leading constant for this basis can be retained for
-any fixed exponential number of copies; a claim that this is open must await
-the full historical comparison above.
+The resource term pays for $q^\ell$ code symbols while carrying
+$s_0^\ell$ information symbols.  Since $s_0/q$ tends to $1/\ell$ for fixed
+$\ell$ as $q$ grows, the ratio $q^\ell/s_0^\ell$ is roughly $\ell^\ell$.
+Moreover, synthesizing the resource functions separately introduces the factor
+$n/d$, which is approximately $1/\gamma$ in a bootstrap step.  Thus, normalized
+by $2^n/n$, the recursive coefficient is multiplied by roughly
+$\ell^\ell/\gamma$ even before field-size rounding, and repeated bootstrapping
+compounds the loss.  The scheduler and routing terms are exponentially lower
+order for every fixed exponent margin, so improving their constant factors
+alone would not recover a sharp leading term.  Our argument therefore does not
+determine whether the one-copy Shannon--Lupanov leading constant for this basis
+can be retained for any fixed exponential number of copies.  We make no claim
+about whether the existing literature settles that question.
 
 \paragraph{The endpoint.}
 The theorem reaches $2^{(1-\varepsilon)n}$ copies for every fixed
 $\varepsilon>0$, but does not treat a rate that approaches one with $n$.
-Our construction therefore leaves the transition near $t=2^n$ unresolved; a
-quantitatively sharper schedule or a different recursive decomposition would
-be natural approaches.
+Some degradation in that regime is forced.  If $n\ge2$ and $f$ depends on all
+$n$ of its variables, every output of a circuit for $f^{\times t}$ is a gate,
+and each of the $tn$ inputs must feed at least one gate, since otherwise the
+corresponding output would not depend on it.  Since gates have fan-in at most
+two,
+\[
+  \C(f^{\times t})\ge\frac{tn}{2}.
+\]
+A bound of the form $A\,2^n/n$ therefore cannot hold once
+$t>2A\cdot2^n/n^2$; in particular, a uniform $O(2^n/n)$ plateau must fail for
+$t=\omega(2^n/n^2)$.  The theorem still leaves the detailed mass-production
+curve throughout the near-endpoint regime $t=2^{n-o(n)}$ unresolved.
+Determining how far the plateau extends, and then characterizing the growth
+beyond it, would require a quantitatively sharper schedule or a different
+recursive decomposition.
 
 \paragraph{Restricted models.}
 The construction uses arbitrary routing, finite-field linear reconstruction,
@@ -1003,6 +1113,12 @@ Kenneth E. Batcher.
 \newblock In \emph{Proceedings of the 1968 Spring Joint Computer Conference},
 AFIPS Conference Proceedings 32, pages 307--314, 1968.
 \newblock \href{https://doi.org/10.1145/1468075.1468121}{doi:10.1145/1468075.1468121}.
+
+\bibitem{FazeliVardyYaakobi2015}
+Arman Fazeli, Alexander Vardy, and Eitan Yaakobi.
+\newblock PIR with low storage overhead: Coding instead of replication.
+\newblock arXiv:1505.06241, 2015.
+\newblock \url{https://arxiv.org/abs/1505.06241}.
 
 \bibitem{HolzbaurEtAl2020}
 Lukas Holzbaur, Rina Polyanskaya, Nikita Polyanskii, and Ilya Vorobyev.
