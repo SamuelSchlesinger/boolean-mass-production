@@ -31,8 +31,10 @@ and takes responsibility for the paper.
 
 ## Repository contents
 
-- `main.tex` is the canonical source.
-- `main.pdf` is the checked-in, reproducibly generated manuscript.
+- `main.tex` is the canonical source and defaults to double-blind submission
+  mode; switch `\anonymoustrue` to `\anonymousfalse` for an identified
+  camera-ready version.
+- `main.pdf` is the checked-in, reproducibly generated anonymous manuscript.
 - `build.sh` builds the PDF and rejects LaTeX warnings.
 - `.githooks/pre-commit` checks that a staged PDF matches the staged source.
 

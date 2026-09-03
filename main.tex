@@ -31,9 +31,10 @@
 \newcommand{\xor}{\mathbin{\oplus}}
 \newcommand{\bigxor}{\bigoplus}
 
-% Set \anonymoustrue for a double-blind submission.
+% Keep the checked-in manuscript in double-blind submission form.  Switch to
+% \anonymousfalse for an identified public or camera-ready version.
 \newif\ifanonymous
-\anonymousfalse
+\anonymoustrue
 
 \title{\textbf{Exponential-Range Mass Production of Boolean Functions}\\[0.35em]
 \large Local recovery, disjoint scheduling, and bounded congestion}
@@ -80,14 +81,9 @@ copy exponents
   \frac12,\frac23,\frac34,\ldots,
 \]
 which approach one.
-
-This work was developed with substantive AI assistance.  It began in a
-ChatGPT.com conversation that the author exported as a \LaTeX{} document.
-Later interactive sessions used Claude Fable~5 and 5.1 through Claude Code,
-and ChatGPT~5.6 Sol through Codex.  These systems contributed to experiments,
-broad literature searches, and several core parts of the proof strategy and
-its internal constructions.  The author checked the arguments and citations
-and is responsible for the paper.
+Unlike a purely combinatorial batch-code guarantee, the schedule here is
+computed from the input addresses and its Boolean gates are included in the
+circuit bound.
 \end{abstract}
 
 \section{Introduction}
@@ -242,9 +238,9 @@ inside each group and the preceding statement is invoked on the other blocks.
 
 \subsection{Relation to earlier work}
 
-The closest asymptotic guarantees are summarized below.  Here ``one-copy
-leading term'' means the basis-dependent Shannon--Lupanov worst-case
-asymptotic.
+The closest asymptotic guarantees and the main coding antecedent are summarized
+below.  Here ``one-copy leading term'' means the basis-dependent
+Shannon--Lupanov worst-case asymptotic.
 
 \begin{center}
 \small
@@ -268,6 +264,10 @@ Albrecht, Theorem~1 \cite{Albrecht1989}
   & $t\le2^n$
   & $O(2^n n^2)$
   & the full exponential range, with polynomial overhead \\
+IKOS batch codes \cite{IKOS2004}
+  & code-dependent batch size
+  & disjoint local recovery; no bound on $\C(f^{\times t})$
+  & supplies the closest coding and affine-line antecedent \\
 This paper
   & $t\le2^{\gamma n}$ for fixed $\gamma<1$
   & $O_\gamma(2^n/n)$
@@ -293,13 +293,34 @@ does not give a constant-factor plateau at the one-copy scale.
 The coding interpretation begins with Uhlig's two-copy construction, which is
 the length-$(2^p+1)$ single-parity-check code viewed as a two-request disjoint
 recovery code.  Systematic multivariate polynomial evaluation, recovery on
-affine lines, and the use of disjoint recovery sets appear in the batch-code
-literature, especially Section~3.4 of Ishai--Kushilevitz--Ostrovsky--Sahai
-\cite{IKOS2004}.  Their geometric procedure chooses lines randomly and deletes
-intersections.  The construction here instead gives a deterministic greedy
-selection circuit, partitions requests into groups, recursively absorbs the
-resulting inter-group congestion, and charges the scheduler and fixed-wire
-routing explicitly.  We make no priority claim for these refinements.
+affine lines, and disjoint recovery sets are established batch-code tools,
+especially in Section~3.4 of Ishai--Kushilevitz--Ostrovsky--Sahai
+\cite{IKOS2004}.  Their construction chooses random affine lines and deletes
+intersections while preserving enough points for interpolation.  Their
+Remark~3.11 also observes that the randomized decoding algorithms in that and
+the following sections can be derandomized using limited independence.
+
+That derandomization does not by itself give the circuit bound proved here.
+The requested prefixes are input wires of the mass-production circuit, so a
+schedule valid for one fixed request multiset cannot be chosen once and
+hardwired: the circuit must map every possible multiset of target addresses to
+valid recovery records, and all gates performing that map count toward
+$\C(f^{\times t})$.  A generic polynomial-time or polynomial-size batch decoder
+would give only an unspecified polynomial bound in the exponentially large code
+length and batch size.  Such a bound need not fit below $O(2^n/n)$ and therefore
+cannot justify our conclusion without finer analysis.  The results cited above
+do not state the required fine-grained Boolean-circuit bound on this
+target-to-record map.
+
+The quantitative distinction is explicit in our scheduler-sensitive
+composition theorem, \cref{prop:scheduler-sensitive}.  For a
+group of $g$ requests, our scheduler has size
+$\widetilde O_\ell(g^2q)$.  Dividing $t$ requests among $C$ groups changes the
+total scheduling cost to
+$\widetilde O_\ell(t^2q/C+Cq)$ and limits every resource to $C$ suffixes.
+The bounded-congestion composition then pays for those suffixes recursively.
+This scheduler cost, rather than the mere existence of disjoint recovery sets,
+is what drives the equal-block induction.
 
 Later lifted-polynomial constructions also use line-based recovery to obtain
 batch-code guarantees \cite{HolzbaurEtAl2020}.  Private-information-retrieval
@@ -309,10 +330,15 @@ information symbol has many disjoint recovery options
 proof of \cref{thm:main} uses only the elementary product-code and affine-line
 facts proved below.
 
-Independently of historical priority, the technical contribution established
-here is a self-contained deterministic disjoint-line scheduler, an explicit
-fixed-wire scatter/gather implementation, and the bounded-congestion
-composition that drives the equal-block induction.
+We claim no novelty for evaluation coding, affine-line recovery, or disjoint
+recovery as combinatorial ingredients.  The claimed contribution is the
+fine-grained deterministic scheduler and fixed-wire scatter/gather circuits,
+the bounded-congestion composition that makes their costs affordable, and the
+resulting exponential-range mass-production theorem.  A sufficiently sharper
+implementation of the deletion-based batch decoder could conceivably improve
+the scheduler term; in particular, a $\widetilde O(tq)$ disjoint-recovery
+scheduler would remove the present recursion, as discussed in
+\cref{sec:discussion}.
 
 \paragraph{Machine-checked companion.}
 An accompanying Lean~4 development formalizes the circuit model, local
@@ -320,19 +346,17 @@ recovery, constructive scheduler and routing, composition bound, and
 equal-block induction.  It proves a rational, discrete-exponent form of
 \cref{thm:main}; the stated real-rate version follows by choosing a slightly
 larger rational exponent and absorbing finitely many initial input lengths.
+\ifanonymous
+The public repository URL is omitted during double-blind review.
+\else
 The source is available at
 \url{https://github.com/SamuelSchlesinger/algebraic-circuits}.
+\fi
 
-\paragraph{AI-assisted development and provenance.}
-
-The project began in an interactive conversation on ChatGPT.com, exported to
-the author's computer as a \LaTeX{} document.  Later work used Claude
-Fable~5 and 5.1 through Claude Code and ChatGPT~5.6 Sol through Codex in a
-series of interactive sessions.  These systems assisted with mathematical
-experiments, broad literature searches, and parts of the proof strategy and
-its internal constructions; their role went beyond prose editing.  The author
-chose which directions to pursue, checked and revised the arguments and
-literature claims, and takes responsibility for the paper.
+\paragraph{Development methodology.}
+Generative-AI systems materially assisted mathematical experiments,
+literature discovery, and proof development.  The required detailed disclosure
+appears at the end of the paper.
 
 \section{Circuit conventions and worst-case notation}
 
@@ -800,6 +824,43 @@ suffix.  One circuit for $H_{y,r}^{\times C}$, of size at most $L_C(d)$,
 serves exactly this bounded demand.  There are $q^\ell b$ such pairs, and no
 sharing between different pairs is assumed.
 
+The next statement isolates the circuit-theoretic information that a local
+recovery construction must supply.  Combinatorial existence of disjoint
+recovery sets is not enough: their selection cost appears explicitly as $S$.
+
+\begin{proposition}[Scheduler-sensitive composition]
+\label{prop:scheduler-sensitive}
+Fix $\ell\ge2$ and the local-recovery gadget for a split $n=p+d$.  Let
+$C\ge1$, set $g=\lceil t/C\rceil$, and suppose that, for every group size
+$1\le h\le g$, a Boolean circuit of size at most $S(g,q)$ maps every multiset
+of $h$ information points to enumerated pairwise disjoint affine-line recovery
+sets.  Then
+every $f:\bits^n\to\bits$ satisfies
+\begin{equation}\label{eq:scheduler-sensitive}
+\C(f^{\times t})
+\le q^\ell b\,L_C(d)
+   +C S(g,q)
+   +\widetilde O_\ell\!\left(tq+Cq^\ell\right).
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Map the requested prefixes to their information points and bit positions, and
+partition them into the $C$ fixed groups.  The mapping costs
+$\widetilde O_\ell(t)$ gates, and the assumed schedulers cost $C S(g,q)$.
+Their within-group disjointness gives the bounded-demand invariant above.
+
+For every pair $(y,r)$, evaluate $H_{y,r}^{\times C}$ on the canonical group
+slots, padding absent requests by a fixed dummy suffix.  These resource circuits
+cost $q^\ell bL_C(d)$ in total.  The scatter and gather cost
+$\widetilde O_\ell(tq+Cq^\ell)$ by \cref{lem:routing}.  Finally, XOR the
+$q-1$ returned field values for each request and select the requested coordinate
+bit.  This costs $O(tqb)$ and is correct by \cref{lem:line}.  All remaining
+mapping and decoding costs are absorbed in the displayed overhead.  The
+polynomials $P_z$ and functions $H_{y,r}$ specify nonuniform resource truth
+tables; no run-time encoder is being assumed.
+\end{proof}
+
 \begin{proposition}[Composition bound]\label{prop:master}
 Fix $\ell\ge2$.  Let $n=p+d$ with $p$ sufficiently large depending on
 $\ell$, choose $q=2^b$ minimally so that $s_0^\ell b\ge2^p$, and suppose
@@ -826,35 +887,18 @@ stays at scale $2^n/n$ and all three bookkeeping terms are exponentially
 smaller.
 
 \begin{proof}
-Map every requested prefix $a$ to its information point $u(a)$ and bit position
-$j(a)$ using the canonical packing circuit.  In each request group, use
-\cref{lem:scheduler} to select and enumerate a recovery line.  Together these
-steps cost
-$\widetilde O_\ell(t)+\widetilde O_\ell(t^2q/C+Cq)$ gates.  Each non-target
-point $y$ on a selected line requests $G_y$ on the suffix of the corresponding
-output instance.
-
-For each pair $(y,r)$, use the $H_{y,r}^{\times C}$ circuit from the
-bounded-demand invariant on the canonical group slots.  The definition of
-$L_C(d)$ applies separately to each induced function $H_{y,r}$, so these
-circuits cost $q^\ell bL_C(d)$ in total.  The complete scatter, gather, and
-fixed-wire compaction pipeline costs
-$\widetilde O_\ell(tq+Cq^\ell)$ by \cref{lem:routing}.  Field addition is
-coordinatewise XOR in the fixed $\F_2$ basis, so XORing the $q-1$ returned
-$b$-bit values of a request and selecting bit $j(a)$ costs $O(qb)$ per request
-and $O(tqb)$ in total.  Since each selected line passes through its target
-$u(a)$ and $\deg P_z\le q-2$, \cref{lem:line} shows that this XOR equals
-$P_z(u(a))$ for the request's suffix $z$, and bit $j(a)$ of that symbol is
-$f(a,z)$ by the packing of \cref{subsec:packing}.  The circuit therefore
-computes $f^{\times t}$.
-
-The polynomial $P_z$ and the functions $G_y$ specify the nonuniform resource
-truth tables; no run-time encoder is being assumed.  Since $q\ge2$, all
-smaller terms in this gate ledger are absorbed by the overhead in
-\eqref{eq:master}, proving the bound.
+Put $g=\lceil t/C\rceil$.  The scheduling condition lets us apply
+\cref{lem:scheduler} with
+$S(g,q)=\widetilde O_\ell(g^2q)$.  Moreover,
+\[
+  Cg^2q
+  \le C\left(\frac{t}{C}+1\right)^2q
+  =O\!\left(\frac{t^2q}{C}+tq+Cq\right).
+\]
+Apply \cref{prop:scheduler-sensitive}; the $tq$ term is already present, and
+$Cq$ is absorbed by $Cq^\ell$ because $q\ge2$ and $\ell\ge2$.
 \end{proof}
 
-\clearpage
 \section{The equal-block induction}\label{sec:induction}
 
 We now apply the composition bound recursively.  At level $k$, split the input
@@ -1183,11 +1227,22 @@ $\poly_\ell(n,\log q,\log t,\log C)$, so the standard primitives from the
 circuit conventions give the stated bound.
 \end{proof}
 
-\clearpage
-\begin{thebibliography}{99}
+\section*{AI Disclosure}
+
+This project began in an interactive conversation on ChatGPT.com that was
+exported to the author's computer as a \LaTeX{} document.  Later interactive
+sessions used Claude Fable~5 and 5.1 through Claude Code and ChatGPT~5.6 Sol
+through Codex.  These systems materially influenced the mathematical
+experiments, broad literature searches, proof strategy, and internal
+constructions, including the scheduling and recursive-composition approach;
+their role went beyond prose editing.  The author selected the directions to
+pursue, checked and revised the proofs and literature claims, and takes full
+responsibility for the correctness, originality, and integrity of the paper.
+
+\begin{thebibliography}{HPPV20}
 \small
 
-\bibitem{Albrecht1989}
+\bibitem[Alb89]{Albrecht1989}
 Andreas Albrecht.
 \newblock On simultaneous realizations of Boolean functions, with applications.
 \newblock In \emph{Parcella '88: Proceedings of the Fourth International
@@ -1195,40 +1250,40 @@ Workshop on Parallel Processing by Cellular Automata and Arrays}, LNCS 342,
 pages 51--56. Springer, 1989.
 \newblock \href{https://doi.org/10.1007/3-540-50647-0_102}{doi:10.1007/3-540-50647-0\_102}.
 
-\bibitem{Batcher1968}
+\bibitem[Bat68]{Batcher1968}
 Kenneth E. Batcher.
 \newblock Sorting networks and their applications.
 \newblock In \emph{Proceedings of the 1968 Spring Joint Computer Conference},
 AFIPS Conference Proceedings 32, pages 307--314, 1968.
 \newblock \href{https://doi.org/10.1145/1468075.1468121}{doi:10.1145/1468075.1468121}.
 
-\bibitem{FazeliVardyYaakobi2015}
+\bibitem[FVY15]{FazeliVardyYaakobi2015}
 Arman Fazeli, Alexander Vardy, and Eitan Yaakobi.
 \newblock PIR with low storage overhead: Coding instead of replication.
 \newblock arXiv:1505.06241, 2015.
 \newblock \url{https://arxiv.org/abs/1505.06241}.
 
-\bibitem{FrandsenMiltersen2005}
+\bibitem[FM05]{FrandsenMiltersen2005}
 Gudmund Skovbjerg Frandsen and Peter Bro Miltersen.
 \newblock Reviewing bounds on the circuit size of the hardest functions.
 \newblock \emph{Information Processing Letters}, 95(2):354--357, 2005.
 \newblock \href{https://doi.org/10.1016/j.ipl.2005.03.009}{doi:10.1016/j.ipl.2005.03.009}.
 
-\bibitem{HolzbaurEtAl2020}
+\bibitem[HPPV20]{HolzbaurEtAl2020}
 Lukas Holzbaur, Rina Polyanskaya, Nikita Polyanskii, and Ilya Vorobyev.
 \newblock Lifted Reed--Solomon codes with application to batch codes.
 \newblock In \emph{2020 IEEE International Symposium on Information Theory},
 pages 634--639. IEEE, 2020.
 \newblock \href{https://doi.org/10.1109/ISIT44484.2020.9174402}{doi:10.1109/ISIT44484.2020.9174402}.
 
-\bibitem{IKOS2004}
+\bibitem[IKOS04]{IKOS2004}
 Yuval Ishai, Eyal Kushilevitz, Rafail Ostrovsky, and Amit Sahai.
 \newblock Batch codes and their applications.
 \newblock In \emph{Proceedings of the 36th Annual ACM Symposium on Theory of
 Computing}, pages 262--271. ACM, 2004.
 \newblock \href{https://doi.org/10.1145/1007352.1007396}{doi:10.1145/1007352.1007396}.
 
-\bibitem{Kretschmer2023}
+\bibitem[Kre23]{Kretschmer2023}
 William Kretschmer.
 \newblock Quantum mass production theorems.
 \newblock In \emph{18th Conference on the Theory of Quantum Computation,
@@ -1236,26 +1291,26 @@ Communication and Cryptography}, LIPIcs 266, Article 10, pages 10:1--10:11,
 2023.
 \newblock \href{https://doi.org/10.4230/LIPIcs.TQC.2023.10}{doi:10.4230/LIPIcs.TQC.2023.10}.
 
-\bibitem{Lupanov1958}
+\bibitem[Lup58]{Lupanov1958}
 Oleg B. Lupanov.
 \newblock On a method of circuit synthesis.
 \newblock \emph{Izvestiya VUZ, Radiofizika}, 1(1):120--140, 1958.
 \newblock In Russian.
 \newblock \url{https://radiophysics.unn.ru/issues/1958/1/120}.
 
-\bibitem{Paul1976}
+\bibitem[Pau76]{Paul1976}
 Wolfgang J. Paul.
 \newblock Realizing Boolean functions on disjoint sets of variables.
 \newblock \emph{Theoretical Computer Science}, 2(3):383--396, 1976.
 \newblock \href{https://doi.org/10.1016/0304-3975(76)90089-X}{doi:10.1016/0304-3975(76)90089-X}.
 
-\bibitem{Shannon1949}
+\bibitem[Sha49]{Shannon1949}
 Claude E. Shannon.
 \newblock The synthesis of two-terminal switching circuits.
 \newblock \emph{Bell System Technical Journal}, 28(1):59--98, 1949.
 \newblock \href{https://doi.org/10.1002/j.1538-7305.1949.tb03624.x}{doi:10.1002/j.1538-7305.1949.tb03624.x}.
 
-\bibitem{Uhlig1974}
+\bibitem[Uhl74]{Uhlig1974}
 Dietmar Uhlig.
 \newblock On the synthesis of self-correcting schemes from functional elements
 with a small number of reliable elements.
@@ -1263,7 +1318,7 @@ with a small number of reliable elements.
 15(6):558--562, 1974.
 \newblock \href{https://doi.org/10.1007/BF01152835}{doi:10.1007/BF01152835}.
 
-\bibitem{Uhlig1992}
+\bibitem[Uhl92]{Uhlig1992}
 Dietmar Uhlig.
 \newblock Networks computing Boolean functions for multiple input values.
 \newblock In M. S. Paterson, editor, \emph{Boolean Function Complexity},
@@ -1271,7 +1326,7 @@ London Mathematical Society Lecture Note Series 169, pages 165--173. Cambridge
 University Press, 1992.
 \newblock \href{https://doi.org/10.1017/CBO9780511526633.013}{doi:10.1017/CBO9780511526633.013}.
 
-\bibitem{Wegener1987}
+\bibitem[Weg87]{Wegener1987}
 Ingo Wegener.
 \newblock \emph{The Complexity of Boolean Functions}.
 \newblock Wiley--Teubner, 1987.
