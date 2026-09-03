@@ -10,8 +10,9 @@ Validates:
   5. A fixed linear sketch supports coordinatewise-AND updates exactly when
      its kernel is a coordinate ideal, in the tested range.
   6. A one-row dense parity sketch need not commute with coordinatewise AND.
+  7. Same-line local recoveries cancel by symmetric difference.
 
-Expected output: four PASS lines followed by "all finite checks passed".
+Expected output: seven PASS lines followed by "all finite checks passed".
 """
 
 from __future__ import annotations
@@ -198,12 +199,42 @@ def check_and_obstruction() -> None:
     print("PASS parity-sketch AND obstruction")
 
 
+def check_recovery_boundary() -> None:
+    # A characteristic-two affine line has even size q.  The recovery set for
+    # position u is every other position on the line.  XORing the recovery
+    # vectors leaves T when |T| is even and its complement when |T| is odd.
+    for line_size in (2, 4, 8):
+        full_line = (1 << line_size) - 1
+        recoveries = tuple(full_line ^ (1 << point) for point in range(line_size))
+        for target_set in range(1 << line_size):
+            boundary = 0
+            for point, recovery in enumerate(recoveries):
+                if (target_set >> point) & 1:
+                    boundary ^= recovery
+            expected = (
+                full_line ^ target_set
+                if target_set.bit_count() & 1
+                else target_set
+            )
+            assert boundary == expected, (line_size, target_set, boundary)
+
+            # Verify the corresponding parity identity on every even-parity
+            # line word, the binary form of sum_{z in L} P(z) = 0.
+            for codeword in range(1 << line_size):
+                if parity(codeword) == 0:
+                    assert parity(target_set & codeword) == parity(
+                        boundary & codeword
+                    )
+    print("PASS same-line recovery cancellation")
+
+
 def main() -> None:
     check_zero_avoiding_sketches()
     check_reed_muller()
     check_subspace_information_sets()
     check_ideal_kernel_characterization()
     check_and_obstruction()
+    check_recovery_boundary()
     print("all finite checks passed")
 
 

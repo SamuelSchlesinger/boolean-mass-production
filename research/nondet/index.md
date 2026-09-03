@@ -1,4 +1,4 @@
-# Compressing Nondeterminism with Codes and Shared Evaluation
+# Coding Witness Fibers
 
 This research corpus supports the standalone note `nondet.tex`. Its purpose is
 to determine exactly what the mass-production construction says about a
@@ -50,6 +50,8 @@ The final note must distinguish five epistemic levels:
   `main.tex` batch all `2^M` witnesses?
 - `[PROVE]` What does identical-suffix sharing remove, and what
   distinct-resource cost remains?
+- `[PROVE]` When parity branches share one input, how do repeated local
+  recovery incidences cancel, and what resource-map cost remains?
 - `[PROVE]` Does an `f`-dependent linear map with `N+1` rows detect all realized
   nonzero witness fibers?
 - `[KNOWN INPUT + PROVE COROLLARY]` How do code distance and isolation relate
@@ -73,7 +75,7 @@ The final note must distinguish five epistemic levels:
 - [`data/check_finite_claims.py`](data/check_finite_claims.py) exhaustively
   checks small instances of the zero-avoiding sketch bound, Reed-Muller
   distance and information sets, general subspace information sets, and the
-  ideal-kernel characterization. It prints six `PASS` lines and then
+  ideal-kernel and recovery-boundary identities. It prints seven `PASS` lines and then
   `all finite checks passed`.
 - [`data/audit_corpus.py`](data/audit_corpus.py) checks ASCII-only Markdown,
   unresolved placeholders, reference definitions, and local link targets. It
@@ -88,6 +90,8 @@ The final note must distinguish five epistemic levels:
   dominated by direct synthesis on the `N` deterministic variables.
 - The exact and approximate parity fingerprints reduce the number of
   measurements, not automatically the number of gates used to form them.
+- A small symmetric-difference recovery boundary helps only when the surviving
+  encoded resource functions also have a cheap joint circuit.
 - The exact fingerprint matrix and the density-based hitting set may depend on
   the complete relation. Their existence is nonuniform and does not give a
   polynomial-time compiler from a succinct verifier.

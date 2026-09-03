@@ -232,7 +232,64 @@ There are three different notions here.
 
 Consequently the common suffix removes the companion construction's *multiplicity of suffix evaluations per fixed resource*. It does not remove the `Theta_ell(2^M)` indexed resource coordinates that may remain when the coded prefix has length `p=M`; some coordinates could still define the same function. Separate worst-case synthesis costs `Theta_ell(2^M)L(N) = Theta_ell(2^(N+M)/N)`. Improving that term requires a joint multi-output or structure-sensitive synthesis argument.
 
-## 9. Four compression claims that must not be conflated
+## 9. Recovery-boundary cancellation on a shared input
+
+Let `E : F_2^D -> F_2^Q` be an injective linear encoding. Write `E*` for its
+adjoint. For every message coordinate `i`, a linear recovery representation is
+a vector `b_i in F_2^Q` with
+
+``` text
+E* b_i = e_i.
+```
+
+Such a vector always exists because `E` is injective, although its weight may
+be large. If `R_i` is its support, then for every target set `T`,
+
+``` text
+XOR_{i in T} v_i
+  = XOR_{z in symmetric_difference_{i in T} R_i} (Ev)_z.
+```
+
+This follows from `E*(sum_i b_i)=sum_i e_i`. Over `F_2`, coordinates occurring
+an even number of times cancel. When the same deterministic input `x` is used
+on every branch, the repeated encoded coordinate is literally the same
+resource bit, so it needs to be evaluated only once. With independent batch
+inputs, equal coordinate names generally carry different values and do not
+cancel.
+
+For the affine-line identity in the companion manuscript, recovering every
+`u in T` through one line `L` gives boundary
+
+``` text
+T       if |T| is even,
+L \ T   if |T| is odd.
+```
+
+Since `q=|L|` is even, the parity of `q-1` target values collapses to the one
+remaining line symbol. The finite checker verifies this identity for every
+even-parity line word at line sizes 2, 4, and 8.
+
+For fingerprint rows `a_j`, choose representations `E* b_j=a_j`, let `Z` be
+the union of their supports, and let `B_E(Z)` be the joint circuit complexity
+of the resource map
+
+``` text
+x -> ((E v_x)_z)_{z in Z}.
+```
+
+Then the standard-basis circuit bound is
+
+``` text
+C(g) <= B_E(Z) + 4 sum_j max(0, wt(b_j)-1) + r - 1.
+```
+
+This is an exact bridge from local recovery to nondeterministic sharing. It is
+not a generic improvement: choosing an encoding whose coordinates are the
+desired aggregates makes the boundary sparse tautologically, but may make
+`B_E(Z)` just as hard as the original projection. A useful construction must
+control the fingerprint, recovery boundary, and resource evaluator together.
+
+## 10. Four compression claims that must not be conflated
 
 | Claim | Formal quantity reduced | Does it by itself reduce gates? |
 |----|----|----|

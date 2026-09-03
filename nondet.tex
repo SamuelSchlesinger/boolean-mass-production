@@ -1,0 +1,1360 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs,tabularx}
+\usepackage{enumitem}
+\usepackage{aliascnt}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=true,linkcolor=MidnightBlue,citecolor=BrickRed,
+            urlcolor=MidnightBlue]{hyperref}
+\usepackage[nameinlink,capitalise,noabbrev]{cleveref}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\setlist{itemsep=0.22em,topsep=0.35em}
+\allowdisplaybreaks
+
+\newtheorem{theorem}{Theorem}[section]
+\newaliascnt{lemma}{theorem}
+\newtheorem{lemma}[lemma]{Lemma}
+\aliascntresetthe{lemma}
+\newaliascnt{proposition}{theorem}
+\newtheorem{proposition}[proposition]{Proposition}
+\aliascntresetthe{proposition}
+\newaliascnt{corollary}{theorem}
+\newtheorem{corollary}[corollary]{Corollary}
+\aliascntresetthe{corollary}
+\theoremstyle{definition}
+\newaliascnt{definition}{theorem}
+\newtheorem{definition}[definition]{Definition}
+\aliascntresetthe{definition}
+\theoremstyle{remark}
+\newaliascnt{remark}{theorem}
+\newtheorem{remark}[remark]{Remark}
+\aliascntresetthe{remark}
+
+\newcommand{\bits}{\{0,1\}}
+\newcommand{\F}{\mathbb F}
+\newcommand{\C}{\mathrm C}
+\newcommand{\MP}{\mathrm{MP}}
+\newcommand{\Span}{\operatorname{span}}
+\newcommand{\wt}{\operatorname{wt}}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\poly}{\operatorname{poly}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\had}{\mathbin{\odot}}
+\newcommand{\status}[1]{\textsc{#1}}
+
+% Set \anonymoustrue for an author-anonymous review copy.
+\newif\ifanonymous
+\anonymousfalse
+
+\title{\textbf{Coding Witness Fibers}\\[0.35em]
+\large Exact reductions, shared-evaluation tricks, and barriers for
+existential circuit projection}
+\ifanonymous
+  \author{}
+  \date{}
+  \hypersetup{
+    pdftitle={Coding Witness Fibers},
+    pdfauthor={}
+  }
+\else
+  \author{Samuel Schlesinger}
+  \date{September 2026}
+  \hypersetup{
+    pdftitle={Coding Witness Fibers},
+    pdfauthor={Samuel Schlesinger}
+  }
+\fi
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Let $N\ge1$, $M\ge0$, let $f:\bits^N\times\bits^M\to\bits$ be a Boolean
+verifier, and let
+$g(x)=\bigvee_y f(x,y)$.  We ask when the $2^M$ witness branches can be
+compressed into a small deterministic circuit for $g$.  A companion
+mass-production theorem can batch all branches whenever the deterministic
+input occupies a fixed positive fraction of the verifier input, but its
+resulting bound is worse by a factor $2^M$ than direct synthesis of the
+$N$-input function $g$.  The useful change of viewpoint is therefore to code
+the entire witness fiber
+\[
+  v_x=(f(x,y))_{y\in\bits^M},
+\]
+not merely to batch its coordinates.
+
+This viewpoint gives three exact reductions.  If the span of the realized
+fibers has dimension $R$, an information set of $R$ actual witnesses
+determines whether every fiber is zero.  If every nonempty fiber has density
+at least $\delta$ and there are $K$ distinct nonempty fibers, a fixed hitting
+set of about $(\log(K+1))/\delta$ actual witnesses suffices.  Without either
+promise, an $f$-dependent linear map with at most $\min\{N,2^M\}$ output bits
+separates every realized nonzero fiber from zero; this worst-case measurement
+count is exact.  With one-sided distributional error $0<\rho\le1$, only
+$\lceil\log_2(1/\rho)\rceil$ random parity measurements are needed.
+
+The last reduction compresses measurements, not gates.  A recovery-boundary
+identity does expose a shared-input trick: when parity branches are decoded
+through a linear local-recovery code, repeated resource incidences cancel by
+symmetric difference.  Its circuit benefit is conditional on the surviving
+resource functions having a cheap joint evaluator.  We then prove an exact
+obstruction: if one fixed linear sketch supports a correct update through
+coordinatewise AND on all profiles, its kernel is a coordinate ideal.  Up to
+a change of basis, such a sketch merely retains actual witness coordinates.
+Thus a stronger construction must exploit reachable profiles, change
+encodings between gates, tolerate error, or use a projection-stable
+representation.  We derive concrete bounds for dense fibers, low witness
+degree, and supplied decomposable or bounded-width knowledge-compilation
+representations, and isolate the remaining aggregate-synthesis problem.  The
+elementary coding arguments are not claimed as literature-novel; the purpose
+of this note is to make the reductions, barrier, cancellation opportunity,
+and open target precise.
+\end{abstract}
+
+\clearpage
+
+\section{The question and the answer in one page}
+
+Fix a circuit for
+\[
+  f:\bits^N\times\bits^M\longrightarrow\bits,
+  \qquad
+  g(x)=\bigvee_{y\in\bits^M}f(x,y),
+  \tag{1.1}\label{eq:projection}
+\]
+and write $S=\C(f)$.  Throughout, $N\ge1$ and $M\ge0$; if $N=0$, the
+projection is one free constant and needs no circuit.  The $x$ bits are the
+deterministic input and the $y$ bits are nondeterministic choices.  The
+elementary simulation uses one
+restricted copy of $f$ per witness:
+\[
+  \C(g)\le 2^M S+2^M-1.
+  \tag{1.2}\label{eq:replication-intro}
+\]
+The central question is whether common input and coding let us replace the
+factor $2^M$ by something smaller.
+
+The answer has two layers.  At the level of information, yes: the $2^M$
+witness branches can often be replaced by a short list of actual witnesses,
+and they can always be replaced by at most $N$ parity measurements when
+$N\le2^M$.  At the level of unrestricted circuit gates, not automatically:
+forming a parity such as
+\[
+  x\longmapsto\bigoplus_{y\in T}f(x,y)
+  \tag{1.3}\label{eq:parity-aggregate}
+\]
+may itself contain essentially all of the work.
+
+Here is the map.  Put $D=2^M$; let $K$ count the distinct nonempty witness
+fibers, let $R$ be their span dimension, and let $\delta$ be their minimum
+relative weight; $0<\rho\le1$ is a target distributional error.  If $K=0$,
+then $g=0$ is free, so the nontrivial rows below assume $K\ge1$.
+
+\begin{center}
+\scriptsize
+\begin{tabularx}{\linewidth}{@{}
+  >{\raggedright\arraybackslash}p{0.17\linewidth}
+  >{\raggedright\arraybackslash}p{0.27\linewidth}
+  >{\raggedright\arraybackslash}p{0.20\linewidth}
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+Method & Hypothesis and dependence & Summaries & Gate conclusion \\
+\midrule
+Full enumeration
+  & none
+  & $D$ actual witnesses
+  & $D(S+1)-1$ gates \\
+Span information set
+  & $f$-dependent; fiber-span dimension $R$
+  & $R$ actual witnesses
+  & $R(S+1)-1$ gates \\
+Dense-fiber hitting
+  & density $\delta$; $f$-dependent
+  & $O((\log(K+1))/\delta)$ actual witnesses
+  & same factor times $S+1$ \\
+Exact linear fingerprint
+  & no promise; $f$-dependent masks
+  & $O(\log(K+1))$ parities; at most $\min\{N,D\}$
+  & exact zero test; aggregate cost unpaid \\
+Approximate fingerprint
+  & fixed $\mu$: $f,\mu$-dependent mask; or a fresh mask per evaluation
+  & $\lceil\log_2(1/\rho)\rceil$ parities
+  & one-sided error $\rho$; aggregate cost unpaid \\
+DNNF forgetting
+  & a decomposable NNF (DNNF) is supplied
+  & decomposable subcircuits
+  & linear-size projection from a supplied DNNF \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\paragraph{The coding move.}
+Regard $x\mapsto v_x$ as a codebook of at most $2^N$ realized words, and
+choose an $f$-dependent linear map whose kernel avoids every realized nonzero
+word.  This replaces the $D$ branch values by $O(\log(K+1))$ parity
+aggregates.  It is an exact compression of the zero test, not yet a smaller
+circuit: the aggregates still have to be computed from the succinct
+verifier.  \Cref{thm:exact-fingerprint} proves the compression.  In
+\cref{prop:recovery-boundary}, local-recovery equations cancel resource
+coordinates used an even number of times, leaving a symmetric-difference
+boundary whose joint evaluator is still charged.  Finally,
+\cref{thm:ideal-kernel} rules out universal propagation by one fixed linear
+sketch.
+
+The most useful conceptual distinction is
+\[
+  \boxed{\text{few summaries}\quad\ne\quad\text{few gates to produce them}.}
+  \tag{1.4}\label{eq:central-distinction}
+\]
+The ideal-kernel theorem in \cref{sec:and-barrier} makes this distinction
+formal for fixed linear sketches and AND gates.
+
+\clearpage
+\tableofcontents
+\clearpage
+
+\section*{Scope, contribution, and research process}
+\addcontentsline{toc}{section}{Scope, contribution, and research process}
+
+\paragraph{Contribution and scope.}
+The contribution claimed here is the integrated reduction-and-barrier
+framework, including the recovery-boundary bridge from local recovery to
+common-input parity aggregation, and the resulting specification of the
+aggregate-synthesis target.  No individual elementary coding lemma is claimed
+as literature-novel, and an unsuccessful search is not used as evidence of
+priority.
+
+\paragraph{Status of the claims.}
+Formal statements are marked \status{proved here}, \status{imported}, or
+\status{known}.  External facts and comparisons in the prose are cited where
+they are used.  Conditional reductions and unresolved directions are called
+conditional or open in the surrounding text.  The only imported technical
+theorem is the mass-production estimate from the companion manuscript
+\cite{Schlesinger2026}.
+
+\paragraph{Research-process disclosure.}
+This investigation was developed with substantive AI assistance.  The
+underlying mass-production project began in a ChatGPT.com conversation that
+the author exported as a \LaTeX{} document.  Later interactive sessions used
+Claude Fable~5 and 5.1 through Claude Code and GPT-5.6 Sol through Codex
+for experiments, broad literature searches, proof ideas, counterexample
+searches, and drafting.  The author checked the arguments and citations and is
+responsible for the note.
+
+\section{Baselines and what mass production does not yet buy}
+\label{sec:baselines}
+
+We use fan-in-two $\{\wedge,\vee,\neg\}$ circuits, with free constants,
+fan-out, and output designations; size counts gates.  For a Boolean map $h$
+with any finite output length, $\C(h)$ is its minimum size.  Let
+\[
+  L(N)=\max_{h:\bits^N\to\bits}\C(h).
+\]
+In this convention, as $N\to\infty$, classical synthesis gives
+\[
+  L(N)\le (1+o(1))\frac{2^N}{N};
+  \tag{2.1}\label{eq:lupanov}
+\]
+the sharp standard-basis statement used here is recorded by Frandsen and
+Miltersen \cite{FrandsenMiltersen2005}, following Lupanov's synthesis method
+\cite{Lupanov1958}.
+
+For $t\ge1$, let $f^{\times t}$ evaluate $f$ on $t$ independent input blocks,
+and set $\MP_t(f)=\C(f^{\times t})$.
+
+\begin{proposition}[The unconditional envelope; \status{proved here}]
+\label{prop:envelope}
+For every $N,M$ and $f$ as in \eqref{eq:projection},
+\[
+  \C(g)\le
+  \min\left\{
+    2^M\C(f)+2^M-1,
+    L(N),
+    \MP_{2^M}(f)+2^M-1
+  \right\}.
+  \tag{2.2}\label{eq:envelope}
+\]
+\end{proposition}
+
+\begin{proof}
+For the first bound, hardwire a different witness into each of $2^M$ copies
+of a circuit for $f$, identify all copies of the $x$ inputs, and join the
+outputs with a binary OR tree.  For the second, synthesize the $N$-input
+function $g$ directly.  For the third, begin with a circuit for
+$f^{\times 2^M}$, identify its deterministic input blocks, hardwire its
+witness blocks to all distinct values, and append the OR tree.  Restrictions,
+input identification, and repeated output designations add no gates.
+\end{proof}
+
+\subsection{The imported mass-production estimate}
+
+The companion manuscript proves the following independent-input statement.
+
+\begin{theorem}[Exponential-range mass production; \status{imported}]
+\label{thm:imported-mp}
+For every fixed $0\le\gamma<1$, there is $A_\gamma$ such that every
+$h:\bits^n\to\bits$ and every $1\le t\le2^{\gamma n}$ satisfy
+\[
+  \MP_t(h)\le A_\gamma\frac{2^n}{n}.
+  \tag{2.3}\label{eq:imported-mp}
+\]
+The high-rate version has normalized leading coefficient at most
+$1/(1-\gamma)$ \cite{Schlesinger2026}.
+\end{theorem}
+
+Apply this with $n=N+M$ and $t=2^M$.  One fixed $\gamma<1$ suffices along a
+family precisely when
+\[
+  \frac{M}{N+M}\le\gamma,
+  \tag{2.4}\label{eq:fixed-ratio}
+\]
+so the deterministic fraction remains bounded away from zero.  Along a
+sequence with $N+M\to\infty$ and $M/(N+M)\to\theta<1$, first use any fixed
+$\gamma>\theta$ and then let $\gamma\downarrow\theta$.  Since
+$(1-\theta)(N+M)=N+o(N+M)$, the imported coefficient gives
+\[
+  \C(g)
+  \le (1+o(1))\frac{2^{N+M}}{N}.
+  \tag{2.5}\label{eq:mp-projection}
+\]
+The appended OR tree is lower order because
+$2^M/(2^{N+M}/N)=N/2^N=o(1)$.  But direct synthesis gives
+$(1+o(1))2^N/N$.  The mass-production route is therefore worse by the factor
+$(1+o(1))2^M$.  This compares upper bounds, not the true complexity of a
+particular $g$.
+
+The conclusion is useful because it prevents a false start: the companion
+theorem does batch all witnesses in the fixed-ratio regime, but that fact
+alone gives no new worst-case determinization bound.  Existential projection
+has reduced the exposed input length from $N+M$ to $N$, and generic synthesis
+already exploits that reduction.
+
+\subsection{What identical deterministic inputs do remove}
+
+The common $x$ is not irrelevant.  It removes repeated evaluations of the
+same resource function at the same input.
+
+\begin{lemma}[Identical-call collapse; \status{proved here}]
+\label{lem:identical-call}
+Suppose a multi-output computation requests functions
+$H_{i_1},\ldots,H_{i_s}:\bits^N\to\bits$ all on the same input $x$.  Replacing
+the list by one representative of every distinct extensional function changes
+neither minimum circuit size nor the obtainable outputs, apart from free
+output designations.
+\end{lemma}
+
+\begin{proof}
+From representatives to the original list, repeat each representative output
+wire wherever it is requested.  In the other direction, discard duplicate
+outputs.  Both operations are free in the circuit model.
+\end{proof}
+
+For existential projection, every branch supplies the same $x$.  Duplicate
+requests for the same restricted function of $x$ can therefore be coalesced
+by free fan-out, but up to $2^M$ distinct restricted functions may remain.
+Common input compresses \emph{call multiplicity}; it does not by itself
+compress \emph{function multiplicity}.  The stronger parity-specific
+cancellation available inside a linear recovery code is isolated in
+\cref{sec:recovery-cancellation}.
+
+\section{The fiber code: dimension and distance from zero}
+\label{sec:fiber-code}
+
+Put $D=2^M$ and index the coordinates of $\F_2^D$ by witnesses.  For each
+$x\in\bits^N$, define its witness fiber vector
+\[
+  v_x=(f(x,y))_{y\in\bits^M}\in\F_2^D.
+  \tag{3.1}\label{eq:fiber-vector}
+\]
+Then $g(x)=1$ if and only if $v_x\ne0$.  Let
+\[
+  \mathcal V_f=\{v_x:v_x\ne0\},\qquad
+  K=|\mathcal V_f|,
+  \qquad
+  U_f=\Span(\mathcal V_f),\qquad
+  R=\dim U_f.
+  \tag{3.2}\label{eq:fiber-parameters}
+\]
+Thus $U_f$ is a binary linear code of length $D$.  The realized nonzero
+fibers need not include all of its nonzero codewords.
+
+\subsection{Dimension gives actual witnesses}
+
+\begin{lemma}[Information set; \status{proved here}]
+\label{lem:information-set}
+If $U\le\F_2^D$ has dimension $R$, there is a coordinate set
+$H\subseteq[D]$ of size $R$ such that restriction $U\to\F_2^H$ is injective.
+\end{lemma}
+
+\begin{proof}
+Put a basis of $U$ in the rows of an $R\times D$ matrix.  The matrix has $R$
+linearly independent columns.  Their indices form $H$, and restriction to
+those columns maps the chosen basis to an invertible $R\times R$ matrix.
+\end{proof}
+
+Translating coordinate indices back to witnesses gives an immediate circuit
+bound.
+
+\begin{corollary}[Span-dimension determinization; \status{proved here}]
+\label{cor:span-bound}
+If $R>0$, there is a fixed set $H\subseteq\bits^M$ of $R$ witnesses such that
+\[
+  g(x)=\bigvee_{y\in H}f(x,y),
+  \qquad
+  \C(g)\le R\C(f)+R-1.
+  \tag{3.3}\label{eq:span-bound}
+\]
+If $R=0$, then $g$ is constant zero.
+\end{corollary}
+
+This is a genuine gate bound: the summaries are actual restricted copies of
+the verifier.  It is nonuniform because the information set may depend on the
+complete relation.  Given the explicit fibers, Gaussian elimination finds it;
+no efficient procedure from a succinct circuit for $f$ is implied.
+
+\subsection{Realized-fiber density gives a hitting set}
+
+For a realized fiber, write $F_x=\{y:f(x,y)=1\}$.  Suppose every nonempty
+$F_x$ has relative size at least $\delta$.  The number of distinct nonempty
+sets is $K$, not necessarily $2^N$.
+
+\begin{theorem}[Dense-fiber hitting; \status{proved here}]
+\label{thm:dense-hitting}
+If $K\ge1$ and $0<\delta<1$, there is a fixed witness set $H$ with
+\[
+ |H|\le
+ \min\left\{
+   D,
+   \left\lfloor\frac{\ln K}{-\ln(1-\delta)}\right\rfloor+1
+ \right\}
+ \le \min\left\{D,\frac{\ln K}{\delta}+1\right\}.
+ \tag{3.4}\label{eq:dense-hitting}
+\]
+It intersects every nonempty fiber.  For $\delta=1$, one witness suffices.
+Consequently,
+\[
+  \C(g)\le |H|(\C(f)+1)-1.
+  \tag{3.5}\label{eq:dense-circuit}
+\]
+\end{theorem}
+
+\begin{proof}
+Choose $h$ uniform independent witnesses.  A fixed fiber is missed with
+probability at most $(1-\delta)^h$.  A union bound over the $K$ distinct
+fibers makes the failure probability less than one for the displayed value of
+$h$.  Remove repetitions, or use all $D$ witnesses if that is shorter.  The
+second inequality uses $-\ln(1-\delta)\ge\delta$.  Finally, hardwire the
+witnesses in $H$ into $|H|$ verifier copies and OR their outputs.
+\end{proof}
+
+The same proof has a greedy interpretation: among the fibers not yet hit,
+some witness lies in at least a $\delta$ fraction.  This constructs $H$ from
+an explicit relation, but the required coverage queries may themselves be
+exponential from a succinct verifier.
+
+If the set system $\{F_x\}$ has VC dimension $v$, put
+$\bar v=\max\{1,v\}$.  The epsilon-net theorem of Haussler and Welzl
+\cite{HausslerWelzl1987}, with its endpoint cases absorbed explicitly, gives
+the boundary-safe alternative size
+\[
+  O\!\left(\frac{\bar v}{\delta}
+    \left(1+\log\frac1\delta\right)\right)
+  \tag{3.6}\label{eq:vc-net}
+\]
+under the uniform measure on the witness cube.  The measure and the common
+density promise are essential.  This refinement is useful only when its
+expression beats both \eqref{eq:replication-intro} and direct synthesis.
+
+Dimension and distance are complementary.  An information set works for
+every nonzero vector in the entire span $U_f$ and costs $R$ coordinates.  The
+density argument needs to hit only the $K$ realized fibers and may cost much
+less than $R$; it uses their actual weights, which can exceed the minimum
+distance of $U_f$.
+
+\subsection{Low witness degree}
+
+Low degree is a canonical concrete promise under which the density route
+becomes effective.  Every Boolean function of $y$ has a unique multilinear
+polynomial over $\F_2$.  Suppose that, for every $x$, the polynomial
+$y\mapsto f(x,y)$ has degree at most an integer $0\le d\le M$.  Its evaluation
+vector lies in the binary Reed--Muller code $\operatorname{RM}(d,M)$
+\cite{Muller1954,Reed1954}.
+
+\begin{lemma}[Reed--Muller weight; \status{proved here}]
+\label{lem:rm-weight}
+A nonzero multilinear polynomial in $M$ variables of degree at most $d$ is
+one on at least $2^{M-d}$ points.
+\end{lemma}
+
+\begin{proof}
+The case $M=0$ is the nonzero constant polynomial of weight one.  For $M>0$,
+induct on $M$.  Write
+$p(y_1,\ldots,y_M)=a(y_1,\ldots,y_{M-1})+y_Mb(y_1,\ldots,y_{M-1})$.
+If $b=0$, the weight doubles and induction applies to $a$.  If $b\ne0$, then
+$\deg b\le d-1$.  Whenever $b(z)=1$, exactly one of $p(z,0)$ and $p(z,1)$ is
+one.  Induction gives at least $2^{(M-1)-(d-1)}=2^{M-d}$ such $z$.
+\end{proof}
+
+Thus $\delta\ge2^{-d}$ in \cref{thm:dense-hitting}, giving an
+$f$-dependent witness set of size $O(2^d(\log K+1))$.  There is also an
+explicit universal information set:
+\[
+  H_{M,d}=\{y\in\bits^M:\wt(y)\le d\},
+  \qquad
+  |H_{M,d}|=B(M,d):=\sum_{i=0}^d\binom Mi.
+  \tag{3.7}\label{eq:low-weight-set}
+\]
+
+\begin{lemma}[Low-weight information set; \status{proved here}]
+\label{lem:low-weight-info}
+If a degree-at-most-$d$ multilinear polynomial vanishes on $H_{M,d}$, it is
+zero.  Moreover, no smaller coordinate set works for the entire degree class.
+\end{lemma}
+
+\begin{proof}
+Write $p(y)=\sum_{|A|\le d}c_A\prod_{i\in A}y_i$.  At the indicator $1_S$,
+where $|S|\le d$,
+\[
+  p(1_S)=\sum_{A\subseteq S}c_A.
+\]
+Induction on $|S|$ recovers every $c_S$ from these values.  Hence restriction
+to $H_{M,d}$ is injective.  The polynomial space has dimension $B(M,d)$, so
+rank--nullity forbids an injective restriction to fewer coordinates.
+\end{proof}
+
+If $K=0$, then $g$ is constant zero and $\C(g)=0$.  Assume $K\ge1$ and define
+the density term
+\[
+  Q_d(K)=
+  \begin{cases}
+    1,&d=0,\\[0.2em]
+    \left\lfloor\dfrac{\ln K}{-\ln(1-2^{-d})}\right\rfloor+1,
+      &1\le d\le M.
+  \end{cases}
+\]
+Combining the three actual-witness routes gives the exact-form bound
+\[
+  \C(g)\le L_f(\C(f)+1)-1,
+  \qquad
+  L_f=\min\{D,R,B(M,d),Q_d(K)\},
+  \tag{3.8}\label{eq:low-degree-combined}
+\]
+whenever the degree promise holds.  For fixed $d$,
+$B(M,d)=\Theta(M^d)$, while the relation-dependent density branch is
+$O(2^d\log(K+1))$.
+
+\section{Zero-preserving parity fingerprints}
+\label{sec:fingerprints}
+
+Span dimension and density can both be unfavorable.  Measurement compression
+is nevertheless always possible because only finitely many fibers are
+realized.
+
+\begin{theorem}[Exact linear fingerprint; \status{proved here}]
+\label{thm:exact-fingerprint}
+If $K=0$, the zero map suffices.  If $K\ge1$, put
+\[
+  r=\min\left\{D,\max\{1,\lceil\log_2K\rceil\}\right\}.
+  \tag{4.1}\label{eq:fingerprint-width}
+\]
+There is an $\F_2$-linear map $A:\F_2^D\to\F_2^r$ such that
+\[
+  Av_x=0\quad\Longleftrightarrow\quad v_x=0
+  \qquad\text{for every }x\in\bits^N.
+  \tag{4.2}\label{eq:zero-preserving}
+\]
+For $N\ge1$, one always has $r\le\min\{N,D\}$, and this worst-case bound is
+exact over all relations $f$.
+\end{theorem}
+
+\begin{proof}
+For the upper bound, maintain the nonzero fibers not yet separated from zero
+by the chosen rows.  A uniform linear functional vanishes on each fixed
+nonzero vector with probability $1/2$, so some row leaves at most half of the
+current vectors unseparated.  After $r-1$ rows, at most two remain.  A final
+functional can be one on a single remaining vector.  It can also be one on
+two, because two distinct nonzero vectors over $\F_2$ are linearly
+independent.  This separates the last vectors.  The inequality $K\le2^N$
+gives $r\le N$, and
+$K\le2^D-1$ gives $r\le D$.
+
+For tightness, first suppose $D\le N$.  A relation can realize every vector
+of $\F_2^D$ among its fibers, forcing any successful $A$ to be injective and
+to have at least $D$ output bits.  If $D>N$, realize zero and every nonzero
+vector of an $N$-dimensional subspace, using exactly $2^N$ deterministic
+inputs.  The restriction of $A$ to that subspace must be injective, so it
+needs at least $N$ output bits.
+\end{proof}
+
+The construction is deterministic given the explicit fiber list: at each
+step choose a row attaining the averaging bound.  It is not claimed to be
+efficient from a succinct circuit for $f$.
+
+The zero-collision argument is a specialization of standard linear-hashing
+ideas.  Universal and linear hashing study broader collision and load goals
+\cite{CarterWegman1979,AlonEtAl1999}; succinct perfect linear hashing can even
+separate every pair in a prescribed sparse set \cite{ChenJinWilliams2019}.
+Here only the pairs $(0,v)$ for $v\in\mathcal V_f$ must be separated, and no
+efficient hash construction from the succinct verifier is asserted.
+
+For the rest of this section assume $K\ge1$, so $r\ge1$; the case $K=0$ has
+$g=0$ and needs no circuit.
+
+Write the rows of $A$ as $a_1,\ldots,a_r$ and define
+\[
+  h_i(x)=\langle a_i,v_x\rangle
+  =\bigoplus_{y:a_i(y)=1}f(x,y).
+  \tag{4.3}\label{eq:fingerprint-aggregates}
+\]
+Then
+\[
+  g(x)=\bigvee_{i=1}^r h_i(x).
+  \tag{4.4}\label{eq:fingerprint-zero-test}
+\]
+Equivalently, after choosing a basis of $\F_{2^r}$, the columns of $A$ are
+weights $\alpha_y\in\F_{2^r}$ and
+\[
+  g(x)=1
+  \quad\Longleftrightarrow\quad
+  \sum_y\alpha_y f(x,y)\ne0.
+  \tag{4.5}\label{eq:field-fingerprint}
+\]
+One field symbol still consists of $r$ Boolean wires; the notation does not
+make the sum cheap.
+
+\subsection{Width depends only on the target error}
+
+The exact map must work on all $x$ at once.  For distributional approximation
+of $g$, the width loses its dependence on $N$.
+
+\begin{theorem}[Approximate parity fingerprint; \status{proved here}]
+\label{thm:approx-fingerprint}
+Let $\mu$ be any fixed distribution on $\bits^N$ and let $t\ge0$ be an
+integer.  Choose $t$ independent uniform rows and define
+\[
+  \widetilde g_A(x)=1[Av_x\ne0].
+\]
+For every $A$, $\widetilde g_A$ has no false positives.  Moreover,
+\[
+  \mathbb E_A\Pr_{x\sim\mu}
+  [g(x)=1,\widetilde g_A(x)=0]
+  =2^{-t}\Pr_{x\sim\mu}[g(x)=1]
+  \le2^{-t}.
+  \tag{4.6}\label{eq:approx-fingerprint}
+\]
+Consequently some fixed, $f$- and $\mu$-dependent $A$ has one-sided error at
+most $2^{-t}$.  A freshly random $A$ has the same error bound pointwise for
+every fixed input.
+\end{theorem}
+
+\begin{proof}
+Zero always maps to zero.  For $v_x\ne0$, one uniform row has uniform inner
+product with $v_x$, so all $t$ rows vanish with probability $2^{-t}$.
+Interchange the finite expectations over $A$ and $x$.
+\end{proof}
+
+Thus, for $0<\rho\le1$, taking
+$t=\lceil\log_2(1/\rho)\rceil$ gives false-negative mass at most $\rho$.
+This is the standard randomized parity sketch of OR, applied only to the
+realized witness fibers; linear-sketch and parity-query treatments place it
+in a broader framework \cite{KannanEtAl2018,Gavinsky2025}.  On the full cube
+$\F_2^D$, an exact deterministic linear sketch for OR must be injective and
+needs $D$ rows.  \Cref{thm:exact-fingerprint} escapes that lower bound because
+only at most $2^N$ fiber vectors are realized.
+
+Small-bias sample spaces can shorten the random seed while making each
+nonzero parity nearly unbiased \cite{NaorNaor1993}.  A constant-distance
+linear code gives another formulation: encode $v$, sample codeword
+coordinates, and use the distance to bound the probability that every sample
+is zero.  These ideas reduce randomness or measurement count, not necessarily
+the Boolean gates used to produce a measurement from an implicit $v_x$.
+
+The distinction from Valiant--Vazirani isolation is also important
+\cite{ValiantVazirani1986}.  Isolation intersects a witness set with random
+constraints and seeks a unique surviving \emph{witness}.  Here a row reports
+the parity of a set and may cancel many accepting witnesses.  The exact
+quantifier order is
+\[
+  \forall f\;\exists A\;\forall x,
+\]
+not a randomized per-instance isolation claim.
+
+\subsection{Recovery-boundary cancellation on a common input}
+\label{sec:recovery-cancellation}
+
+Linear local recovery offers a sharper common-input trick than duplicate-call
+collapse.  Parity aggregates combine recovery equations over $\F_2$, so a
+resource incidence used twice disappears.
+
+\begin{lemma}[Symmetric-difference recovery; \status{proved here}]
+\label{lem:symmetric-difference}
+Let $E:\F_2^D\to\F_2^Q$ be an injective linear encoding, and let
+$E^*:\F_2^Q\to\F_2^D$ be its adjoint under the standard inner products.  For
+each message coordinate $i$, choose a recovery vector $b_i$ satisfying
+$E^*b_i=e_i$, and put $R_i=\supp(b_i)$.  Then every $T\subseteq[D]$ satisfies
+\[
+  \bigoplus_{i\in T}v_i
+  =\bigoplus_{z\in\triangle_{i\in T}R_i}(Ev)_z
+  \qquad(v\in\F_2^D),
+  \tag{4.7}\label{eq:symmetric-difference}
+\]
+where $\triangle$ denotes symmetric difference.
+\end{lemma}
+
+\begin{proof}
+Injectivity of $E$ makes $E^*$ surjective, so the stated recovery vectors
+exist.  Set $b_T=\sum_{i\in T}b_i$.  Then
+\[
+  \left\langle b_T,Ev\right\rangle
+  =\left\langle E^*b_T,v\right\rangle
+  =\left\langle\sum_{i\in T}e_i,v\right\rangle.
+\]
+Over $\F_2$, the support of $b_T$ is precisely the symmetric difference of
+the supports of the $b_i$.
+\end{proof}
+
+The affine-line recovery used in the companion construction gives a vivid
+special case \cite[Section~4]{Schlesinger2026}.  In characteristic two, a
+degree-at-most-$(q-2)$ polynomial on an affine line $L$ of size $q$ satisfies
+$P(u)=\sum_{z\in L\setminus\{u\}}P(z)$.  If every $u\in T\subseteq L$ is
+recovered through that same line, then
+\[
+  \triangle_{u\in T}(L\setminus\{u\})
+  =
+  \begin{cases}
+    T,&|T|\text{ even},\\
+    L\setminus T,&|T|\text{ odd}.
+  \end{cases}
+  \tag{4.8}\label{eq:line-cancellation}
+\]
+In particular, the parity of $q-1$ target values collapses to the one
+remaining code symbol.  The identity applies bitwise after expanding field
+symbols in an $\F_2$ basis.
+
+The next statement records exactly when this cancellation becomes a circuit
+bound.  For $Z\subseteq[Q]$, let
+\[
+  G_Z(x)=\bigl((Ev_x)_z\bigr)_{z\in Z},
+  \qquad B_E(Z)=\C(G_Z).
+\]
+
+\begin{proposition}[Recovery-boundary reduction; \status{proved here}]
+\label{prop:recovery-boundary}
+Let the rows $a_1,\ldots,a_r$ of $A$ separate the realized fibers from zero.
+For each $j$, choose $b_j\in\F_2^Q$ with $E^*b_j=a_j$, and let
+$Z=\bigcup_j\supp(b_j)$.  Then, in the standard circuit basis,
+\[
+  \C(g)\le B_E(Z)
+  +4\sum_{j=1}^r\max\{0,\wt(b_j)-1\}+r-1.
+  \tag{4.9}\label{eq:recovery-boundary-bound}
+\]
+\end{proposition}
+
+\begin{proof}
+Compute the distinct resource functions in $G_Z$ once.  The adjoint identity
+gives
+\[
+  \langle a_j,v_x\rangle
+  =\langle b_j,Ev_x\rangle
+  =\bigoplus_{z\in\supp(b_j)}G_z(x).
+\]
+A zero-support parity is the free constant zero.  A parity of $s\ge1$ bits
+uses $s-1$ XORs, each implementable by at most four
+$\{\wedge,\vee,\neg\}$ gates.  An OR tree on the $r$ resulting fingerprint
+bits uses $r-1$ further gates.
+\end{proof}
+
+The proposition suggests jointly choosing the fingerprint rows and their
+recovery representations to minimize a symmetric-difference boundary.  It is
+specific to the shared input: for independent inputs, two incidences with the
+same resource coordinate generally carry different values and cannot cancel.
+It is also only a conditional gain.  Defining an encoding whose first
+coordinates are the desired aggregates makes every $b_j$ sparse
+tautologically; unless those encoded coordinates inherit a cheap evaluator,
+$B_E(Z)$ contains the original difficulty.
+
+\subsection{Why this is not yet a circuit upper bound}
+
+Suppose the $r$ functions in \eqref{eq:fingerprint-aggregates} have a joint
+circuit of size $B$.  Appending an OR tree proves
+\[
+  \C(g)\le B+r-1.
+  \tag{4.10}\label{eq:aggregate-reduction}
+\]
+This conditional reduction is exact.  The missing theorem is a useful bound
+on $B$ in terms of $S,N,M$, and $r$.
+
+Materializing every $f(x,y)$ first costs at most $D\C(f)$ gates, and direct
+parity trees add $O(rD)$ more.  A short seed describing the masks does not
+remove these gates.  Likewise, applying mass production to materialize all
+fiber coordinates returns to the bound in \cref{sec:baselines}.  The new
+question is whether selected aggregates can be computed \emph{without}
+expanding the full fiber.
+
+\section{Why a fixed sketch cannot simply pass through AND}
+\label{sec:and-barrier}
+
+The witness profiles form the algebra
+\[
+  \mathcal R=\F_2^D
+\]
+with coordinatewise multiplication
+$(u\had v)(y)=u(y)v(y)$.  For a wire $w$ of the verifier, let
+\[
+  V_w(x)=(w(x,y))_{y\in\bits^M}.
+\]
+At an AND gate $w=u\wedge v$,
+$V_w(x)=V_u(x)\had V_v(x)$.  We may replace OR by
+$u\vee v=u\oplus v\oplus(u\wedge v)$ at constant cost.  In the resulting
+$\{\wedge,\oplus,\neg\}$ description, XOR and NOT are linear or affine on
+profiles, so AND is the nonlinear obstruction to propagating one fixed linear
+fingerprint.  Recall that a subspace $I\subseteq\mathcal R$ is an ideal when
+$u\had v\in I$ for every $u\in I$ and every $v\in\mathcal R$.
+
+\begin{theorem}[Ideal-kernel classification; \status{proved here}]
+\label{thm:ideal-kernel}
+Let $A:\mathcal R\to\F_2^r$ be linear.  The following are equivalent.
+\begin{enumerate}[label=(\roman*)]
+\item There is an arbitrary function $\Phi$ on $A(\mathcal R)^2$ such that
+\[
+  A(u\had v)=\Phi(Au,Av)
+  \qquad\text{for all }u,v\in\mathcal R.
+  \tag{5.1}\label{eq:and-update}
+\]
+\item $\ker A$ is an ideal of the coordinatewise algebra $\mathcal R$.
+\end{enumerate}
+Every ideal has the form
+\[
+  I_T=\Span\{e_y:y\in T\}
+  =\{u:\supp(u)\subseteq T\}
+  \tag{5.2}\label{eq:coordinate-ideal}
+\]
+for a unique set of witness coordinates $T$.
+\end{theorem}
+
+\begin{proof}
+If \eqref{eq:and-update} holds, $k\in\ker A$, and $v\in\mathcal R$, then
+\[
+  A(k\had v)=\Phi(0,Av)=A(0\had v)=0,
+\]
+so the kernel is an ideal.  Conversely, if $I=\ker A$ is an ideal and
+$Au=Au'$, $Av=Av'$, then $u'=u+k$ and $v'=v+\ell$ for $k,\ell\in I$.  The
+difference between $u'\had v'$ and $u\had v$ is
+\[
+  k\had v+u\had\ell+k\had\ell\in I.
+\]
+Hence $A(u\had v)$ depends only on $Au,Av$, and $\Phi$ is well defined.
+
+For the classification, if $u\in I$ and $u(y)=1$, then
+$e_y=e_y\had u\in I$.  Thus $I$ is spanned by exactly the unit vectors that
+it contains, proving \eqref{eq:coordinate-ideal}.
+\end{proof}
+
+\begin{corollary}[Universal propagation equals witness retention;
+\status{proved here}]
+\label{cor:projection-barrier}
+Assume $K\ge1$.  Suppose $A$ satisfies \cref{thm:ideal-kernel} and also separates every
+$v\in\mathcal V_f$ from zero.  Put $H=[D]\setminus T$, where
+$\ker A=I_T$.  Then $H$ intersects every nonempty witness fiber,
+$\operatorname{rank}A=|H|$, and, up to an injective linear change of output
+coordinates, $A$ is exactly the projection retaining the bits indexed by
+$H$.  In particular,
+\[
+  \C(g)\le |H|(\C(f)+1)-1.
+  \tag{5.3}\label{eq:barrier-hitting}
+\]
+\end{corollary}
+
+\begin{proof}
+The quotient $\mathcal R/I_T$ is the coordinate space on $H$.  Since $A$ has
+kernel $I_T$, its induced map from that quotient to $A(\mathcal R)$ is an
+isomorphism, and its rank is $|H|$.  If a realized nonzero fiber vanished on
+$H$, it would lie in $I_T$ and be killed by $A$, a contradiction.  Thus $H$
+hits every nonempty fiber, and the circuit bound follows by restriction and
+replication.
+\end{proof}
+
+For the smallest example, take $D=2$ and $A(a,b)=a+b$.  The pairs
+\[
+  (u,v)=((1,0),(1,0)),\qquad
+  (u',v')=((1,0),(0,1))
+\]
+have the same two input sketches, both equal to one, but the product sketches
+are one and zero.  No update rule can distinguish them.
+
+\paragraph{What the theorem does not rule out.}
+Its quantifiers range over every $u,v\in\mathcal R$, it uses the same sketch
+at both inputs and the output, and it demands exactness.  A verifier-specific
+construction may need updates only on profile pairs reached by a common $x$;
+it may use a different code at every wire; or it may tolerate error.  Those
+are real escape routes.  The theorem rules out only the tempting universal
+shortcut of pushing one short mixed-parity sketch through arbitrary ANDs.
+
+\section{Structural escapes and their limits}
+\label{sec:structural-escapes}
+
+\subsection{Changing profile spaces: route and dominance check}
+
+A gatewise code must pay for its transitions, not just its state names.
+Suppose each wire $w$ has an encoding
+$q_w:\bits^N\to\bits^{r_w}$ of its realized witness profile, each gate has a
+transition circuit of size $\tau_w$, and a final circuit of size
+$\tau_{\mathrm{out}}$ tests whether the output profile is zero.  Composing
+the transition circuits in the verifier DAG gives
+\[
+  \C(g)\le \tau_{\mathrm{out}}+\sum_w\tau_w
+  +\text{leaf-encoding cost}.
+  \tag{6.1}\label{eq:profile-system}
+\]
+This is bookkeeping, but it states the open target correctly: short profile
+names, cheap transitions, and an exact zero test are all required.
+
+Output-span dimension by itself will not improve the nonuniform gate bound.
+If the realized output profiles span a positive-dimensional space of dimension
+$k_{\mathrm{out}}$, \cref{lem:information-set} already gives
+$k_{\mathrm{out}}$ actual witnesses and a circuit of size
+$k_{\mathrm{out}}(S+1)-1$; if the dimension is zero, then $g=0$.  The dense
+simulation below is retained because it isolates transition cost and may
+matter when coefficient tables are sparse or algorithmically available.
+
+One sufficient certificate uses changing linear spaces.  For subspaces
+$E,F\le\mathcal R$, let
+$E\had F=\Span\{u\had v:u\in E,v\in F\}$.  Assign a subspace $E_w$ to every
+wire, containing every realized profile, such that NOT includes the constant
+one and its child space, while an AND output contains the product of its child
+spaces.
+
+\begin{proposition}[Profile-space simulation; \status{proved here}]
+\label{prop:profile-space}
+For a supplied AND/NOT verifier with $T$ gates, put $k_w=\dim E_w$.  Over the
+mixed basis $\{\wedge,\vee,\oplus,\neg\}$, its projection has size at most
+\[
+  \sum_{w=\neg u} k_w(k_u+1)
+  +\sum_{w=u\wedge v}(k_w+1)k_uk_v
+  +\max\{0,k_{\mathrm{out}}-1\}.
+  \tag{6.2}\label{eq:profile-space-bound}
+\]
+The standard basis changes this by at most a factor four.  In particular,
+if all dimensions are at most $k$, the bound is $O(Tk^3+k)$.  A standard-basis
+size-$S$ circuit can be converted to an AND/NOT circuit at constant cost, so an
+$O(Sk^3+k)$ conclusion follows when an admissible dimension-$k$ family is
+supplied for that converted circuit.
+\end{proposition}
+
+\begin{proof}
+Choose a basis of each $E_w$ and maintain the coefficient vector of
+$V_w(x)$.  A deterministic input has profile $x_i\mathbf1$ and a witness
+input has a fixed profile, so their coefficients use only input wires and
+constants.  NOT is an affine linear map and costs at most $k_w(k_u+1)$.
+At an AND gate, expand every product of one child basis vector with another in
+the output basis.  Compute the $k_uk_v$ products of input coefficients once;
+the $k_w$ output coordinates are fixed parities of these products.  This gives
+the second sum.  Finally, the output profile is nonzero precisely when its
+coefficient vector is nonzero, and the last term is an OR tree.  XOR has a
+four-gate implementation in the standard basis.
+\end{proof}
+
+Profile propagation therefore becomes interesting only when the bilinear
+coefficient tables used by the gate transitions are already available or
+unusually sparse, when uniform algorithmic access matters, or when one uses
+nonlinear codes tailored to the realized state pairs.
+
+Multiplication-friendly codes suggest language for the last possibility:
+structured linear encodings can support reconstruction of products
+\cite{CascudoEtAl2012}.  Existing constructions normally expand a
+lower-dimensional algebra into enough coordinates for multiplication.  They
+do not compress the full algebra $\F_2^{2^M}$.  Any application here must
+control reachable subspaces or change representations between gates; otherwise
+\cref{thm:ideal-kernel} applies.
+
+\subsection{DNNF and bounded width}
+
+There is a clean established regime in which existential projection really is
+cheap.  A decomposable negation normal form (DNNF) is a negation normal form in
+which the two children of every AND gate mention disjoint variable sets.
+
+\begin{proposition}[DNNF forgetting; \status{known}]
+\label{prop:dnnf}
+If a DNNF of edge size $T$ for $f(x,y)$ is supplied, all $y$ variables can be
+existentially forgotten in linear time without asymptotically increasing
+size.  The resulting DNNF computes $g$ \cite{Darwiche1999,Darwiche2001}.
+\end{proposition}
+
+The operation replaces every positive or negative literal of a forgotten
+variable by true and simplifies.  Existential quantification distributes over
+OR.  At a decomposable AND, the forgotten variables of the children are
+disjoint, so their witnesses can be chosen independently and quantification
+also distributes.  Without decomposability, the rule is false: the formula
+$y\wedge\neg y$ would incorrectly become true.
+
+The phrase ``a DNNF is supplied'' is essential: the cited compilation theorem
+does not give a polynomial-size DNNF for an arbitrary circuit.  A concrete
+positive case is a CNF $F$ whose interaction graph has treewidth $w$; it
+compiles to DNNF in size and time $2^{O(w)}|F|$ under the source's edge-size
+convention \cite{Darwiche1999,Darwiche2001}.  If one insists that projection
+preserve a complete structured deterministic DNNF, width can grow
+exponentially;
+Capelli and Mengel give width-parameterized upper and lower bounds
+\cite{CapelliMengel2019}.  These results make the missing invariant tangible:
+decomposition or separator width tells the circuit how summaries combine.
+
+Deterministic, smooth DNNF also supports bottom-up model counting and weighted
+model counting \cite{ChaviraDarwiche2008}.  That is stronger than the existence
+test needed here.
+Counting and parity aggregates provide useful algorithmic routes only when the
+representation makes their sum-product evaluation valid; generic exact
+counting hardness is context, not an unrestricted circuit lower bound
+\cite{Valiant1979}.
+
+\section{Approximation and the projection metric}
+\label{sec:approximation}
+
+An approximant to the verifier need not approximate its existential
+projection.  This matters because approximation in the companion manuscript
+is measured on the full $(x,y)$ cube.
+
+\begin{proposition}[Projection can amplify error; \status{proved here}]
+\label{prop:error-amplification}
+Let $f'$ differ from $f$ on an $\eps$ fraction of uniformly random pairs
+$(x,y)$, and let $g'(x)=\bigvee_yf'(x,y)$.  Then
+\[
+  \Pr_x[g(x)\ne g'(x)]\le\min\{1,2^M\eps\},
+  \tag{7.1}\label{eq:error-amplification}
+\]
+and the factor $2^M$ is tight.
+\end{proposition}
+
+\begin{proof}
+Every $x$ on which the projections differ contributes at least one erroneous
+pair $(x,y)$.  Divide the number of erroneous pairs by $2^N$.  For tightness,
+take $f(x,y)=1[y=0^M]$ and $f'=0$.  Their distance is $2^{-M}$, while their
+projections are the constants one and zero.
+\end{proof}
+
+There are two correct one-sided alternatives.
+
+\begin{itemize}
+\item The parity fingerprint in \cref{thm:approx-fingerprint} controls error
+directly over $x$, independently of fiber density, but still needs an
+aggregate evaluator.
+\item If nonempty fibers have density $\delta$, sample $t$ actual witnesses
+and OR their verifier values.  A fixed yes-input is missed with probability at
+most $(1-\delta)^t$, there are no false positives, and the circuit uses at
+most $tS+t-1$ gates.  Averaging fixes one sample with the same error bound
+under any chosen distribution on $x$.
+\end{itemize}
+
+Uniform $(x,y)$ approximation, direct approximation of the projection, and a
+per-fiber density guarantee are therefore different notions.  Only the last
+two control the decision problem in \eqref{eq:projection} without the
+$2^M$ amplification.
+
+\section{Circuit-complexity consequences}
+\label{sec:consequences}
+
+It is useful to state the parameter comparisons without complexity-class
+shorthand.  If $K=0$, then $g=0$.  Otherwise, let $B_{\mathrm{agg}}$ denote
+the cost of a supplied joint circuit for the $r$ parity aggregates.  Up to
+lower-order and fixed-basis factors, the available envelope is
+\[
+\C(g)\le\min\left\{
+  2^M(S+1),
+  \frac{2^N}{N},
+  R(S+1),
+  \frac{\log(K+1)}{\delta}(S+1),
+  B(M,d)(S+1),
+  B_{\mathrm{agg}}+r
+\right\},
+\tag{8.1}\label{eq:final-envelope}
+\]
+where each structural term is present only under its stated hypothesis.  The
+imported mass-production term is valid in the fixed-ratio regime but is
+omitted from \eqref{eq:final-envelope} because direct synthesis generically
+dominates it.
+
+The replication term beats direct synthesis when roughly
+\[
+  M+\log_2(S+1)<N-\log_2N.
+  \tag{8.2}\label{eq:replication-threshold}
+\]
+The dense-fiber term is a genuine improvement only if its number of retained
+witnesses is below both $2^M$ and $2^N/(N(S+1))$.  Similar comparisons apply
+to $R$ and $B(M,d)$.  A reduction in witnesses is not automatically a
+reduction below the best circuit already available for $g$.
+
+\subsection{Why a universal polynomial determinizer would be major}
+
+Suppose there were a constant $c$ such that every relation with
+$M\le\poly(N)$ satisfied
+\[
+  \C(\exists y\,f)\le(N+M+\C(f)+1)^c.
+  \tag{8.3}\label{eq:hypothetical-determinizer}
+\]
+Here $\mathrm{NP/poly}$ is the class recognized by polynomial-size
+nonuniform verifier circuits with polynomially many witness bits.  Applying
+the hypothesis to those verifiers would give
+$\mathrm{NP/poly}\subseteq\mathrm{P/poly}$; the reverse inclusion is trivial,
+so equality follows, and in particular
+$\mathrm{NP}\subseteq\mathrm{P/poly}$.  The Karp--Lipton theorem would then
+collapse the polynomial hierarchy to its second level
+\cite{KarpLipton1980}.  A stronger uniform compiler that takes a
+polynomial-size verifier description, runs in polynomial time, and outputs a
+polynomial-size circuit for its projection would imply
+$\mathrm P=\mathrm{NP}$.  These are conditional consequences, not results of
+this note.
+
+The aggregate barrier has parallel context.  For a uniform verifier family,
+$\bigoplus_yf(x,y)$ is a parity-counting predicate, while the integer sum is a
+$\#\mathrm P$ computation.  For polynomial-size nonuniform verifier families,
+a polynomial circuit bound for every parity aggregate would give
+$\mathord\oplus\mathrm{P/poly}=\mathrm{P/poly}$.  Uniform counting hardness
+does not itself prove a Boolean circuit lower bound, so the rigorous
+unconditional obstruction remains \cref{thm:ideal-kernel}.
+
+Unambiguity does not make the aggregate free.  If every fiber has size at
+most one, OR equals parity exactly, but evaluating that parity may still be
+hard.  Valiant--Vazirani's isolation theorem reinforces the distinction
+between obtaining a unique-witness promise and deterministically evaluating
+the resulting language \cite{ValiantVazirani1986}.
+
+For comparison, easy-witness results compress the \emph{description of a
+witness} under circuit assumptions; they do not supply one circuit computing
+the projection for every $x$ \cite{MurrayWilliams2020}.  Work on
+nondeterministic circuit lower bounds also addresses a different direction.
+For example, Morizumi gives restricted-basis lower bounds and an explicit
+Tseitin-style translation from circuits to nondeterministic 3-CNFs
+\cite{Morizumi2015}.  None of those results turns the measurement reduction
+in \cref{thm:exact-fingerprint} into a generic gate bound.
+
+There is, however, an elementary lower-bound transfer.  If $g=\exists_yf$ and
+$\C(g)\ge L$, then \eqref{eq:replication-intro} implies
+\[
+  \C(f)\ge\frac{L+1}{2^M}-1.
+  \tag{8.4}\label{eq:lower-transfer}
+\]
+The factor $2^M$ makes this weak when the witness budget is large.
+
+\section{The resulting research program}
+\label{sec:open}
+
+The mass-production viewpoint does inspire a technical target for this
+approach, but not a finished generic determinization theorem.  It says to
+regard all branches with the same deterministic input as one coded object and
+to share the work that produces summaries of that object.  The preceding
+results narrow the target to four forms.
+
+\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=2.2em]
+\item \textbf{Boundary-efficient coded recovery.}
+Choose a zero-preserving fingerprint together with recovery representations
+whose symmetric-difference boundary $Z$ is small, as in
+\cref{prop:recovery-boundary}, and prove that the surviving resource map
+$G_Z$ has a cheap joint circuit.  The objective is the full right side of
+\eqref{eq:recovery-boundary-bound}, not just the number of fingerprint bits.
+
+\item \textbf{Changing multiplicative fingerprints.}
+Use different encodings at different wires and require transitions only on
+profiles reached by the verifier.  The fixed-sketch ideal theorem no longer
+applies, but every transition must have an explicit small circuit.  Restricted
+product spaces, sparse bilinear transition tables, and
+multiplication-friendly codes are plausible tools.
+
+\item \textbf{Succinct actual-witness hitting.}
+The dense and low-degree arguments give small hitting sets, but the
+relation-dependent choices inspect the fibers.  Find checkable promises under
+which a small $H$ can be constructed from a succinct verifier without
+enumerating its truth table.
+
+\item \textbf{Restricted-model lower bounds.}
+Exhibit verifier families for which every zero-preserving aggregate system has
+large transition cost, even though its output width is small.  The
+ideal-kernel theorem resolves only the fixed linear/full-algebra model; lower
+bounds for changing or nonlinear sketches are not resolved here.
+\end{enumerate}
+
+The central compression hierarchy is therefore
+\[
+\boxed{
+\begin{array}{c}
+\text{fiber-code dimension or density from zero}\Rightarrow
+\text{few actual witnesses}\Rightarrow\text{a circuit bound},\\[0.35em]
+\text{few realized fibers}\Rightarrow
+\text{few parity measurements}\not\Rightarrow\text{a circuit bound},\\[0.35em]
+\text{small recovery boundary plus cheap shared resources}
+\Rightarrow\text{a circuit bound}.
+\end{array}}
+\tag{9.1}\label{eq:hierarchy}
+\]
+The second implication becomes useful precisely when a structural
+representation supplies the missing aggregate computation.  That is the
+classical nondeterministic-sharing problem left by this note.
+
+\section*{Reproducibility note}
+
+The accompanying research corpus contains an exhaustive finite checker for
+small instances of
+\cref{thm:exact-fingerprint,lem:rm-weight,lem:low-weight-info,lem:information-set,lem:symmetric-difference,thm:ideal-kernel},
+including affine-line cancellation and the two-bit AND collision.  These
+checks are evidence against transcription and
+edge-case errors; they are not substitutes for the proofs above.  The source
+registry separately records the primary-source boundary for every imported or
+known result.
+
+\begin{thebibliography}{99}
+
+\bibitem{AlonEtAl1999}
+Noga Alon, Martin Dietzfelbinger, Peter Bro Miltersen, Erez Petrank, and
+G\'abor Tardos.
+\newblock Linear hash functions.
+\newblock \emph{Journal of the ACM}, 46(5):667--683, 1999.
+\newblock \href{https://doi.org/10.1145/324133.324179}{doi:10.1145/324133.324179}.
+
+\bibitem{CapelliMengel2019}
+Florent Capelli and Stefan Mengel.
+\newblock Tractable QBF by knowledge compilation.
+\newblock In \emph{36th Symposium on Theoretical Aspects of Computer Science},
+LIPIcs 126, pages 18:1--18:16, 2019.
+\newblock \href{https://doi.org/10.4230/LIPIcs.STACS.2019.18}{doi:10.4230/LIPIcs.STACS.2019.18}.
+
+\bibitem{CarterWegman1979}
+J. Lawrence Carter and Mark N. Wegman.
+\newblock Universal classes of hash functions.
+\newblock \emph{Journal of Computer and System Sciences}, 18(2):143--154,
+1979.
+\newblock \href{https://doi.org/10.1016/0022-0000(79)90044-8}{doi:10.1016/0022-0000(79)90044-8}.
+
+\bibitem{CascudoEtAl2012}
+Ignacio Cascudo, Ronald Cramer, Chaoping Xing, and An Yang.
+\newblock Asymptotic bound for multiplication complexity in the extensions of
+small finite fields.
+\newblock \emph{IEEE Transactions on Information Theory}, 58(7):4930--4935,
+2012.
+\newblock \href{https://doi.org/10.1109/TIT.2011.2180696}{doi:10.1109/TIT.2011.2180696}.
+
+\bibitem{ChaviraDarwiche2008}
+Mark Chavira and Adnan Darwiche.
+\newblock On probabilistic inference by weighted model counting.
+\newblock \emph{Artificial Intelligence}, 172(6--7):772--799, 2008.
+\newblock \href{https://doi.org/10.1016/j.artint.2007.11.002}{doi:10.1016/j.artint.2007.11.002}.
+
+\bibitem{ChenJinWilliams2019}
+Lijie Chen, Ce Jin, and R. Ryan Williams.
+\newblock Hardness magnification for all sparse NP languages.
+\newblock In \emph{60th IEEE Symposium on Foundations of Computer Science},
+pages 1240--1255, 2019.
+\newblock \href{https://doi.org/10.1109/FOCS.2019.00077}{doi:10.1109/FOCS.2019.00077}.
+
+\bibitem{Darwiche1999}
+Adnan Darwiche.
+\newblock Compiling knowledge into decomposable negation normal form.
+\newblock In \emph{Proceedings of IJCAI 1999}, pages 284--289, 1999.
+\newblock \url{https://www.ijcai.org/Proceedings/99-1/Papers/042.pdf}.
+
+\bibitem{Darwiche2001}
+Adnan Darwiche.
+\newblock Decomposable negation normal form.
+\newblock \emph{Journal of the ACM}, 48(4):608--647, 2001.
+\newblock \href{https://doi.org/10.1145/502090.502091}{doi:10.1145/502090.502091}.
+
+\bibitem{FrandsenMiltersen2005}
+Gudmund Skovbjerg Frandsen and Peter Bro Miltersen.
+\newblock Reviewing bounds on the circuit size of the hardest functions.
+\newblock \emph{Information Processing Letters}, 95(2):354--357, 2005.
+\newblock \href{https://doi.org/10.1016/j.ipl.2005.03.009}{doi:10.1016/j.ipl.2005.03.009}.
+
+\bibitem{Gavinsky2025}
+Dmytro Gavinsky.
+\newblock Unambiguous parity-query complexity.
+\newblock \emph{Random Structures \& Algorithms}, 66(3):e70010, 2025.
+\newblock \href{https://doi.org/10.1002/rsa.70010}{doi:10.1002/rsa.70010}.
+
+\bibitem{HausslerWelzl1987}
+David Haussler and Emo Welzl.
+\newblock Epsilon-nets and simplex range queries.
+\newblock \emph{Discrete \& Computational Geometry}, 2:127--151, 1987.
+\newblock \href{https://doi.org/10.1007/BF02187876}{doi:10.1007/BF02187876}.
+
+\bibitem{KannanEtAl2018}
+Sampath Kannan, Elchanan Mossel, Swagato Sanyal, and Grigory Yaroslavtsev.
+\newblock Linear sketching over $\F_2$.
+\newblock In \emph{33rd Computational Complexity Conference}, LIPIcs 102,
+pages 8:1--8:37, 2018.
+\newblock \href{https://doi.org/10.4230/LIPIcs.CCC.2018.8}{doi:10.4230/LIPIcs.CCC.2018.8}.
+
+\bibitem{KarpLipton1980}
+Richard M. Karp and Richard J. Lipton.
+\newblock Some connections between nonuniform and uniform complexity classes.
+\newblock In \emph{Proceedings of the 12th Annual ACM Symposium on Theory of
+Computing}, pages 302--309, 1980.
+\newblock \href{https://doi.org/10.1145/800141.804678}{doi:10.1145/800141.804678}.
+
+\bibitem{Lupanov1958}
+Oleg B. Lupanov.
+\newblock On a method of circuit synthesis.
+\newblock \emph{Izvestiya VUZ, Radiofizika}, 1(1):120--140, 1958.
+\newblock In Russian. \url{https://radiophysics.unn.ru/issues/1958/1/120}.
+
+\bibitem{Morizumi2015}
+Hiroki Morizumi.
+\newblock Lower bounds for the size of nondeterministic circuits.
+\newblock In \emph{Computing and Combinatorics}, LNCS 9198, pages 289--296,
+2015.
+\newblock \href{https://doi.org/10.1007/978-3-319-21398-9_23}{doi:10.1007/978-3-319-21398-9\_23}.
+
+\bibitem{Muller1954}
+David E. Muller.
+\newblock Application of Boolean algebra to switching circuit design and to
+error detection.
+\newblock \emph{Transactions of the I.R.E. Professional Group on Electronic
+Computers}, EC-3(3):6--12, 1954.
+\newblock \href{https://doi.org/10.1109/IREPGELC.1954.6499441}{doi:10.1109/IREPGELC.1954.6499441}.
+
+\bibitem{MurrayWilliams2020}
+Cody D. Murray and R. Ryan Williams.
+\newblock Circuit lower bounds for nondeterministic quasi-polytime from a new
+easy witness lemma.
+\newblock \emph{SIAM Journal on Computing}, 49:STOC18-300--STOC18-322, 2020.
+\newblock \href{https://doi.org/10.1137/18M1195887}{doi:10.1137/18M1195887}.
+
+\bibitem{NaorNaor1993}
+Joseph Naor and Moni Naor.
+\newblock Small-bias probability spaces: Efficient constructions and
+applications.
+\newblock \emph{SIAM Journal on Computing}, 22(4):838--856, 1993.
+\newblock \href{https://doi.org/10.1137/0222053}{doi:10.1137/0222053}.
+
+\bibitem{Reed1954}
+Irving S. Reed.
+\newblock A class of multiple-error-correcting codes and the decoding scheme.
+\newblock \emph{Transactions of the IRE Professional Group on Information
+Theory}, 4(4):38--49, 1954.
+\newblock \href{https://doi.org/10.1109/TIT.1954.1057465}{doi:10.1109/TIT.1954.1057465}.
+
+\bibitem{Schlesinger2026}
+Samuel Schlesinger.
+\newblock Exponential-range mass production of Boolean functions: Local
+recovery, disjoint scheduling, and bounded congestion.
+\newblock Unpublished companion manuscript, version September 3, 2026.
+Distributed alongside this note.
+
+\bibitem{Valiant1979}
+Leslie G. Valiant.
+\newblock The complexity of enumeration and reliability problems.
+\newblock \emph{SIAM Journal on Computing}, 8(3):410--421, 1979.
+\newblock \href{https://doi.org/10.1137/0208032}{doi:10.1137/0208032}.
+
+\bibitem{ValiantVazirani1986}
+Leslie G. Valiant and Vijay V. Vazirani.
+\newblock NP is as easy as detecting unique solutions.
+\newblock \emph{Theoretical Computer Science}, 47:85--93, 1986.
+\newblock \href{https://doi.org/10.1016/0304-3975(86)90135-0}{doi:10.1016/0304-3975(86)90135-0}.
+
+\end{thebibliography}
+
+\end{document}
