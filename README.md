@@ -8,9 +8,26 @@ congestion* by Samuel Schlesinger.
 
 The paper proves that, for every fixed `0 <= gamma < 1`, every Boolean
 function on `n` bits can be evaluated on as many as `2^(gamma n)` independent
-inputs by a circuit of size `O_gamma(2^n / n)`. It also records the leading
-coefficient delivered by the construction and an extension to approximation.
-The manuscript includes a disclosure of the AI-assisted research process.
+inputs by a circuit of size `O_gamma(2^n / n)`.
+
+## Machine-checked companion
+
+An accompanying [Lean 4 formalization](https://github.com/SamuelSchlesinger/algebraic-circuits)
+machine-checks the circuit model and the constructive core through the
+equal-block induction. It proves a rational, discrete-exponent form of the
+main theorem; the passage to every real `gamma < 1` uses rational slack and
+absorbs finitely many initial input lengths.
+
+## AI-assisted development and provenance
+
+The project began in an interactive conversation on ChatGPT.com, exported to
+the author's computer as a LaTeX document. Later work used Claude Fable 5 and
+5.1 through Claude Code and ChatGPT 5.6 Sol through Codex in a series of
+interactive sessions. These systems assisted with mathematical experiments,
+broad literature searches, and parts of the proof strategy and its internal
+constructions; their role went beyond prose editing. The author chose which
+directions to pursue, checked and revised the arguments and literature claims,
+and takes responsibility for the paper.
 
 ## Repository contents
 
