@@ -12,11 +12,20 @@ inputs by a circuit of size `O_gamma(2^n / n)`.
 
 ## Machine-checked companion
 
-An accompanying [Lean 4 formalization](https://github.com/SamuelSchlesinger/algebraic-circuits)
+An accompanying [Lean 4 formalization at revision `b94cbed`](https://github.com/SamuelSchlesinger/algebraic-circuits/tree/b94cbedb988f5b4aa72be15de80879333c5e4725)
 machine-checks the circuit model and the constructive core through the
-equal-block induction. It proves a rational, discrete-exponent form of the
-main theorem; the passage to every real `gamma < 1` uses rational slack and
-absorbs finitely many initial input lengths.
+equal-block induction. With Lean 4.33.1 and mathlib 4.33.1, the umbrella module
+`Algebraic.MassProduction` exposes the endpoint theorem
+`BlockInduction.exponentialMassProduction`. It proves a rational,
+discrete-exponent form of the main theorem; the passage to every real
+`gamma < 1` uses rational slack and absorbs finitely many initial input
+lengths. The pinned revision was checked with:
+
+```sh
+lake build --wfail
+lake test
+lake lint
+```
 
 ## AI-assisted development and provenance
 
@@ -31,11 +40,12 @@ and takes responsibility for the paper.
 
 ## Repository contents
 
-- `main.tex` is the canonical source and defaults to double-blind submission
-  mode; switch `\anonymoustrue` to `\anonymousfalse` for an identified
-  camera-ready version.
-- `main.pdf` is the checked-in, reproducibly generated anonymous manuscript.
+- `main.tex` is the canonical source and defaults to the identified public and
+  arXiv version; use `\anonymoustrue` only for a separate double-blind copy.
+- `main.pdf` is the checked-in, reproducibly generated identified manuscript.
 - `build.sh` builds the PDF and rejects LaTeX warnings.
+- `ARXIV_SUBMISSION.md` contains paste-ready metadata and the final submission
+  checklist.
 - `.githooks/pre-commit` checks that a staged PDF matches the staged source.
 
 The bibliography is contained in `main.tex`; there is no separate BibTeX

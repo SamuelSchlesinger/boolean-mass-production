@@ -24,6 +24,12 @@
 \newtheorem{proposition}[proposition]{Proposition}
 \aliascntresetthe{proposition}
 
+% arXiv's TeX Live 2025 currently requires explicit cleveref aliases for
+% theorem-like environments that share a section counter.
+\AddToHook{env/theorem/begin}{\crefalias{section}{theorem}}
+\AddToHook{env/lemma/begin}{\crefalias{section}{lemma}}
+\AddToHook{env/proposition/begin}{\crefalias{section}{proposition}}
+
 \newcommand{\bits}{\{0,1\}}
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\C}{\mathrm{C}}
@@ -31,8 +37,8 @@
 \newcommand{\xor}{\mathbin{\oplus}}
 \newcommand{\bigxor}{\bigoplus}
 
-% Keep the checked-in manuscript in double-blind submission form.  Switch to
-% \anonymousfalse for an identified public or camera-ready version.
+% The checked-in public and arXiv manuscript is identified.  Switch to
+% \anonymoustrue only when producing a separate double-blind review copy.
 \newif\ifanonymous
 \anonymousfalse
 
@@ -42,14 +48,14 @@
   \author{}
   \date{}
   \hypersetup{
-    pdftitle={Exponential-Range Mass Production of Boolean Functions},
+    pdftitle={Exponential-Range Mass Production of Boolean Functions: Local recovery, disjoint scheduling, and bounded congestion},
     pdfauthor={}
   }
 \else
   \author{Samuel Schlesinger}
   \date{September 2026}
   \hypersetup{
-    pdftitle={Exponential-Range Mass Production of Boolean Functions},
+    pdftitle={Exponential-Range Mass Production of Boolean Functions: Local recovery, disjoint scheduling, and bounded congestion},
     pdfauthor={Samuel Schlesinger}
   }
 \fi
@@ -106,12 +112,12 @@ The mass-production problem asks how large $t$ can become before the cost must
 rise above the worst-case scale for one copy.  For unrestricted circuits, the
 naive direct-sum bound can be far from optimal.  Uhlig's theorem allows
 $t=2^{o(n/\log n)}$ independent evaluations with no asymptotic increase in
-the leading worst-case one-copy synthesis cost.  In our basis and cost
-convention that coefficient is $1$ \cite{FrandsenMiltersen2005}; its numerical
-value can depend on the basis and convention.  See Uhlig's later
-account \cite{Uhlig1992}, Wegener's Theorem~10.2.3
-\cite{Wegener1987}, and the modern restatement in \cite{Kretschmer2023}; the
-1974 paper \cite{Uhlig1974} is a precursor.
+the leading worst-case one-copy synthesis cost
+\cite{Uhlig1992,Wegener1987,Kretschmer2023}.  In our basis and cost convention,
+the sharp one-copy coefficient is $1$ \cite{FrandsenMiltersen2005}; its
+numerical value can depend on the basis and convention.  Uhlig's 1974 paper
+\cite{Uhlig1974} is a precursor, and Wegener's Theorem~10.2.3 gives a book
+account of the later result.
 
 We prove, by a different construction, that the order-of-growth plateau reaches
 $2^{\gamma n}$ simultaneous evaluations for every fixed $\gamma<1$.  The price
@@ -163,6 +169,12 @@ works for arbitrary $t$ and gives
 \]
 For every fixed $\gamma<1$ and $t\le2^{\gamma n}$, the full-table term
 $n2^n$ eventually dominates.
+
+Holmgren and Rothblum's multiselection theorem gives a sharper global-lookup
+benchmark: hardwiring the truth table yields
+$O(2^n+tn^3)=O(2^n)$ throughout every fixed exponential range below one
+\cite[Main theorem]{HolmgrenRothblum2024}; we compare the bounds in detail
+below.
 
 We instead turn the truth table into shorter resource functions and recover a
 requested value from a selectable local set of them.  The quantity that has to
@@ -260,14 +272,18 @@ Paul, Lemma~2 \cite{Paul1976}
   & arbitrary $t$
   & $O(\max\{n2^n,nt\log^2t\})$
   & $O(n2^n)$ throughout every fixed exponential range below one \\
+Holmgren--Rothblum \cite{HolmgrenRothblum2024}
+  & arbitrary $t$
+  & $O(2^n+tn^3)$ after hardwiring
+  & $O(2^n)$ throughout every fixed exponential range below one \\
 Albrecht, Theorem~1 \cite{Albrecht1989}
   & $t\le2^n$
   & $O(2^n n^2)$
   & the full exponential range, with polynomial overhead \\
-IKOS batch codes \cite{IKOS2004}
+Finite-geometry batch codes \cite{IKOS2004,PolyanskiiVorobyev2019}
   & code-dependent batch size
   & disjoint local recovery; no bound on $\C(f^{\times t})$
-  & supplies the closest coding and affine-line antecedent \\
+  & coding antecedents for affine-geometric recovery \\
 This paper
   & $t\le2^{\gamma n}$ for fixed $\gamma<1$
   & $O_\gamma(2^n/n)$
@@ -283,12 +299,30 @@ prefactors.  Paul's $g^k$ is the same $k$-fold product task considered here;
 his circuits permit arbitrary binary Boolean gates, which changes our fixed
 basis cost by at most a constant factor.
 
+Holmgren and Rothblum prove that $Q$ indexed bits can be selected from a live
+$N$-bit database by a bounded-fan-in Boolean circuit of size
+$O(N+Q\log^3N)$ and depth $O(\log(N+Q))$
+\cite[Main theorem]{HolmgrenRothblum2024}.  In our nonuniform model, hardwiring
+the database to the $2^n$-bit truth table of $f$ and using the $t$ live
+$n$-bit input blocks as indices gives $O(2^n+tn^3)$, as recorded in the table.
+Hence the upper bound in \cref{thm:main} improves the bound obtained by this
+generic multiselection reduction by a factor of $n$ throughout every fixed
+exponential range below one.  Their result does not choose disjoint affine
+recovery sets, provide the sparse-to-dense scatter, or establish the
+bounded-congestion recursion.
+
 Albrecht studies the same simultaneous-realization problem over a complete
-binary basis \cite[Theorem~1]{Albrecht1989}.  His construction handles every
+binary basis \cite[Theorem~1, pp.~53--54]{Albrecht1989}.  His construction handles every
 $t\le2^n$ with size $O(2^n n^2)$ and depth $O(n\log n)$.  Since the one-copy
 Shannon size is $\Theta(2^n/n)$, this is an $O(n^3)$ multiplicative overhead,
 as Albrecht also notes.  Thus his theorem covers the endpoint copy range but
 does not give a constant-factor plateau at the one-copy scale.
+
+Hiltgen and Paterson use ``mass production'' for $\mathrm{PI}_k$-set circuits
+underlying monotone slice functions \cite{HiltgenPaterson1995}.  Their result
+gives sharing in that restricted set-circuit setting and leads to an optimal
+circuit for the Ne\v{c}iporuk slice; it does not give a universal bound for
+$f^{\times t}$ in the unrestricted De Morgan circuit model considered here.
 
 The coding interpretation begins with Uhlig's two-copy construction, which is
 the length-$(2^p+1)$ single-parity-check code viewed as a two-request disjoint
@@ -299,6 +333,10 @@ especially in Section~3.4 of Ishai--Kushilevitz--Ostrovsky--Sahai
 intersections while preserving enough points for interpolation.  Their
 Remark~3.11 also observes that the randomized decoding algorithms in that and
 the following sections can be derandomized using limited independence.
+In their terminology, the repeated-request analogue relevant here is a
+primitive multiset batch code.  Our local gadget uses the elementary
+tensor-product evaluation subspace, with a separate degree bound in each
+variable, whereas their construction uses total-degree Reed--Muller evaluation.
 
 That derandomization does not by itself give the circuit bound proved here.
 The requested prefixes are input wires of the mass-production circuit, so a
@@ -322,19 +360,24 @@ The bounded-congestion composition then pays for those suffixes recursively.
 This scheduler cost, rather than the mere existence of disjoint recovery sets,
 is what drives the equal-block induction.
 
+Finite-geometry constructions of primitive batch codes likewise give explicit
+families of mutually disjoint recovery sets \cite{PolyanskiiVorobyev2019}.
 Later lifted-polynomial constructions also use line-based recovery to obtain
 batch-code guarantees \cite{HolzbaurEtAl2020}.  Private-information-retrieval
 codes of Fazeli, Vardy, and Yaakobi form a related family in which each
 information symbol has many disjoint recovery options
-\cite{FazeliVardyYaakobi2015}.  The self-contained
-proof of \cref{thm:main} uses only the elementary product-code and affine-line
-facts proved below.
+\cite{FazeliVardyYaakobi2015}.  These are coding guarantees, not gate-counted
+circuits for the input-dependent schedule.  The self-contained proof of
+\cref{thm:main} uses only the elementary product-code and affine-line facts
+proved below.
 
-We claim no novelty for evaluation coding, affine-line recovery, or disjoint
-recovery as combinatorial ingredients.  The claimed contribution is the
-fine-grained deterministic scheduler and fixed-wire scatter/gather circuits,
-the bounded-congestion composition that makes their costs affordable, and the
-resulting exponential-range mass-production theorem.  A sufficiently sharper
+We claim no novelty for evaluation coding, affine-line recovery, disjoint
+recovery as a combinatorial ingredient, or generic sorting and multiselection
+routing primitives.  The claimed contribution is the quantitative combination
+of a fine-grained deterministic disjoint-line scheduler, explicit accounting
+for the scatter/gather cost, and the bounded-congestion composition that makes
+those costs affordable, yielding the exponential-range mass-production
+theorem.  A sufficiently sharper
 implementation of the deletion-based batch decoder could conceivably improve
 the scheduler term; in particular, a $\widetilde O(tq)$ disjoint-recovery
 scheduler would remove the present recursion, as discussed in
@@ -349,8 +392,12 @@ larger rational exponent and absorbing finitely many initial input lengths.
 \ifanonymous
 The public repository URL is omitted during double-blind review.
 \else
-The source is available at
-\url{https://github.com/SamuelSchlesinger/algebraic-circuits}.
+At revision
+\href{https://github.com/SamuelSchlesinger/algebraic-circuits/tree/b94cbedb988f5b4aa72be15de80879333c5e4725}{\texttt{b94cbed}},
+the Lean~4.33.1/mathlib~4.33.1 module
+\texttt{Algebraic.MassProduction} exposes the endpoint theorem
+\texttt{BlockInduction.exponentialMassProduction}; the checked build command
+is \texttt{lake build --wfail}.
 \fi
 
 \paragraph{Development methodology.}
@@ -378,7 +425,8 @@ The Shannon counting lower bound and Lupanov's synthesis upper bound imply
   L(n)=\Theta(2^n/n)
 \]
 for every fixed finite complete basis; see
-\cite{Shannon1949,Lupanov1958,Wegener1987}.  We use only the upper bound.
+\cite{Shannon1949,Lupanov1958,FrandsenMiltersen2005,Wegener1987}.  We use only
+the upper bound.
 
 For $r\ge1$, define
 \[
@@ -626,7 +674,9 @@ parameter dictionary
 \end{equation}
 Two distinct lines through the same target intersect only at that target,
 which is absent from both recovery sets.  Repeated requests for one information
-symbol therefore cause no additional difficulty.
+symbol therefore cause no additional difficulty.  A later target may itself
+belong to the occupied set, but it blocks no direction because every new
+recovery set omits its own target.
 
 The facts needed later can now be packaged without reference to the internal
 polynomial representation.
@@ -732,7 +782,7 @@ $2t\le t^2/C+C$, the latter being the arithmetic--geometric mean inequality,
 show that the total scheduling cost is
 \begin{equation}\label{eq:scheduling-cost}
   C\cdot\widetilde O_\ell(g^2q)
-  =\widetilde O_\ell\!\left(\frac{t^2q}{C}+Cq\right),
+  =\widetilde O_\ell\!\left(\frac{t^2q}{C}+Cq\right).
 \end{equation}
 The construction is valid whenever \eqref{eq:group-condition} holds for
 $g=\lceil t/C\rceil$, that is, whenever
@@ -758,7 +808,8 @@ most one record.
 
 The routing consists of four fixed sorting-and-local-update passes.  Here
 ``key'' means $(\text{group},y)$; any unlisted tie is broken by the record's
-original position.
+original position.  The record-type order is pass-specific and is shown
+explicitly in the table.
 \begin{center}
 \small
 \begin{tabularx}{\linewidth}{@{}
@@ -794,10 +845,26 @@ records carry the $b$-bit field value $G_y(z)$.  The gather passes are
 payload-agnostic for any payload whose width is polynomial in the displayed
 parameters.
 
+The gather half is also an instance of multiselection.  Equivalently, it is a
+partial-function inner join in the sense of Holmgren and Rothblum's
+Proposition~25 and Sections~6.1--6.2
+\cite[Proposition~25 and Sections~6.1--6.2]{HolmgrenRothblum2024}.  Write
+$M=Cq^\ell$ for the number of value slots and $R=t(q-1)$ for the number of
+incidences.  Disjointness within each group, together with the group component
+of the key, makes all incidence keys globally unique, so $R\le M$.  Each
+incidence in canonical request--line-position order
+supplies the index of its key; applying their binary main theorem independently
+to the $b$ bit positions therefore gives size
+$O(bM+bR\log^3(M+2))$ \cite[Main theorem]{HolmgrenRothblum2024}, within the
+bound below.  We retain the four-pass construction because it handles both the
+sparse-to-dense scatter and the gather in one self-contained routing lemma;
+multiselection by itself does not provide the scatter half.
+
 \begin{lemma}[Record routing]\label{lem:routing}
-The suffixes can be scattered into slots indexed by
-$(\text{group},y)\in[C]_0\times\F_q^\ell$, and the resulting resource values can
-be gathered back to their request records, using circuits of total size
+Suppose each key $(\text{group},y)$ occurs in at most one incidence record.
+The suffixes can then be scattered into slots indexed by
+$(\text{group},y)\in[C]_0\times\F_q^\ell$, and the resulting resource values
+can be gathered back to their request records, using circuits of total size
 \[
   \widetilde O_\ell(tq+Cq^\ell).
 \]
@@ -1214,8 +1281,9 @@ $(\text{group},y)$ order.  Fixed wiring transposes this order to
 $(y,\text{group})$, the input order used by the resource circuits.
 
 For gather, combine the preserved incidences with one value record per key.
-The third pass places that value immediately before every matching incidence;
-a guarded local multiplexer copies it into the incidence.  The fourth pass
+The third pass places that value immediately before the unique matching
+incidence; a guarded local multiplexer copies it into the incidence.  The
+fourth pass
 puts the first $t(q-1)$ positions in the fixed request-and-line order required
 by the decoders.  Thus absent incidences, the first array position, and all
 type boundaries are handled by fixed dummy data and the same guarded update,
@@ -1269,12 +1337,27 @@ Gudmund Skovbjerg Frandsen and Peter Bro Miltersen.
 \newblock \emph{Information Processing Letters}, 95(2):354--357, 2005.
 \newblock \href{https://doi.org/10.1016/j.ipl.2005.03.009}{doi:10.1016/j.ipl.2005.03.009}.
 
+\bibitem[HP95]{HiltgenPaterson1995}
+Alain P. Hiltgen and Mike S. Paterson.
+\newblock $\mathrm{PI}_k$ mass production and an optimal circuit for the
+Ne\v{c}iporuk slice.
+\newblock \emph{Computational Complexity}, 5(2):132--154, 1995.
+\newblock \href{https://doi.org/10.1007/BF01268142}{doi:10.1007/BF01268142}.
+
 \bibitem[HPPV20]{HolzbaurEtAl2020}
 Lukas Holzbaur, Rina Polyanskaya, Nikita Polyanskii, and Ilya Vorobyev.
 \newblock Lifted Reed--Solomon codes with application to batch codes.
 \newblock In \emph{2020 IEEE International Symposium on Information Theory},
 pages 634--639. IEEE, 2020.
 \newblock \href{https://doi.org/10.1109/ISIT44484.2020.9174402}{doi:10.1109/ISIT44484.2020.9174402}.
+\newblock arXiv:2001.11981.
+
+\bibitem[HR24]{HolmgrenRothblum2024}
+Justin Holmgren and Ron D. Rothblum.
+\newblock Linear-size Boolean circuits for multiselection.
+\newblock In \emph{39th Computational Complexity Conference (CCC 2024)},
+LIPIcs 300, Article 11, pages 11:1--11:20, 2024.
+\newblock \href{https://doi.org/10.4230/LIPIcs.CCC.2024.11}{doi:10.4230/LIPIcs.CCC.2024.11}.
 
 \bibitem[IKOS04]{IKOS2004}
 Yuval Ishai, Eyal Kushilevitz, Rafail Ostrovsky, and Amit Sahai.
@@ -1304,6 +1387,14 @@ Wolfgang J. Paul.
 \newblock \emph{Theoretical Computer Science}, 2(3):383--396, 1976.
 \newblock \href{https://doi.org/10.1016/0304-3975(76)90089-X}{doi:10.1016/0304-3975(76)90089-X}.
 
+\bibitem[PV19]{PolyanskiiVorobyev2019}
+Nikita Polyanskii and Ilya Vorobyev.
+\newblock Constructions of batch codes via finite geometry.
+\newblock In \emph{2019 IEEE International Symposium on Information Theory},
+pages 360--364. IEEE, 2019.
+\newblock \href{https://doi.org/10.1109/ISIT.2019.8849736}{doi:10.1109/ISIT.2019.8849736}.
+\newblock arXiv:1901.06741.
+
 \bibitem[Sha49]{Shannon1949}
 Claude E. Shannon.
 \newblock The synthesis of two-terminal switching circuits.
@@ -1316,6 +1407,7 @@ Dietmar Uhlig.
 with a small number of reliable elements.
 \newblock \emph{Mathematical Notes of the Academy of Sciences of the USSR},
 15(6):558--562, 1974.
+\newblock English translation.
 \newblock \href{https://doi.org/10.1007/BF01152835}{doi:10.1007/BF01152835}.
 
 \bibitem[Uhl92]{Uhlig1992}
