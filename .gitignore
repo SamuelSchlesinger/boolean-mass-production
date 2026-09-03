@@ -1,0 +1,15 @@
+# LaTeX build products. The reproducible manuscript PDF is intentionally tracked.
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+
+# Local render and export directories.
+output/
+tmp/
+
+# Editor and operating-system metadata.
+.DS_Store
+*~

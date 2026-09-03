@@ -23,16 +23,6 @@
 \newaliascnt{proposition}{theorem}
 \newtheorem{proposition}[proposition]{Proposition}
 \aliascntresetthe{proposition}
-\newaliascnt{corollary}{theorem}
-\newtheorem{corollary}[corollary]{Corollary}
-\aliascntresetthe{corollary}
-\theoremstyle{definition}
-\newaliascnt{definition}{theorem}
-\newtheorem{definition}[definition]{Definition}
-\aliascntresetthe{definition}
-\newaliascnt{remark}{theorem}
-\newtheorem{remark}[remark]{Remark}
-\aliascntresetthe{remark}
 
 \newcommand{\bits}{\{0,1\}}
 \newcommand{\F}{\mathbb{F}}
@@ -40,14 +30,13 @@
 \newcommand{\poly}{\operatorname{poly}}
 \newcommand{\xor}{\mathbin{\oplus}}
 \newcommand{\bigxor}{\bigoplus}
-\newcommand{\Adm}{\mathsf{Adm}}
 
 % Set \anonymoustrue for a double-blind submission.
 \newif\ifanonymous
 \anonymousfalse
 
 \title{\textbf{Exponential-Range Mass Production of Boolean Functions}\\[0.35em]
-\large Local disjoint recovery and recursive congestion reduction}
+\large Local recovery, disjoint scheduling, and bounded congestion}
 \ifanonymous
   \author{}
   \date{}
@@ -68,39 +57,39 @@
 \maketitle
 
 \begin{abstract}
-How many independent inputs can one circuit evaluate for essentially the
-worst-case cost of evaluating a Boolean function once?  For
-$f:\bits^n\to\bits$, let $f^{\times t}$ evaluate $f$ on $t$ independent
-inputs.  Uhlig showed that $t=2^{o(n/\log n)}$ copies preserve the sharp
-one-copy asymptotic.  We prove that, if only the optimal order of growth is
-required, the same-cost plateau extends to every fixed exponential rate below
-the $2^n$-copy scale: for every fixed $0\le\gamma<1$,
+We study the cost of evaluating one Boolean function on many independent
+inputs.  For $f:\bits^n\to\bits$, let $f^{\times t}$ evaluate $f$ on $t$
+such inputs.  Uhlig showed that $t=2^{o(n/\log n)}$ copies preserve the sharp
+one-copy asymptotic.  We retain the optimal order of growth throughout every
+fixed exponential range below the $2^n$-copy scale: for every fixed
+$0\le\gamma<1$,
 \[
   \C(f^{\times t})=O_\gamma(2^n/n)
   \qquad\text{for all }t\le 2^{\gamma n}.
 \]
-The bound is uniform over all $f$ and has the optimal worst-case order, but it
-does not retain Uhlig's one-copy leading constant.
+The bound is uniform in $f$ and $t$.  It does not preserve Uhlig's leading
+constant: in the standard basis used here, a high-rate version of our
+construction gives coefficient at most $1/(1-\gamma)$, while the sharp
+one-copy coefficient is $1$.
 
-The proof replaces a global truth-table scan by local coded recovery.  It
-encodes restrictions of $f$ with a constant-rate multivariate evaluation code,
-recovers requested symbols along affine lines, and schedules the lines to be
-disjoint inside request groups.  The remaining inter-group congestion is
-bounded and is absorbed by a recursive call on fewer input variables.  At the
-level of admissible copy exponents, the recursion gives
+The proof uses local coded recovery instead of scanning the whole truth table.
+An evaluation code gives each requested symbol many affine-line recovery sets.
+A deterministic scheduler chooses disjoint lines within request groups, so
+each shorter resource function is queried at most once per group; induction
+handles the demand across groups.  With $k+1$ equal input blocks this gives the
+copy exponents
 \[
-  \beta\longmapsto\frac{1}{2-\beta}.
+  \frac12,\frac23,\frac34,\ldots,
 \]
-Starting from the disjoint range $\beta=1/2$, iteration reaches every constant
-below one.
+which approach one.
 
-AI systems contributed substantively to the development of this work.  The
-project originated in a conversation on ChatGPT.com that was exported to the
-author's computer as a \LaTeX{} document.  Later interactive sessions used
-Claude Fable~5 and 5.1 through Claude Code and ChatGPT~5.6 Sol through Codex
-for experimentation, broad scans of the literature, and the development of
-multiple core components of the proof strategy and its internal constructions.
-The author is responsible for the final arguments and citations.
+This work was developed with substantive AI assistance.  It began in a
+ChatGPT.com conversation that the author exported as a \LaTeX{} document.
+Later interactive sessions used Claude Fable~5 and 5.1 through Claude Code,
+and ChatGPT~5.6 Sol through Codex.  These systems contributed to experiments,
+broad literature searches, and several core parts of the proof strategy and
+its internal constructions.  The author checked the arguments and citations
+and is responsible for the paper.
 \end{abstract}
 
 \section{Introduction}
@@ -123,8 +112,9 @@ The mass-production problem asks how large $t$ can become before the cost must
 rise above the worst-case scale for one copy.  For unrestricted circuits, the
 naive direct-sum bound can be far from optimal.  Uhlig's theorem allows
 $t=2^{o(n/\log n)}$ independent evaluations with no asymptotic increase in
-the leading worst-case one-copy synthesis cost; the numerical leading constant
-depends on the circuit basis and cost convention.  See Uhlig's later
+the leading worst-case one-copy synthesis cost.  In our basis and cost
+convention that coefficient is $1$ \cite{FrandsenMiltersen2005}; its numerical
+value can depend on the basis and convention.  See Uhlig's later
 account \cite{Uhlig1992}, Wegener's Theorem~10.2.3
 \cite{Wegener1987}, and the modern restatement in \cite{Kretschmer2023}; the
 1974 paper \cite{Uhlig1974} is a precursor.
@@ -134,7 +124,7 @@ $2^{\gamma n}$ simultaneous evaluations for every fixed $\gamma<1$.  The price
 is that we control only the optimal worst-case order $2^n/n$, not the sharp
 one-copy leading constant.
 
-\subsection{The result and how to read it}
+\subsection{Main result}
 
 We fix the standard basis $\{\wedge,\vee,\neg\}$, with fan-in two for the
 binary gates.  Fan-out and output designations are free, and circuit size is
@@ -150,27 +140,35 @@ integer $1\le t\le 2^{\gamma n}$,
 \]
 \end{theorem}
 
-Three features of the statement are worth separating.  First, it is uniform:
-one constant $A_\gamma$ works for every function and for every batch size in
-the stated range.  Second, the upper bound has no factor depending on $t$.
-Thus, for $t=\lfloor2^{\gamma n}\rfloor$, the amortized size per requested
-value is
+The coefficient hidden in this statement can also be controlled.  The
+high-rate variant in \cref{prop:high-rate-leading} proves
+\begin{equation}\label{eq:intro-leading}
+  \limsup_{n\to\infty}
+  \max_{\substack{f:\bits^n\to\bits\\1\le t\le2^{\gamma n}}}
+  \frac{n\C(f^{\times t})}{2^n}
+  \le \frac{1}{1-\gamma}.
+\end{equation}
+The right side is not claimed to be sharp.  Our conjecture is that it can be
+replaced by the one-copy coefficient $1$ for every fixed $\gamma<1$.
+
+The order of the quantifiers matters.  Once $\gamma$ is fixed, one constant
+$A_\gamma$ works for every function and every batch size in the stated range;
+the bound has no factor depending on $t$.  At the largest allowed batch size,
+the amortized size per requested value is therefore
 \[
   \frac{\C(f^{\times t})}{t}
   =O_\gamma\!\left(\frac{2^{(1-\gamma)n}}{n}\right).
 \]
-Third, $\gamma$ is fixed before $n$ grows.  Neither the constant nor the proof
-is uniform as $\gamma\to1$.
+The theorem does not make $A_\gamma$ uniform as $\gamma\to1$.
 
-The following elementary bound does not explain the fixed-exponent gap, but it
-shows that the plateau cannot extend to the $2^n$-copy scale.  If $n\ge2$ and
-$f$ depends on all $n$ variables, then every circuit for $f^{\times t}$ has
-size at least $tn/2$.  Consequently, a uniform $O(2^n/n)$ plateau cannot
-persist once $t=\omega(2^n/n^2)$; see \cref{sec:discussion}.  Thus
-\cref{thm:main} reaches every fixed exponential rate while leaving a genuine
-near-endpoint transition to be understood.
+There must nevertheless be a transition before the $2^n$-copy scale.  If
+$n\ge2$ and $f$ depends on all $n$ variables, every circuit for
+$f^{\times t}$ has size at least $tn/2$.  Hence a uniform $O(2^n/n)$ plateau
+cannot persist once $t=\omega(2^n/n^2)$; see \cref{sec:discussion}.  Our
+theorem reaches every fixed exponential rate, but leaves this near-endpoint
+regime open.
 
-\subsection{Global lookup versus local recovery}
+\subsection{How the construction works}
 
 Paul's general many-copy construction provides a useful contrast
 \cite[Lemma~2]{Paul1976}.  It treats the truth table of $f$ as an ordered
@@ -183,46 +181,17 @@ works for arbitrary $t$ and gives
 For every fixed $\gamma<1$ and $t\le2^{\gamma n}$, the full-table term
 $n2^n$ eventually dominates.
 
-Our construction does not sweep through the full table.  It turns the table
-into a family of shorter resource functions and reconstructs each requested
-value from a local, selectable set of those resources.  The central issue is
-then not lookup but \emph{simultaneous demand}: how many distinct suffixes ask
-for the same resource at once?  Local disjointness and recursion keep that
-demand bounded.
+We instead turn the truth table into shorter resource functions and recover a
+requested value from a selectable local set of them.  The quantity that has to
+be controlled is \emph{simultaneous demand}: how many different suffixes ask
+for the same resource?  Disjoint recovery sets control demand within a group,
+and recursion controls it across groups.  Both Paul's construction and ours
+use sorting, but for different jobs.  Paul sorts input addresses before a
+global table scan; we sort scheduling and routing records after choosing the
+local recovery sets.
 
-\begin{center}
-\small
-\begin{tabularx}{\linewidth}{@{}
-  >{\raggedright\arraybackslash}p{0.20\linewidth}
-  >{\raggedright\arraybackslash}p{0.35\linewidth}
-  >{\raggedright\arraybackslash}X@{}}
-\toprule
- & Paul's global lookup & This paper's local recovery \\
-\midrule
-Representation
-  & the complete truth table
-  & coded restrictions indexed by shorter resource functions \\
-Serving a batch
-  & sort addresses, scan the table, and unsort answers
-  & choose one affine-line recovery set per request \\
-Controlling overlap
-  & all requests share the same global scan
-  & disjointness within groups and at most $C$ uses per resource across groups \\
-Resulting tradeoff
-  & arbitrary $t$, but $O(n2^n)$ in the fixed exponential range
-  & $t\le2^{\gamma n}$, but the optimal order $O_\gamma(2^n/n)$ \\
-\bottomrule
-\end{tabularx}
-\end{center}
-
-The two methods therefore share sorting as a circuit primitive but use it for
-different purposes.  Paul sorts the input addresses to enable a global table
-scan.  We sort scheduling and routing records after the local recovery sets
-have been selected.
-
-\subsection{The proof in four moves}
-
-The construction can be read as four successive transformations.
+Here is the construction in the order in which a requested value passes
+through it.
 \begin{enumerate}[label=\textbf{\arabic*.},leftmargin=2.2em]
 \item \textbf{Pack restrictions.}
 Split each input as $x=(a,z)$.  For every fixed suffix $z$, pack the values
@@ -246,40 +215,50 @@ $C$ suffixes is itself a $C$-copy problem, now on only $d=|z|$ variables.
 The recursive hypothesis pays for this remaining simultaneous demand.
 \end{enumerate}
 
-\Cref{sec:two-copy,sec:code,sec:scheduling,sec:master} implement these moves
-and account for their gate costs.  \Cref{sec:bootstrap} chooses the parameters
-and iterates the resulting exponent gain.
+\Cref{sec:two-copy} first shows the disjoint-recovery idea in Uhlig's
+two-copy construction.  The local gadget is stated in
+\cref{prop:local-gadget}, and \cref{prop:master} accounts for its circuit
+cost.  The parameter choice is then isolated in \cref{sec:induction}.
+Gate-level details for direction selection and routing are deferred to
+\cref{app:implementation}; the leading coefficient is tracked in
+\cref{app:constant}.
 
-\subsection{The exponent bootstrap, in outline}
+\subsection{Why the exponents approach one}
 
-Here is the parameter logic behind the recursion.  To handle
-$t\le 2^{\gamma n}$ requests, the suffix has length $d\approx\gamma n$ and
-the number $C$ of request groups has exponent $c$, so a resource sees at most
-$2^{cn}$ suffixes.  A previously admissible exponent $\beta$ handles that
-recursive demand when $c<\beta\gamma$, while the scheduling overhead requires
-$c>2\gamma-1$, up to slack that vanishes as the fixed number $\ell$ of code
-variables grows.  Thus a feasible $c$ exists precisely when
-$\gamma<1/(2-\beta)$.
-
-Writing $\Adm(\beta)$ for the admissible-exponent property defined formally in
-\cref{def:admissible}, a globally disjoint schedule gives $\Adm(1/2)$, and the
-grouped construction proves
+For an integer $k\ge1$, let $\mathsf P_k$ be the claim that every fixed copy
+exponent below $k/(k+1)$ has worst-case cost $O(2^n/n)$.  To prove
+$\mathsf P_k$, write
 \[
-  \Adm(\beta)
-  \quad\Longrightarrow\quad
-  \Adm\!\left(\frac{1}{2-\beta}\right).
+  n=(k+1)m+O_k(1)
 \]
-Starting from $\beta_1=1/2$, the resulting sequence is
+and view the input as $k+1$ blocks of length about $m$.  The outer construction
+encodes one block for local recovery; the remaining $k$ blocks support the
+recursive resource functions.
+
+Write $\gamma=k/(k+1)-\eta$.  In the new range not already covered by
+$\mathsf P_{k-1}$, choose the number of request groups by
 \[
-  \beta_k=\frac{k}{k+1},
+  \log_2 C=(k-1)m-\frac{\eta n}{2}+O(1).
 \]
-which converges to one.
+Since $\log_2t\le km-\eta n+O_k(1)$, each group contains at most
+\[
+  2^{m-\eta n/2+O_k(1)}
+\]
+requests: strictly fewer than the one-block scale $2^m$.  At the same time,
+$C$ has exponent strictly below $(k-1)/k$ when measured against the remaining
+$k$ blocks, so $\mathsf P_{k-1}$ evaluates every resource.  Fixed
+finite-field slack makes all bookkeeping terms exponentially smaller than
+$2^n$.
+
+The base case $\mathsf P_1$ uses two equal blocks and has no recursive
+congestion.  At every later level, one block supplies the scheduling room
+inside each group and the preceding statement is invoked on the other blocks.
 
 \subsection{Relation to earlier work}
 
-The relevant verified guarantees are summarized below.
-Here ``one-copy leading term'' refers to the basis-dependent Shannon--Lupanov
-worst-case asymptotic.
+The closest asymptotic guarantees are summarized below.  Here ``one-copy
+leading term'' means the basis-dependent Shannon--Lupanov worst-case
+asymptotic.
 
 \begin{center}
 \small
@@ -306,7 +285,7 @@ Albrecht, Theorem~1 \cite{Albrecht1989}
 This paper
   & $t\le2^{\gamma n}$ for fixed $\gamma<1$
   & $O_\gamma(2^n/n)$
-  & optimal worst-case order, without leading-constant control \\
+  & optimal worst-case order, with a nonsharp $\gamma$-dependent coefficient \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -336,33 +315,31 @@ selection circuit, partitions requests into groups, recursively absorbs the
 resulting inter-group congestion, and charges the scheduler and fixed-wire
 routing explicitly.  We make no priority claim for these refinements.
 
-A 2011 manuscript of Lipmaa, subsequently withdrawn, proposed computational
-batch codes in connection with multi-query computation \cite{Lipmaa2011}.
 Later lifted-polynomial constructions also use line-based recovery to obtain
-batch-code guarantees \cite{HolzbaurEtAl2020}.  PIR codes of Fazeli, Vardy,
-and Yaakobi form a related family in which each information symbol has many
-disjoint recovery options \cite{FazeliVardyYaakobi2015}.  We use only the
-elementary product-code and affine-line facts proved below.
+batch-code guarantees \cite{HolzbaurEtAl2020}.  Private-information-retrieval
+codes of Fazeli, Vardy, and Yaakobi form a related family in which each
+information symbol has many disjoint recovery options
+\cite{FazeliVardyYaakobi2015}.  The self-contained
+proof of \cref{thm:main} uses only the elementary product-code and affine-line
+facts proved below.  The sharper coefficient bound
+\eqref{eq:intro-leading} also uses the rate estimate for lifted
+Reed--Solomon codes from \cite{HolzbaurEtAl2020}.
 
 Independently of historical priority, the technical contribution established
 here is a self-contained deterministic disjoint-line scheduler, an explicit
-fixed-wire scatter/gather implementation, and a recursive bounded-congestion
-invariant whose exponent map is $\beta\mapsto1/(2-\beta)$.
+fixed-wire scatter/gather implementation, and the bounded-congestion
+composition that drives the equal-block induction.
 
 \subsection{AI-assisted development and provenance}
 
-The original idea for this project emerged in an interactive conversation on
-ChatGPT.com.  That conversation was exported to the author's computer as a
-\LaTeX{} document and became the local starting point for the paper.  Further
-development took place across a series of interactive sessions using Claude
-Fable~5 and 5.1 through the Claude Code coding harness and ChatGPT~5.6 Sol
-through the Codex coding harness.  These systems were used for mathematical
-experimentation, broad scans of the literature, and the development of
-multiple core aspects of the proof strategy and its internal constructions.
-Their role was substantive and extended beyond prose editing.  The author
-selected among proposed directions, checked and revised the resulting
-arguments and literature claims, and takes responsibility for the paper's
-claims, proofs, and citations.
+The project began in an interactive conversation on ChatGPT.com, exported to
+the author's computer as a \LaTeX{} document.  Later work used Claude
+Fable~5 and 5.1 through Claude Code and ChatGPT~5.6 Sol through Codex in a
+series of interactive sessions.  These systems assisted with mathematical
+experiments, broad literature searches, and parts of the proof strategy and
+its internal constructions; their role went beyond prose editing.  The author
+chose which directions to pursue, checked and revised the arguments and
+literature claims, and takes responsibility for the paper.
 
 \section{Circuit conventions and worst-case notation}
 
@@ -424,11 +401,10 @@ stable fixed-wire compaction within the same asymptotic bound.
 
 \section{The two-copy construction as disjoint recovery}\label{sec:two-copy}
 
-Before introducing the higher-dimensional code, it is helpful to isolate the
-combinatorial idea already present in Uhlig's two-copy argument.  The point of
-this warm-up is not its numerical bound; it is the invariant that makes sharing
-possible: choose a representation for each requested value so that the
-underlying resources are not simultaneously reused.
+Uhlig's two-copy argument already contains the combinatorial invariant used
+later.  We will not use its numerical bound.  What matters is that each
+requested value has more than one representation, allowing the two requests
+to choose representations that do not reuse a resource at the same time.
 
 Fix a prefix length $p$, put $M=2^p$, and define the restrictions
 \[
@@ -466,19 +442,20 @@ code.  The two representations above are disjoint recovery sets for each
 information coordinate.  This suggests replacing the one-dimensional
 telescoping code by a constant-rate code with many geometric recovery sets.
 
-Two facts survive into the full construction.  The resource functions $g_j$
-may themselves be arbitrary; only their incidence with the recovery sets
-matters.  And disjointness is needed only among requests served together.  The
-next sections enlarge the menu of recovery sets and then relax global
-disjointness to bounded demand.
+The full construction keeps two features of this example.  The resource
+functions may be arbitrary; the proof uses only their incidence with the
+recovery sets.  Moreover, recovery sets need be disjoint only for requests
+served in the same group.  We next replace the chain by a geometry with many
+recovery sets, then allow bounded reuse across groups.
 
-\section{A constant-rate evaluation code}\label{sec:code}
+\section{The local-recovery gadget}\label{sec:code}
 
-This section builds the recovery system used by the circuit.  There are two
-levels to keep separate.  For a fixed suffix $z$, an evaluation code organizes
-all values $f(a,z)$ across prefixes.  Fixing one code coordinate $y$ across all
-suffixes then defines a shorter function $G_y(z)$.  Coding operates in the
-prefix direction; recursion operates in the suffix direction.
+Fix a suffix $z$.  We encode the $2^p$ values $f(a,z)$, as $a$ varies, into
+one evaluation-codeword.  If instead we fix a code coordinate $y$ and vary
+$z$, that coordinate becomes a shorter function $G_y(z)$.  Local recovery
+moves across a codeword; recursion evaluates these coordinate functions down
+the suffix direction.  \Cref{prop:local-gadget} records exactly what the rest
+of the proof needs from this construction.
 
 Fix an integer $\ell\ge2$ and a field $\F_q$ of characteristic two, where
 $q=2^b$.  Set
@@ -495,8 +472,8 @@ Let $\mathcal V$ be the space of polynomials
 \[
   P(X_1,\ldots,X_\ell)\in\F_q[X_1,\ldots,X_\ell]
 \]
-having degree less than $s_0$ in every variable.  Evaluation on $A^\ell$
-uniquely determines $P$, and
+having degree less than $s_0$ in every variable.  Repeated univariate
+interpolation shows that evaluation on $A^\ell$ uniquely determines $P$, and
 \[
   \deg P\le\ell(s_0-1)\le q-2.
 \]
@@ -552,9 +529,9 @@ Choose $q$, among powers of two, minimally so that
 \[
   Kb\ge2^p.
 \]
-For all sufficiently large $p$ (depending on $\ell$), this also ensures
-$q>2\ell+2$, and minimality together with
-$K=\Theta_\ell(q^\ell)$ gives
+For all sufficiently large $p$ (depending on $\ell$), the corresponding code
+dimensions at field sizes $q$ and $q/2$ are both $\Theta_\ell(q^\ell)$.
+Minimality then gives
 \begin{equation}\label{eq:packing}
   q^\ell b=\Theta_\ell(2^p).
 \end{equation}
@@ -576,6 +553,10 @@ the field-valued resource
 \]
 Each of the $b$ coordinate bits of $G_y$ is a Boolean function on $d$
 variables, determined by $f$, $y$, and the chosen field basis.
+For $r\in[b]_0$, write
+\[
+  H_{y,r}(z)=\bigl(G_y(z)\bigr)_r.
+\]
 
 It is useful to picture the values $P_z(y)$ as a rectangular array.  A row,
 with $z$ fixed and $y$ varying, is a codeword that contains all requested
@@ -607,7 +588,9 @@ the claim.
 \end{proof}
 
 Thus every affine line through an information point $u$ supplies a recovery
-set consisting of its $q-1$ non-target points.  The number of projective
+set consisting of its $q-1$ non-target points.  We identify two nonzero
+direction vectors when one is a nonzero scalar multiple of the other and
+write $[v]$ for the resulting projective direction.  The number of such
 directions through a point is
 \begin{equation}\label{eq:directions}
   D_q=\frac{q^\ell-1}{q-1}=1+q+\cdots+q^{\ell-1},
@@ -628,20 +611,53 @@ Two distinct lines through the same target intersect only at that target,
 which is absent from both recovery sets.  Repeated requests for one information
 symbol therefore cause no additional difficulty.
 
-In summary, one desired bit $f(a,z)$ has been converted into $q-1$ requests of
-the form $G_y(z)$, but the circuit may choose those coordinates $y$ from any of
-$D_q$ recovery lines.  The rest of the construction uses this freedom to keep
-different requests from overloading the same resource.
+The facts needed later can now be packaged without reference to the internal
+polynomial representation.
+
+\begin{proposition}[Local-recovery gadget]\label{prop:local-gadget}
+Fix $\ell\ge2$ and a split $n=p+d$, with $p$ sufficiently large depending on
+$\ell$, and choose $q=2^b$ by the packing rule above.  For every
+$f:\bits^n\to\bits$ there are $q^\ell b$ Boolean resource functions
+$H_{y,r}:\bits^d\to\bits$ with the following properties.
+\begin{enumerate}[label=\textup{(\roman*)},leftmargin=2.1em]
+\item The resource count satisfies $q^\ell b=\Theta_\ell(2^p)$.
+\item A prefix $a$ determines an information point $u(a)\in A^\ell$ and a bit
+position $j(a)\in[b]_0$ by a circuit of size $\poly_\ell(p,\log q)$.
+\item For every projective direction $[v]$, the set
+\[
+  R(u(a),[v])=\{u(a)+\lambda v:\lambda\in\F_q^*\}
+\]
+has $q-1$ coordinates and recovers the requested bit by
+\[
+  f(a,z)=\bigxor_{y\in R(u(a),[v])}H_{y,j(a)}(z).
+\]
+There are $D_q=(q^\ell-1)/(q-1)$ such recovery sets.
+\item If $U\subseteq\F_q^\ell$ is already occupied, at most
+$|U\setminus\{u(a)\}|$ directions have
+$R(u(a),[v])\cap U\ne\varnothing$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+The packing construction gives (i) and (ii).  The line identity, followed by
+selection of coordinate bit $j(a)$ in the fixed $\F_2$ basis, gives (iii).
+For (iv), every $y\in U\setminus\{u(a)\}$ lies on exactly one projective line
+through $u(a)$, while the omitted target $u(a)$ blocks none.
+\end{proof}
+
+Thus one desired bit has become $q-1$ requests to shorter resource functions,
+but those coordinates may be chosen from any of $D_q$ recovery sets.  The next
+section turns the blocking guarantee in (iv) into a deterministic circuit and
+then routes only the coordinates actually selected.
 
 \section{Deterministic scheduling and routing}\label{sec:scheduling}
 
 \subsection{Disjoint scheduling inside one group}
 
-There are two obstacles to turning the geometric existence argument into a
-circuit.  Lines chosen for different targets may intersect, and the choice of a
-nonintersecting line depends on the target points.  The greedy argument below
-handles the first obstacle, while projective ranking and sorting implement the
-choice with ordinary Boolean gates.
+The geometric count says that a suitable line exists, but a circuit must find
+one from the target points.  We do this greedily.  Previously occupied points
+rule out directions; projective ranking and sorting let an ordinary Boolean
+circuit choose the first direction that remains.
 
 Consider a multiset of $g$ requested information points
 $u_1,\ldots,u_g\in A^\ell$.  Process the requests in order.  Suppose disjoint
@@ -659,34 +675,11 @@ Projective directions in $\F_q^\ell$ have rank and unrank circuits of size
 $\poly_\ell(b)$, with ranks in $[D_q]_0$.
 \end{lemma}
 
-\begin{proof}
-Normalize a nonzero vector so that its first nonzero coordinate is one.  The
-normalized directions whose first nonzero coordinate is in position
-$h\in\{1,\ldots,\ell\}$ have the form
-\[
-  (0,\ldots,0,1,w_{h+1},\ldots,w_\ell)
-\]
-and form a block of size $q^{\ell-h}$.  Let
-\[
-  B_h=\sum_{r=1}^{h-1}q^{\ell-r},
-  \qquad
-  \operatorname{val}_q(w_{h+1},\ldots,w_\ell)
-   =\sum_{r=h+1}^{\ell}\operatorname{int}(w_r)q^{\ell-r},
-\]
-where $\operatorname{int}(w_r)\in[q]_0$ is the canonical binary
-representation.  The rank is
-\[
-  B_h+\operatorname{val}_q(w_{h+1},\ldots,w_\ell).
-\]
-The blocks are consecutive and their total size is $D_q$.
-
-To rank, find the first nonzero coordinate, invert it, normalize the vector,
-and concatenate the $b$-bit tail coordinates.  To unrank, compare the rank
-with the $\ell$ hardwired block intervals, subtract the appropriate $B_h$,
-and split the remainder into base-$q$ digits.  Since $q=2^b$, the last step is
-bit slicing.  The field operations and comparisons from the circuit
-conventions give size $\poly_\ell(b)$ in both directions.
-\end{proof}
+\emph{Implementation idea.}
+The indexing normalizes the first nonzero coordinate to one and orders the
+normalized vectors by the position of that coordinate and then by their
+remaining base-$q$ digits.  The explicit circuits are given in
+\cref{app:projective-indexing}.
 
 \begin{lemma}[Greedy line scheduler]\label{lem:scheduler}
 If
@@ -701,40 +694,13 @@ Boolean circuit of size
 \]
 \end{lemma}
 
-\begin{proof}
-At step $j$, fewer than $D_q$ directions are forbidden, so a valid direction
-exists.  This proves the combinatorial statement.
-
-For the circuit bound, represent a projective direction by normalizing its
-first nonzero coordinate to one and use the ranking from
-\cref{lem:projective-indexing}.  At stage $j$, for each $y\in U$, output the
-sentinel rank $D_q$ when $y=u_j$ and otherwise output the projective rank of
-$y-u_j$.  At the gate level, first multiplex a fixed nonzero vector in place
-of $y-u_j$ when $y=u_j$, rank that always-nonzero vector, and then overwrite
-the result by $D_q$ on the equality branch.  Use
-$\lceil\log_2(D_q+1)\rceil$ bits per rank.  There are
-$(j-1)(q-1)=O(jq)$ such entries.
-
-Sort these ranks as $r_1\le\cdots\le r_m$.  The least missing rank can be
-found without a dense $D_q$-bit table.  Rank zero is a candidate if $m=0$ or
-$r_1>0$; after position $i$, rank $r_i+1$ is a candidate if
-\[
-  r_i<D_q-1
-  \quad\text{and}\quad
-  \bigl(i=m\text{ or }r_{i+1}>r_i+1\bigr).
-\]
-These tests are applied to the full sorted list, including duplicates and
-sentinels.  Only the last occurrence of a non-sentinel rank can generate its
-successor, and a sentinel cannot generate a candidate.  A priority circuit
-selects the first candidate in this order.  A left-to-right prefix OR and
-multiplexers implement the choice in $O(m\log D_q)$ gates.  Since
-$|U\setminus\{u_j\}|<D_q$, fewer than $D_q$ distinct non-sentinel ranks are
-forbidden, so a candidate exists.  Sorting, comparisons, and priority
-selection therefore cost $\widetilde O_\ell(jq)$ gates.  Unrank the selected
-direction using \cref{lem:projective-indexing} and enumerate its $q-1$
-non-target line points, at cost $q\poly_\ell(b)$.  Unrolling the stages and
-summing over $j\le g$ gives $\widetilde O_\ell(g^2q)$.
-\end{proof}
+\emph{Proof idea.}
+At stage $j$, the blocking property in \cref{prop:local-gadget} leaves a valid
+direction because fewer than $D_q$ directions are forbidden.  The circuit
+ranks the forbidden directions, sorts those ranks, and selects the least
+missing one; stage $j$ costs $\widetilde O_\ell(jq)$.  The treatment of
+duplicate targets, sentinel ranks, and the least-missing-rank circuit is given
+in \cref{app:scheduler-proof}.  Summing over the stages gives the stated cost.
 
 \subsection{Request groups}
 
@@ -744,19 +710,14 @@ Partition the $t$ requests into $C$ fixed groups, each of size at most
 \]
 Apply \cref{lem:scheduler} independently inside each group.  A code coordinate
 is used at most once per group and therefore at most $C$ times overall.  The
-total scheduling cost is
+inequalities $\lceil t/C\rceil\le t/C+1$ and
+$2t\le t^2/C+C$, the latter being the arithmetic--geometric mean inequality,
+show that the total scheduling cost is
 \begin{equation}\label{eq:scheduling-cost}
   C\cdot\widetilde O_\ell(g^2q)
   =\widetilde O_\ell\!\left(\frac{t^2q}{C}+Cq\right),
 \end{equation}
-because
-\[
-  C\left\lceil\frac tC\right\rceil^2q
-  \le \frac{t^2q}{C}+2tq+Cq
-  \le 2\left(\frac{t^2q}{C}+Cq\right).
-\]
-The last inequality is the arithmetic--geometric mean inequality.  The
-construction is valid whenever \eqref{eq:group-condition} holds for
+The construction is valid whenever \eqref{eq:group-condition} holds for
 $g=\lceil t/C\rceil$, that is, whenever
 \begin{equation}\label{eq:scheduling-condition}
   \left\lceil\frac{t}{C}\right\rceil q<D_q.
@@ -765,8 +726,10 @@ $g=\lceil t/C\rceil$, that is, whenever
 The parameter $C$ exposes the central tradeoff.  More groups mean fewer
 requests per group, making disjoint scheduling easier and cheaper.  But they
 also permit each resource coordinate to receive more suffixes, making the
-recursive $C$-copy problem harder.  The bootstrap comes entirely from finding
-an exponential choice of $C$ that satisfies both demands.
+recursive $C$-copy problem harder.  The recursion works by finding an
+exponential choice of $C$ that satisfies both demands.  In the proof below,
+one encoded block supplies the room inside a group and the remaining blocks
+supply the capacity across groups.
 
 \subsection{Scatter and gather}
 
@@ -823,7 +786,1347 @@ be gathered back to their request records, using circuits of total size
 \]
 \end{lemma}
 
+\emph{Implementation idea.}
+The four passes in the table use a constant number of sorting networks on
+$O(tq+Cq^\ell)$ records of polynomial width.  The exact fixed-wire treatment
+of unmatched records and array boundaries is given in
+\cref{app:routing-proof}.
+
+The lemma is the reason no $tq^\ell$ crossbar appears.  Only the actual
+incidences and one dummy record per resource slot are routed.
+
+\section{The composition bound}\label{sec:master}
+
+\paragraph{Bounded-demand invariant.}
+Fix $f$ and the local-recovery gadget above.  Each $H_{y,r}$ is one fixed
+Boolean function on $d$ variables.  Inside each request group, disjoint
+recovery ensures that coordinate $y$ occurs at most once; hence the pair
+$(y,r)$ receives at most one suffix from each of the $C$ groups.  Place those
+suffixes in the canonical group slots and pad unused slots with a fixed dummy
+suffix.  One circuit for $H_{y,r}^{\times C}$, of size at most $L_C(d)$,
+serves exactly this bounded demand.  There are $q^\ell b$ such pairs, and no
+sharing between different pairs is assumed.
+
+\begin{proposition}[Composition bound]\label{prop:master}
+Fix $\ell\ge2$.  Let $n=p+d$ with $p$ sufficiently large depending on
+$\ell$, choose $q=2^b$ minimally so that $s_0^\ell b\ge2^p$, and suppose
+\cref{eq:scheduling-condition} holds.  Then every
+$f:\bits^n\to\bits$ satisfies
+\begin{equation}\label{eq:master}
+\C(f^{\times t})
+\le
+\underbrace{q^\ell b\,L_C(d)}_{\text{recursive resource evaluation}}
++\widetilde O_\ell\!\left(
+  \underbrace{\frac{t^2q}{C}}_{\text{line scheduling}}
+  +\underbrace{tq}_{\text{incidences and decoding}}
+  +\underbrace{Cq^\ell}_{\text{resource slots}}
+\right).
+\end{equation}
+\end{proposition}
+
+The first term is recursive: there are $q^\ell b$ Boolean resource functions,
+each evaluated on at most $C$ suffixes of length $d$.  The other three terms
+account for scheduling, the selected line incidences, and the padded resource
+slots.  Increasing $C$ makes the groups smaller, but gives every resource more
+suffixes to process.  The induction chooses $C$ so that the recursive term
+stays at scale $2^n/n$ and all three bookkeeping terms are exponentially
+smaller.
+
 \begin{proof}
+Map every requested prefix $a$ to its information point $u(a)$ and bit position
+$j(a)$ using the canonical packing circuit.  In each request group, use
+\cref{lem:scheduler} to select and enumerate a recovery line.  Together these
+steps cost
+$\widetilde O_\ell(t)+\widetilde O_\ell(t^2q/C+Cq)$ gates.  Each non-target
+point $y$ on a selected line requests $G_y$ on the suffix of the corresponding
+output instance.
+
+For each pair $(y,r)$, use the $H_{y,r}^{\times C}$ circuit from the
+bounded-demand invariant on the canonical group slots.  The definition of
+$L_C(d)$ applies separately to each induced function $H_{y,r}$, so these
+circuits cost $q^\ell bL_C(d)$ in total.  The complete scatter, gather, and
+fixed-wire compaction pipeline costs
+$\widetilde O_\ell(tq+Cq^\ell)$ by \cref{lem:routing}.  Field addition is
+coordinatewise XOR in the fixed $\F_2$ basis, so XORing the $q-1$ returned
+$b$-bit values of a request and selecting bit $j(a)$ costs $O(qb)$ per request
+and $O(tqb)$ in total.  Since each selected line passes through its target
+$u(a)$ and $\deg P_z\le q-2$, \cref{lem:line} shows that this XOR equals
+$P_z(u(a))$ for the request's suffix $z$, and bit $j(a)$ of that symbol is
+$f(a,z)$ by the packing of \cref{subsec:packing}.  The circuit therefore
+computes $f^{\times t}$.
+
+The polynomial $P_z$ and the functions $G_y$ specify the nonuniform resource
+truth tables; no run-time encoder is being assumed.  Since $q\ge2$, all
+smaller terms in this gate ledger are absorbed by the overhead in
+\eqref{eq:master}, proving the bound.
+\end{proof}
+
+\clearpage
+\section{The equal-block induction}\label{sec:induction}
+
+We now apply the composition bound recursively.  At level $k$, split the input
+into $k+1$ approximately equal blocks, encode one block, and invoke the
+preceding level on the remaining $k$.
+
+For an integer $k\ge1$, let $\mathsf P_k$ denote the assertion that, for every
+fixed $0\le\gamma<k/(k+1)$, there is a constant $A_{k,\gamma}$ such that, for
+all sufficiently large $n$, every $f:\bits^n\to\bits$, and every integer
+$1\le t\le2^{\gamma n}$,
+\[
+  \C(f^{\times t})\le A_{k,\gamma}\frac{2^n}{n}.
+\]
+
+Every comparison below has a fixed positive linear margin in its base-two
+logarithm.  We use without further comment that such a margin absorbs the
+$o(n)$ terms, every fixed polynomial factor hidden by $\widetilde O$, and the
+$O(1)$ changes caused by floors and ceilings.
+
+\subsection{Two equal blocks: the base case}
+
+\begin{lemma}[Two-block base]\label{lem:base}
+$\mathsf P_1$ holds.
+\end{lemma}
+
+Here $C=1$, so no mass-production hypothesis is used inside a resource.  The
+two equal blocks make the resource term proportional to $2^{n/2}L(n/2)$; the
+one-half threshold comes from the quadratic scheduler term $t^2q$.
+
+\begin{proof}
+Fix $0\le\gamma<1/2$, let $\eta=1/2-\gamma>0$, and suppose
+$t\le2^{\gamma n}$.  Put
+\[
+  m=\left\lfloor\frac n2\right\rfloor,
+  \qquad p=m,
+  \qquad d=n-m,
+  \qquad C=1.
+\]
+Thus $n=2m+O(1)$ and all recovery sets will be globally disjoint.  In block
+units, the request and code parameters are
+\[
+  \log_2t\le m-\eta n+O(1),
+  \qquad
+  \log_2q=\frac m\ell+o(n),
+  \qquad
+  \log_2D_q=\left(1-\frac1\ell\right)m+o(n).
+\]
+
+Choose a sufficiently large fixed $\ell$ so that
+\begin{equation}\label{eq:base-margin}
+  \frac1\ell<\eta.
+\end{equation}
+Since $2m/\ell\le n/\ell<\eta n$, this gives
+\[
+  m-\eta n+\frac m\ell
+  <m-\frac m\ell.
+\]
+The strict linear margin now implies $tq<D_q$ for all sufficiently large $n$.
+
+The resource term in \cref{eq:master} is, by Shannon--Lupanov synthesis,
+\[
+  q^\ell bL(d)
+  =O_\ell\!\left(2^p\frac{2^d}{d}\right)
+  =O_\gamma(2^n/n).
+\]
+The scheduler exponent is
+\[
+  \log_2(t^2q)
+  \le 2m-2\eta n+\frac m\ell+o(n)<n,
+\]
+where the strict inequality follows from \eqref{eq:base-margin}.  Likewise,
+$\log_2(tq)\le m-\eta n+m/\ell+o(n)<n$ and
+$\log_2q^\ell=m+o(n)<n$.  After the suppressed polynomial factors are
+restored, every overhead term is $2^{(1-\Omega_\gamma(1))n}$ and is negligible
+compared with $2^n/n$.  The same strict margins absorb all rounding.
+\end{proof}
+
+\subsection{Adding one equal block}
+
+\begin{lemma}[Equal-block step]\label{lem:block-step}
+For every integer $k\ge2$, $\mathsf P_{k-1}$ implies $\mathsf P_k$.
+\end{lemma}
+
+\begin{proof}
+Fix $0\le\gamma<k/(k+1)$.  If $\gamma<(k-1)/k$, the assertion is already
+$\mathsf P_{k-1}$.  We may therefore assume
+\[
+  \frac{k-1}{k}\le\gamma<\frac{k}{k+1}.
+\]
+Let
+\[
+  \eta=\frac{k}{k+1}-\gamma>0,
+  \qquad
+  m=\left\lfloor\frac{n}{k+1}\right\rfloor,
+  \qquad
+  p=m,
+  \qquad
+  d=n-m.
+\]
+Write $n=(k+1)m+r$ with $0\le r\le k$, and choose the number of request
+groups to be
+\begin{equation}\label{eq:block-parameters}
+  C=\left\lceil
+       2^{(k-1)m-\eta n/2}
+     \right\rceil.
+\end{equation}
+This choice splits the available slack in half.  Dividing the requests among
+$C$ groups puts each group $\eta n/2$ below the one-block exponent $m$;
+measured on the remaining $d$ bits, the exponent of $C$ is also a fixed
+amount below the threshold supplied by $\mathsf P_{k-1}$.
+The assumption $\gamma\ge(k-1)/k$ ensures that the exponent in
+\eqref{eq:block-parameters} is positive for all sufficiently large $n$.
+
+Let $\beta=(k-1)/k$.  Since $d=km+r$,
+\[
+  \beta d-\log_2C
+  =\frac{\eta n}{2}+\frac{k-1}{k}r+O(1).
+\]
+In particular, $C\le2^{(\beta-\eta/4)d}$ for all sufficiently large $n$.
+The exponent $\beta-\eta/4$ is fixed and strictly below the threshold for
+$\mathsf P_{k-1}$, so the inductive hypothesis gives
+\[
+  L_C(d)=O_{k,\gamma}(2^d/d).
+\]
+By \cref{eq:packing}, the resource term is therefore
+\[
+  q^\ell bL_C(d)
+  =O_{k,\gamma,\ell}\!\left(2^m\frac{2^d}{d}\right)
+  =O_{k,\gamma,\ell}(2^n/n).
+\]
+
+The remaining estimates are easiest to read in block units.  Since
+$\log_2t\le\gamma n=km-\eta n+O_k(1)$, the size
+$g=\lceil t/C\rceil$ of a request group satisfies
+\[
+  \log_2g\le m-\frac{\eta n}{2}+O_k(1).
+\]
+The code parameters satisfy
+\[
+  \log_2q=\frac m\ell+o(n),
+  \qquad
+  \log_2D_q=\left(1-\frac1\ell\right)m+o(n).
+\]
+Choose a sufficiently large fixed $\ell$ so that
+\begin{equation}\label{eq:block-margin}
+  \frac{2}{(k+1)\ell}<\frac{\eta}{2}.
+\end{equation}
+Then $2m/\ell<\eta n/2$, and hence
+\[
+  m-\frac{\eta n}{2}+\frac m\ell
+  <m-\frac m\ell.
+\]
+Together with \eqref{eq:directions}, this is exactly the strict exponent margin
+required for \cref{eq:scheduling-condition}.
+
+Finally, the complete overhead ledger in \cref{eq:master} is
+\begin{align*}
+  \log_2\!\left(\frac{t^2q}{C}\right)
+  &\le (k+1)m-\frac{3\eta n}{2}+\frac m\ell+o(n)<n,\\
+  \log_2(tq)
+  &\le n-m-\eta n+\frac m\ell+o(n)<n,\\
+  \log_2(Cq^\ell)
+  &\le n-m-\frac{\eta n}{2}+o(n)<n.
+\end{align*}
+The first strict inequality uses $(k+1)m\le n$ and
+\eqref{eq:block-margin}; the other two use $m=\Theta_k(n)$ and $\ell>1$.
+Thus every overhead term is exponentially smaller than $2^n/n$.  This proves
+$\mathsf P_k$.
+\end{proof}
+
+\begin{proof}[Proof of \cref{thm:main}]
+By \cref{lem:base,lem:block-step}, $\mathsf P_k$ holds for every $k\ge1$.
+Fix $0\le\gamma<1$ and choose $k$ so that $\gamma<k/(k+1)$.  Then
+$\mathsf P_k$ gives the asserted bound beyond a threshold $N_\gamma$.  For the
+finitely many integers $1\le n<N_\gamma$, use
+$\C(f^{\times t})\le t\C(f)$ and enlarge $A_\gamma$ to dominate
+$nt\C(f)/2^n$ over all relevant $n$, $f$, and $t$.  This proves the statement
+for every $n\ge1$.
+\end{proof}
+
+\section{Implications and open problems}\label{sec:discussion}
+
+The theorem settles the fixed-rate question: every fixed $\gamma<1$ is
+achievable at the optimal worst-case order.  It leaves three quantitative
+issues open: whether recursion is necessary, whether the one-copy leading
+constant can be retained, and where the plateau ends as the copy exponent
+approaches one.
+
+\paragraph{Can recursion be removed?}
+The disjoint base case isolates the reason for the recursion.  With $C=1$ and
+$d=\delta n$, the resource term remains $O(2^n/(\delta n))$, and for large
+fixed $\ell$ there are enough directions whenever $\gamma<1-\delta$.  It is
+the quadratic scheduling term $t^2q$, not line availability, that restricts
+this argument to $\gamma<1/2$.  Grouping divides that term by $C$, while
+recursion pays for the resulting $C$ simultaneous uses of each resource.  At
+the exponent level, this is the update $\beta\mapsto1/(2-\beta)$ underlying
+the equal-block sequence.  A disjoint-line scheduler of size
+$\widetilde O(tq)$ would remove the need for recursion: for any fixed
+$\gamma<1$, one could choose $0<\delta<1-\gamma$ and take $C=1$.  Finding such
+a scheduler, or ruling one out, is therefore a natural next problem.
+
+\paragraph{Can the leading constant be sharpened?}
+The elementary proof loses a constant in two places.  Its product code has
+rate bounded away from one, and its resource functions are synthesized on a
+shorter suffix, with denominator $d$ instead of $n$.  Scheduler and routing
+costs are exponentially lower order, so optimizing those circuits cannot
+repair either loss.
+
+\Cref{app:constant} removes the code-rate loss with a rate-$1-o(1)$ lifted
+Reed--Solomon code, absorbs field-size rounding into a subexponential number
+of codewords, and then chooses unequal block lengths.  The result is
+\[
+  \Lambda_\gamma\le\frac{\Lambda_0}{1-\gamma}
+  =\frac{1}{1-\gamma}.
+\]
+The factor $1/(1-\gamma)$ is exactly the suffix-denominator loss in this
+accounting.  We conjecture that unrestricted circuits avoid it and satisfy
+$\Lambda_\gamma=\Lambda_0=1$.  The appendix states an equivalent
+transversal-synthesis problem and proves a structural constraint on any such
+improvement.
+
+\paragraph{What changes if errors are allowed?}
+For a fixed error density $0<\rho<1/2$, worst-case approximate synthesis still
+has order $2^n/n$, but its sharp one-copy coefficient is the rate--distortion
+factor $1-H_2(\rho)$, where $H_2$ is binary entropy
+\cite{Pippenger1977}; the more general dependence on the
+approximation advantage and on partial domains was determined in
+\cite{AndreevClementiRolim1997}.  \Cref{app:approximation} shows that this
+lossy front end is compatible with our local-recovery construction.  If one
+first chooses a fixed function $g$ that disagrees with $f$ on at most a
+$\rho$-fraction of the domain and then computes $g$ exactly on every copy, the
+resulting mass-production coefficient is at most
+\[
+  \frac{1-H_2(\rho)}{1-\gamma}.
+\]
+A weaker model may permit a more substantial simplification.  If only the
+expected fraction of wrong coordinates on a uniformly random input tuple is
+bounded, one can contemplate assigning recovery directions in advance,
+sorting the resulting incidences, and abandoning requests whose lines
+collide.  Two fixed-direction affine lines through independent uniform
+targets intersect with probability on the order of $q^{2-\ell}$, suggesting
+that almost all requests could be served with demand one and hence without
+recursion.  Such a circuit need not compute one fixed approximant $g$: the
+answer at one coordinate can depend on the other inputs in its batch.  We
+therefore leave this batch-dependent error model as a separate problem rather
+than fold it into the theorem below.
+
+\paragraph{Where does the plateau end?}
+The theorem reaches $2^{(1-\varepsilon)n}$ copies for every fixed
+$\varepsilon>0$, but does not treat a rate that approaches one with $n$.
+Some degradation in that regime is forced.  If $n\ge2$ and $f$ depends on all
+$n$ of its variables, every output of a circuit for $f^{\times t}$ is a gate,
+and each of the $tn$ inputs must feed at least one gate, since otherwise the
+corresponding output would not depend on it.  Since gates have fan-in at most
+two,
+\[
+  \C(f^{\times t})\ge\frac{tn}{2}.
+\]
+A bound of the form $A\,2^n/n$ therefore cannot hold once
+$t>2A\cdot2^n/n^2$; in particular, a uniform $O(2^n/n)$ plateau must fail for
+$t=\omega(2^n/n^2)$.  The theorem still leaves the detailed mass-production
+curve throughout the near-endpoint regime $t=2^{n-o(n)}$ unresolved.
+Determining how far the plateau extends, and then characterizing the growth
+beyond it, would require a quantitatively sharper schedule or a different
+recursive decomposition.
+
+\paragraph{Beyond unrestricted circuits.}
+The construction uses arbitrary routing, finite-field linear reconstruction,
+and free fan-out.  Formula size, bounded-fan-out circuits, monotone circuits,
+bounded-depth circuits, and branching programs may have different
+mass-production curves.  In those settings, simultaneous demand may become a
+source of genuine direct-sum lower bounds.  Even in the unrestricted model,
+affine lines are not the only possible local-recovery geometry.  Batch codes,
+locally recoverable codes, or higher-dimensional varieties may improve the
+group-size versus decoding-cost tradeoff and reduce the number of recursive
+levels.
+
+\clearpage
+\appendix
+\section{Leading-coefficient bounds}
+\label{app:constant}
+
+The constant $A_\gamma$ in \cref{thm:main} also covers finitely many small
+input lengths, so it is not a meaningful leading coefficient.  This appendix
+tracks the asymptotic coefficient instead.  The first subsection records the
+exact, but large, constant from the elementary product code.  We then replace
+that code by a high-rate lifted code and choose unequal block lengths, which
+reduces the coefficient to $1/(1-\gamma)$.  Readers interested only in that
+final bound may skip to \cref{prop:high-rate-leading}.
+
+Define the one-copy and mass-production coefficients
+\[
+  \Lambda_0
+  =\limsup_{n\to\infty}\frac{nL(n)}{2^n}
+\]
+and, for $0<\gamma<1$,
+\[
+  \Lambda_\gamma
+  =\limsup_{n\to\infty}
+    \max_{\substack{f:\bits^n\to\bits\\1\le t\le 2^{\gamma n}}}
+    \frac{n\C(f^{\times t})}{2^n}.
+\]
+Thus \cref{thm:main} says in particular that $\Lambda_\gamma<\infty$.
+The matched Shannon--Lupanov bounds of Frandsen and Miltersen
+\cite{FrandsenMiltersen2005} give, in our basis,
+\begin{equation}\label{eq:lambda-zero}
+  \Lambda_0=1.
+\end{equation}
+
+\subsection{The elementary product-code ledger}
+
+We first isolate the constant lost in packing.  For fixed $\ell\ge2$ and
+prefix length $p$, let $q=2^b$ be minimal subject to
+\[
+  \left\lfloor\frac{q-1}{\ell}\right\rfloor^\ell b\ge2^p,
+\]
+as in \cref{subsec:packing}, put
+$s_0=\lfloor(q-1)/\ell\rfloor$, and write
+\[
+  R_\ell(p)=\frac{q^\ell b}{2^p},
+  \qquad
+  \rho_\ell=\limsup_{p\to\infty}R_\ell(p).
+\]
+The code rate and the restriction to fields of power-of-two size give
+\begin{equation}\label{eq:packing-constant}
+  \ell^\ell\le \rho_\ell\le(2\ell)^\ell.
+\end{equation}
+Indeed, the packing inequality implies
+$R_\ell(p)\ge(q/s_0)^\ell\to\ell^\ell$.  For the reverse inequality, the
+preceding field size $q/2$ fails the packing condition.  If
+$s'_0=\lfloor(q/2-1)/\ell\rfloor$, then
+\[
+  2^p>(s'_0)^\ell(b-1),
+  \qquad
+  R_\ell(p)
+  <\left(\frac{q}{s'_0}\right)^\ell\frac{b}{b-1}
+  \longrightarrow(2\ell)^\ell.
+\]
+
+We can now state exactly what the elementary construction proves.
+
+\begin{proposition}[Leading coefficient from the equal-block construction]
+\label{prop:leading-constant}
+For $0<\gamma<1$, put
+\[
+  S_k=k-(k+1)\gamma.
+\]
+Then
+\begin{equation}\label{eq:constant-optimization}
+  \Lambda_\gamma
+  \le \Lambda_0
+  \inf_{\substack{k\ge1\\S_k>0}}
+  (k+1)
+  \inf_{\substack{\ell_1,\ldots,\ell_k\in\mathbb Z_{\ge3}\\
+                   \sum_{j=1}^k 2/\ell_j<S_k}}
+  \prod_{j=1}^k\rho_{\ell_j}.
+\end{equation}
+Both infima range over nonempty discrete sets.
+\end{proposition}
+
+\begin{proof}
+Fix admissible $k$ and $\ell_1,\ldots,\ell_k$.  Since
+\[
+  \sum_{j=1}^k\frac{2}{\ell_j}<S_k<k,
+\]
+we may choose numbers $\Delta_j$ such that
+\begin{equation}\label{eq:slack-allocation}
+  \frac{2}{\ell_j}<\Delta_j<1,
+  \qquad
+  \sum_{j=1}^k\Delta_j=S_k.
+\end{equation}
+The $\Delta_j$ allocate the total exponent slack $S_k$ among the $k$
+levels.  The lower bound $2/\ell_j$ is the amount needed to fit a recovery
+line inside the available directions at level $j$.
+Set $\eta_0=0$ and, for $1\le j\le k$, set
+\[
+  \eta_j=\frac{1}{j+1}\sum_{i=1}^j\Delta_i,
+  \qquad
+  \gamma_j=\frac{j}{j+1}-\eta_j.
+\]
+Then $\gamma_0=0$, $\gamma_k=\gamma$, and
+\begin{equation}\label{eq:slack-telescope}
+  (j+1)\eta_j-j\eta_{j-1}=\Delta_j.
+\end{equation}
+Because every $\Delta_i<1$, we also have $\gamma_j>0$ for $j\ge1$.
+
+Build the construction from level $0$ outward.  At level $j$, the current
+input length is $n_j=(j+1)m+O_j(1)$, and the target copy count is
+$T_j=\lceil2^{\gamma_j n_j}\rceil$.  Use one block of length $m$ for the
+code, leaving a suffix of length $d_j=jm+O_j(1)$.  Choose
+\[
+  C_j=\left\lfloor2^{\gamma_{j-1}d_j}\right\rfloor
+\]
+request groups.  The recursive resource call is therefore within the copy
+range already constructed at level $j-1$.  The logarithm of $C_j$ is
+\[
+  \gamma_{j-1}jm+o(m)
+  =\bigl(j-1-j\eta_{j-1}\bigr)m+o(m).
+\]
+The logarithm of the resulting group size $\lceil T_j/C_j\rceil$ is, by
+\eqref{eq:slack-telescope},
+\[
+  \bigl(\gamma_j(j+1)-\gamma_{j-1}j\bigr)m+o(m)
+  =(1-\Delta_j)m+o(m).
+\]
+Thus $\Delta_j m$ is literally the slack between a request group and the
+one-block scale $2^m$.
+Since $\log_2q=m/\ell_j+o(m)$ and
+$\log_2D_q=(1-1/\ell_j)m+o(m)$, the inequality
+$\Delta_j>2/\ell_j$ is precisely the strict exponent margin needed for
+the disjoint-line schedule.
+
+For completeness, put $c_j=j-1-j\eta_{j-1}$, the exponent of $C_j$ in block
+units.  Ignoring lower-order terms, the three bookkeeping terms in
+\cref{eq:master} have exponents
+\begin{align*}
+  \frac{T_j^2q}{C_j}:&\quad
+    c_j+2(1-\Delta_j)+\frac1{\ell_j}<j+1,\\
+  T_j q:&\quad
+    c_j+(1-\Delta_j)+\frac1{\ell_j}<j+1,\\
+  C_j q^{\ell_j}:&\quad c_j+1<j+1.
+\end{align*}
+Here $c_j\le j-1$, and the first two strict inequalities follow from
+$\Delta_j>2/\ell_j$.  Each term is therefore exponentially smaller than the
+local scale $2^{(j+1)m}/m$.  The number of levels is fixed, so these terms
+remain lower order after the outer resource factors are restored.
+
+Only the recursive resource term contributes to the leading coefficient.
+The packing loss at level $j$ is at most $\rho_{\ell_j}$ in the limit, and
+changing the denominator from the remaining $jm$ variables to the full
+$(j+1)m$ variables contributes $(j+1)/j$.  Consequently the coefficients
+obtained after successive levels satisfy
+\[
+  B_j\le \frac{j+1}{j}\rho_{\ell_j}B_{j-1},
+  \qquad B_0=\Lambda_0.
+\]
+Iteration telescopes the normalization factors and gives
+\[
+  B_k\le
+  \Lambda_0(k+1)\prod_{j=1}^k\rho_{\ell_j}.
+\]
+Taking the two infima proves \eqref{eq:constant-optimization}.  Floors,
+ceilings, and fixed polynomial factors do not affect a limsup leading
+coefficient because every inequality in \eqref{eq:slack-allocation} is
+strict.
+\end{proof}
+
+There is a simple near-closed-form choice.  For every $k$ with $S_k>0$, put
+\begin{equation}\label{eq:equal-slack-choice}
+  \delta_k=\frac{S_k}{k}
+  =1-\gamma-\frac{\gamma}{k},
+  \qquad
+  \ell_k=\left\lfloor\frac{2}{\delta_k}\right\rfloor+1.
+\end{equation}
+Taking every $\Delta_j=\delta_k$ and every code parameter equal to $\ell_k$
+in \cref{prop:leading-constant}, then using
+\eqref{eq:packing-constant}, gives
+\begin{equation}\label{eq:explicit-leading-constant}
+  \Lambda_\gamma
+  \le \Lambda_0(k+1)\rho_{\ell_k}^{\,k}
+  \le \Lambda_0(k+1)(2\ell_k)^{k\ell_k}.
+\end{equation}
+Equal slack also minimizes the continuous relaxation.  Under the estimates
+$\rho_\ell\le(2\ell)^\ell$ and $\ell=2/\Delta$, the logarithmic cost of a
+level is
+\[
+  \psi(\Delta)
+  =\frac{2}{\Delta}\log_2\frac{4}{\Delta}.
+\]
+The function $\psi$ is strictly convex on $(0,1)$, so Jensen's inequality
+shows that equal $\Delta_j$ minimize the relaxed cost for fixed $k$.  The
+choice in \eqref{eq:equal-slack-choice} implements this continuous optimizer
+up to integer rounding.
+
+Finally, write $\varepsilon=1-\gamma$ and let
+\[
+  k=\left\lceil\frac{2\gamma}{\varepsilon}\right\rceil.
+\]
+As $\varepsilon\downarrow0$, this choice has
+\[
+  k=\frac{2+o(1)}{\varepsilon},
+  \qquad
+  \delta_k=\left(\frac12+o(1)\right)\varepsilon,
+  \qquad
+  \ell_k=\frac{4+o(1)}{\varepsilon}.
+\]
+Equation \eqref{eq:explicit-leading-constant} therefore yields
+\begin{equation}\label{eq:leading-constant-endpoint}
+  \Lambda_\gamma
+  \le \Lambda_0\,
+  2^{(8+o(1))\varepsilon^{-2}\log_2(1/\varepsilon)}.
+\end{equation}
+Within the same continuous relaxation, writing $k=a/\varepsilon$ makes
+$k\ell_k\sim2a^2/((a-1)\varepsilon^2)$; this is minimized at $a=2$.
+Thus the choices above optimize the leading logarithmic term of the
+equal-block bound.  The remaining losses in
+\eqref{eq:leading-constant-endpoint} come from the evaluation-code rate and
+power-of-two field rounding.  A sharper scheduler alone does not remove
+those losses, and \eqref{eq:constant-optimization} is not a lower bound on
+the true value of $\Lambda_\gamma$.
+
+\subsection{Removing the packing loss}
+
+Two separate devices remove the packing loss.  Lifted Reed--Solomon codes
+retain the degree bound on every affine line while their rate tends to one.
+We also use a subexponential number of codewords, which lets us choose the
+field just below the desired size instead of rounding one codeword up to the
+next power of two.  Neither change alters the line scheduler.
+
+\begin{lemma}[Asymptotically lossless local recovery]
+\label{lem:rate-one-gadget}
+Fix $\ell\ge3$.  For every sufficiently large $p$, there exist a power of two
+$q=2^b$, an integer $B$, and a family of $Bq^\ell b$ Boolean resource
+functions with the recovery and blocking properties of
+\cref{prop:local-gadget}, except that a resource coordinate also carries a
+codeword index in $[B]_0$.  As $p\to\infty$, these parameters satisfy
+\begin{equation}\label{eq:lossless-packing}
+  \log_2B=o(p),
+  \qquad
+  Bq^\ell b=(1+o_p(1))2^p,
+  \qquad
+  \log_2q=\frac p\ell-o(p).
+\end{equation}
+\begin{samepage}
+If $K_{\ell,q}$ denotes the dimension of the code over $\F_q$, the resulting
+composition bound is
+\begin{equation}\label{eq:high-rate-master}
+\begin{split}
+  \C(f^{\times t})
+  \le{}&(1+o_p(1))2^p L_C(d)\\
+  &+\widetilde O_\ell\!\left(
+      K_{\ell,q}+t
+      +\frac{t^2q}{C}+tq+CBq^\ell
+    \right),
+\end{split}
+\end{equation}
+whenever $\lceil t/C\rceil q<D_q$.
+\end{samepage}
+\end{lemma}
+
+\begin{proof}
+Put
+\[
+  b=\left\lfloor\frac{p-\sqrt p}{\ell}\right\rfloor,
+  \qquad q=2^b,
+  \qquad N=q^\ell,
+\]
+and use the $[\ell,q-1,q]$ lifted Reed--Solomon code.  Its length is $N$,
+every restriction to an affine line is represented by a polynomial of degree
+at most $q-2$, and, for fixed $\ell$, its dimension satisfies
+\begin{equation}\label{eq:lifted-rate}
+  K_{\ell,q}=(1-o_q(1))N
+\end{equation}
+by \cite[Theorems~1 and~2]{HolzbaurEtAl2020}.  The code is linear, so a fixed
+information set makes its encoder systematic.
+
+Let
+\[
+  B=\left\lceil\frac{2^p}{K_{\ell,q}b}\right\rceil
+\]
+and pack the $2^p$ truth-table bits consecutively into the information symbols
+of these $B$ codewords.  The role of $B$ is only to absorb the unused capacity
+in the last codeword: the chosen field makes one codeword too small, but by a
+subexponential rather than a constant fraction.  Now
+\[
+  2^p\le BN b
+  \le \frac{N}{K_{\ell,q}}2^p+Nb
+  =(1+o_p(1))2^p.
+\]
+Here \eqref{eq:lifted-rate} handles the first term, while
+$Nb/2^p\le p2^{-\sqrt p}$ handles the rounding term.  The same estimates give
+$B=2^{o(p)}$ and the second part of \eqref{eq:lossless-packing}.
+
+A requested prefix determines its codeword index, its information-symbol
+rank, and its bit position by division by the fixed integers
+$K_{\ell,q}b$ and $b$.  The information-symbol rank must then be translated
+to the corresponding point of the fixed information set.  This is a static
+lookup: sort the $K_{\ell,q}$ hard-wired table records together with the query
+records, propagate the table value along each equal-key run, and restore query
+order.  The circuit conventions give cost
+$\widetilde O_\ell(K_{\ell,q}+t)$.
+
+On every line, \cref{lem:line} applies verbatim.  Within a request group, run
+the same fixed greedy circuit as in \cref{lem:scheduler}, now treating an
+occupied point as blocking only when its codeword index matches that of the
+current target.  At stage $j$ there are still at most $(j-1)(q-1)$ relevant
+point records to inspect, so the circuit size and scheduling condition are
+unchanged.  Equivalently, if the codeword-part sizes are
+$g_1,\ldots,g_B$, the work charged by the greedy comparisons is bounded by
+$\sum_\nu g_\nu^2q\le(\sum_\nu g_\nu)^2q$.  Coordinates in different
+codewords are distinct resources.
+Adding the codeword index to every routing key changes the slot universe from
+$Cq^\ell$ to $CBq^\ell$ and changes no other incidence count.  There are
+$BNb$ Boolean resource functions, giving the first term of
+\eqref{eq:high-rate-master}; the scheduler, routing, and line decoder give the
+remaining terms exactly as in \cref{prop:master}.
+\end{proof}
+
+\subsection{Optimizing the block lengths}
+
+Rate-one packing leaves only the denominator lost when a resource on a shorter
+suffix is synthesized separately.  Unequal blocks make that loss explicit and
+avoid the much larger coefficient in
+\eqref{eq:leading-constant-endpoint}.
+
+\begin{proposition}[High-rate leading coefficient]
+\label{prop:high-rate-leading}
+For every fixed $0\le\gamma<1$,
+\begin{equation}\label{eq:high-rate-leading}
+  \Lambda_\gamma
+  \le\frac{\Lambda_0}{1-\gamma}
+  =\frac{1}{1-\gamma}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+The case $\gamma=0$ follows from one-copy synthesis, so suppose
+$0<\gamma<1$.  Write $\varepsilon=1-\gamma$, and fix
+$0<\alpha<\varepsilon$.  Choose a fixed $\ell\ge3$ large enough that
+\begin{equation}\label{eq:unequal-capacity}
+  \gamma<(\gamma+\alpha)\left(1-\frac2\ell\right),
+\end{equation}
+and then choose a fixed integer $k$ large enough that
+\begin{equation}\label{eq:unequal-overhead}
+  \frac{\gamma+(\gamma+\alpha)/\ell}{k}
+  <\varepsilon-\alpha.
+\end{equation}
+Both choices are possible: as $\ell\to\infty$, the right side of
+\eqref{eq:unequal-capacity} tends to $\gamma+\alpha>\gamma$; after $\ell$ is
+fixed, the left side of \eqref{eq:unequal-overhead} tends to zero as
+$k\to\infty$.
+Set
+\[
+  w_0=\varepsilon-\alpha,
+  \qquad
+  w_j=\frac{\gamma+\alpha}{k}\quad(1\le j\le k),
+  \qquad
+  W_j=\sum_{i=0}^j w_i,
+  \qquad
+  \tau_j=\frac{j\gamma}{k}.
+\]
+Thus $W_k=1$, $\tau_0=0$, and $\tau_k=\gamma$.  Partition an
+$n$-bit input into blocks of lengths $w_0 n,w_1 n,\ldots,w_k n$, with bounded
+rounding errors.  At stage $j$, the current input length is
+$n_j=W_j n+O_k(1)$; use the block of length $p_j=w_j n+O_k(1)$ for local
+recovery and the preceding $n_{j-1}$ bits as the suffix.  Set the outer copy
+bound to $T_j=\lceil2^{\tau_j n}\rceil$ and use
+$C=T_{j-1}$ request groups.
+
+Here $w_0$ is the suffix left for the final one-copy synthesis, the $w_j$ are
+the recovery blocks added in successive stages, and $W_j$ is the fraction of
+the original input present after stage $j$.  The number $\tau_j$ is the copy
+exponent reached by that stage.  Thus stage $j$ must increase the copy
+exponent by $\gamma/k$ while spending one recovery block of size
+$(\gamma+\alpha)n/k$.
+
+The logarithmic group size is
+\[
+  \log_2(T_j/T_{j-1})=\frac{\gamma n}{k}+O(1).
+\]
+Since $\log_2q=p_j/\ell-o(n)$ and
+$\log_2(D_q/q)=(1-2/\ell)p_j-o(n)$,
+\eqref{eq:unequal-capacity} is precisely the inequality
+\[
+  \frac{\gamma}{k}+\frac{w_j}{\ell}
+  <\left(1-\frac1\ell\right)w_j
+\]
+up to lower-order terms.  Its left side is the exponent of a group multiplied
+by $q$; its right side is the exponent of $D_q$.  This verifies the scheduling
+condition.
+
+It remains to check that building and routing the schedule is lower order.
+The slack between the current input exponent and copy exponent is
+\begin{equation}\label{eq:stage-slack}
+  W_j-\tau_j
+  =\varepsilon-\alpha+\frac{j\alpha}{k}
+  \ge\varepsilon-\alpha.
+\end{equation}
+Dividing base-two logarithms by $n$, the four nonrecursive contributions in
+\eqref{eq:high-rate-master} have exponents at most
+\begin{align*}
+  \text{scheduler:}\quad
+  &2\tau_j-\tau_{j-1}+\frac{w_j}{\ell}+o(1)
+   =\tau_j+\frac{\gamma+(\gamma+\alpha)/\ell}{k}+o(1),\\
+  \text{incidences:}\quad
+  &\tau_j+\frac{w_j}{\ell}+o(1),\\
+  \text{slots:}\quad
+  &\tau_{j-1}+w_j+o(1),\\
+  \text{lookup:}\quad
+  &\max\{w_j,\tau_j\}+o(1).
+\end{align*}
+The scheduler exponent is below $W_j$ by
+\eqref{eq:unequal-overhead} and \eqref{eq:stage-slack}.  The same two
+inequalities give
+$\tau_j+w_j/\ell<W_j$ for the incidence term.  The slot inequality is the
+previous-stage slack $W_{j-1}-\tau_{j-1}>0$, and the lookup inequality follows
+from $w_j<W_j$ and \eqref{eq:stage-slack}.  Hence every nonrecursive term is
+exponentially smaller than $2^{n_j}/n_j$.
+
+Only the recursive coefficient remains.  At stage zero, one-copy synthesis on
+$n_0$ bits has coefficient $B_0=\Lambda_0$.  If the construction
+through stage $j-1$ has coefficient $B_{j-1}$, the resource term in
+\eqref{eq:high-rate-master} is
+\[
+  (1+o(1))2^{p_j}
+  B_{j-1}\frac{2^{n_{j-1}}}{n_{j-1}}
+  =\left(B_{j-1}\frac{W_j}{W_{j-1}}+o(1)\right)
+    \frac{2^{n_j}}{n_j}.
+\]
+Consequently
+\[
+  B_k\le\Lambda_0\prod_{j=1}^k\frac{W_j}{W_{j-1}}
+  =\frac{\Lambda_0}{w_0}
+  =\frac{\Lambda_0}{\varepsilon-\alpha}.
+\]
+The construction for $T_k$ copies also handles every smaller $t$ by fixing
+unused inputs and discarding unused outputs.  Since $\alpha$ was arbitrary,
+letting $\alpha\downarrow0$ proves \eqref{eq:high-rate-leading}.
+\end{proof}
+
+\subsection{The remaining one-copy gap}
+
+The factor in \eqref{eq:high-rate-leading} is the best that the present
+\emph{separate-resource synthesis} ledger can certify.  Indeed, in any
+multilevel version let $w_0$ be the final suffix fraction, let $w_j$ be the
+fraction assigned to the $j$th recovery block, and let $\Delta_j$ be the
+increase in the ambient copy exponent at that level.  Put
+$W_j=\sum_{i=0}^j w_i$.  Line capacity requires
+$\Delta_j<w_j(1-2/\ell_j)<w_j$.  Since
+$\sum_j\Delta_j=\gamma$, summing gives $w_0<1-\gamma$.  Separate synthesis
+then telescopes the denominator changes to
+\[
+  \prod_j\frac{W_j}{W_{j-1}}=\frac1{w_0}>\frac1{1-\gamma}.
+\]
+This is a limitation of that accounting, not a lower bound for unrestricted
+circuits.
+
+We do not know whether unrestricted circuits must pay this factor.  Our
+conjecture is
+\begin{equation}\label{eq:sharp-constant-conjecture}
+  \boxed{\Lambda_\gamma=\Lambda_0=1
+  \quad\text{for every fixed }0\le\gamma<1.}
+\end{equation}
+The lower bound is immediate because the maximum defining
+$\Lambda_\gamma$ includes $t=1$.  The missing upper bound can be isolated as
+a synthesis problem.  Given $M$ arbitrary functions
+$h_1,\ldots,h_M:\bits^d\to\bits$, define
+\[
+  \mathsf T(M,d)
+  =\max_{h_1,\ldots,h_M}
+    \C\!\left((z_1,\ldots,z_M)
+      \longmapsto
+      \bigl(h_1(z_1),\ldots,h_M(z_M)\bigr)\right),
+\]
+where the $z_i$ are disjoint $d$-bit inputs.  The next proposition makes the
+reduction exact: at every fixed positive ratio, sharp transversal synthesis is
+equivalent to retaining the one-copy coefficient throughout the exponential
+range.  The name ``transversal'' reflects that the functions vary across the
+outputs and each is evaluated on its own input block.
+
+\begin{proposition}[Transversal characterization of the sharp coefficient]
+\label{prop:transversal-equivalence}
+The following statements are equivalent.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item $\Lambda_\gamma=\Lambda_0$ for every fixed $0<\gamma<1$.
+\item For every sequence $p,d\to\infty$ such that
+$p/(p+d)\to\theta\in(0,1)$,
+\begin{equation}\label{eq:transversal-conjecture}
+  \mathsf T(2^p,d)
+  \le(\Lambda_0+o(1))
+     \frac{2^{p+d}}{p+d}.
+\end{equation}
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+\emph{\textup{(i)} implies \textup{(ii)}.}
+Assume \textup{(i)}.  Given
+$h_1,\ldots,h_{2^p}:\bits^d\to\bits$, define one function on $p+d$
+variables by
+\[
+  f(a,z)=h_a(z),
+  \qquad a\in\bits^p,
+\]
+after identifying $\bits^p$ with $[2^p]_0$.  Take a circuit for
+$f^{\times 2^p}$ and, in its copy indexed by $a$, fix the first $p$ input
+bits to $a$.  The resulting circuit is the required transversal circuit, so
+\begin{equation}\label{eq:transversal-restriction}
+  \mathsf T(2^p,d)\le L_{2^p}(p+d).
+\end{equation}
+Choose any fixed $\gamma$ with $\theta<\gamma<1$.  For all sufficiently large
+$p+d$, one has $2^p\le2^{\gamma(p+d)}$; hence \textup{(i)}, the definition of
+$\Lambda_\gamma$, and \eqref{eq:transversal-restriction} give
+\eqref{eq:transversal-conjecture}.
+
+\emph{\textup{(ii)} implies \textup{(i)}.}
+There are two reductions.  First we remove the power-of-two restriction.
+Suppose
+$\log_2M$ and $d$ tend to infinity in a fixed positive ratio.  Write the
+binary expansion of $M$ as a sum of distinct powers of two and partition an
+arbitrary family $h_1,\ldots,h_M$ into batches of those sizes.  Put
+$p=\lfloor\log_2M\rfloor$.  For a fixed $J$, call a batch large if its size is
+at least $2^{p-J+1}$.  Every large batch has logarithm $p-O(J)$, so
+\eqref{eq:transversal-conjecture} applied to these batches gives, in total,
+\[
+  (\Lambda_0+o(1))
+  \frac{2^d}{\log_2M+d}
+  \bigl(\text{number of functions in those batches}\bigr).
+\]
+All remaining powers in the binary expansion sum to less than
+$2^{p-J+1}\le2^{1-J}M$.  Synthesizing the corresponding functions separately
+therefore costs at most $2^{1-J}M L(d)$.  First let the parameters tend to
+infinity.  Relative to $M2^d/(\log_2M+d)$, this remainder is at most
+\[
+  2^{1-J}(\Lambda_0+o(1))\frac{\log_2M+d}{d},
+\]
+Because $\log_2M/d$ stays bounded, this quantity tends to zero when
+$J\to\infty$.
+Using \eqref{eq:lambda-zero}, we obtain the unrestricted form
+\begin{equation}\label{eq:transversal-arbitrary-M}
+  \mathsf T(M,d)
+  \le(\Lambda_0+o(1))
+     \frac{M2^d}{\log_2M+d}.
+\end{equation}
+
+The second reduction replaces the separately synthesized leaves of the
+high-rate construction by one transversal circuit.  Fully unroll the fixed
+number of levels used in the proof of \cref{prop:high-rate-leading}.  Let $d$
+be the length of the suffix left at stage zero, and let $M$ be the number of
+leaf resource functions, counted with multiplicity.  At each level,
+rate-one packing multiplies the number of leaves by
+$(1+o(1))2^{p_j}$, where $p_j$ is the new recovery-block length.  Since the
+number of levels is fixed and $\sum_j p_j=n-d+o(n)$, multiplication over the
+levels gives
+\[
+  M2^d=(1+o(1))2^n,
+  \qquad
+  \log_2M+d=n+o(n),
+\]
+with both $\log_2M$ and $d$ fixed positive fractions of $n$.
+
+Before any routed suffixes are identified, give each of the $M$ leaf
+occurrences its own $d$-bit input slot.  The leaves are then an arbitrary
+family of $M$ functions, each requested once, so we may apply
+\eqref{eq:transversal-arbitrary-M} to the leaf family, and then identify input
+slots that carry the same routed suffix.  Identification does not add gates.
+The leaf circuit therefore has
+\[
+  (\Lambda_0+o(1))\frac{2^n}{n}
+\]
+gates.  All scheduler, routing, lookup, and decoding terms in the unrolled
+construction are exponentially smaller, exactly as in the proof of
+\cref{prop:high-rate-leading}.  This proves
+$\Lambda_\gamma\le\Lambda_0$ for every fixed $\gamma<1$; the reverse
+inequality follows from $t=1$.  Hence \textup{(i)} holds.
+\end{proof}
+
+There is a simple obstruction to proving the transversal bound by placing
+separate syntheses side by side.  Let $G$ be any circuit for a family
+$h_1(z_1),\ldots,h_M(z_M)$ on disjoint input blocks.  For a gate $v$ of $G$,
+let $b(v)$ be the number of blocks on which the Boolean function computed at
+$v$ depends essentially.  Call $G$ \emph{block-respecting} if $b(v)\le1$ for
+every gate.
+
+\begin{proposition}[Block-support incidence bound]
+\label{prop:block-support-incidence}
+Every circuit $G$ for such a family satisfies
+\begin{equation}\label{eq:block-support-incidence}
+  \sum_{i=1}^M \C(h_i)
+  \le \sum_{v\in\operatorname{Gate}(G)} b(v).
+\end{equation}
+Consequently, if every gate depends essentially on variables from at most
+$w$ input blocks, then
+\[
+  |G|\ge \frac1w\sum_{i=1}^M\C(h_i).
+\]
+In particular, the worst-case size among block-respecting circuits is exactly
+$M L(d)$.
+\end{proposition}
+
+\begin{proof}
+Fix $i$ and assign arbitrary constants to every input block other than
+$z_i$.  The restricted circuit still computes $h_i$ at its $i$th output.
+If $i$ is not in the block support of a gate $v$, the function computed at
+$v$ becomes a constant under this restriction, so that gate can be replaced
+by a free constant.  Retaining all other gates gives a circuit for $h_i$ with
+at most the following number of gates:
+\[
+  \bigl|\{v:i\text{ lies in the block support of }v\}\bigr|
+\]
+Sum this inequality over $i$ and interchange the two counts to obtain
+\eqref{eq:block-support-incidence}.  If all block supports have size at most
+$w$, the second assertion follows.  For $w=1$, taking every $h_i$ to have
+complexity $L(d)$ gives the lower bound $M L(d)$, while placing $M$ optimal
+one-copy circuits side by side gives the matching upper bound.
+\end{proof}
+
+For $M=2^p$ and $p/d$ tending to a fixed positive constant, the last case has
+normalized coefficient
+\[
+  \frac{(p+d)M L(d)}{2^{p+d}}
+  =(\Lambda_0+o(1))\frac{p+d}{d}.
+\]
+This is exactly the factor lost by separate-resource synthesis.
+More quantitatively, a circuit of the conjectured sharp size for a family
+with $\C(h_i)=(\Lambda_0-o(1))2^d/d$ for every $i$ would have to satisfy
+\begin{equation}\label{eq:sharp-average-block-support}
+  \frac1{|G|}\sum_{v\in\operatorname{Gate}(G)}b(v)
+  \ge(1-o(1))\frac{p+d}{d}.
+\end{equation}
+Separate Lupanov circuits therefore cannot recover the missing factor.  A
+sharp construction would need gates whose computed functions depend on at
+least $(p+d)/d$ input blocks on average; that foreign-block dependence must
+then disappear before the block-local outputs.
+
+Ordinary multi-output Lupanov synthesis does not prove
+\eqref{eq:transversal-conjecture}: its outputs share one input, whereas here
+both the functions and their input blocks vary.  Likewise, Paul's
+nonadditivity examples \cite{Paul1976} show that unrestricted circuits can
+share across disjoint blocks, but do not provide a worst-case synthesis
+theorem for an arbitrary family.  Thus improving $1/(1-\gamma)$ to $1$ is
+exactly the transversal-synthesis problem above, rather than a further
+optimization of the separate-resource ledger.  In particular, a
+counterexample to \eqref{eq:transversal-conjecture} along any fixed ratio
+would refute \eqref{eq:sharp-constant-conjecture}.
+
+\clearpage
+\section{Approximate mass production}\label{app:approximation}
+
+This appendix considers a fixed approximant rather than a batch-dependent
+notion of error.  For two functions $f,g:\bits^n\to\bits$, put
+\[
+  \operatorname{dist}(f,g)
+  =2^{-n}\bigl|\{x\in\bits^n:f(x)\ne g(x)\}\bigr|,
+\]
+and, for $0\le\rho<1/2$, define
+\[
+  L_t^{(\rho)}(n)
+  =\max_{f:\bits^n\to\bits}
+    \min_{\substack{g:\bits^n\to\bits\\
+                    \operatorname{dist}(f,g)\le\rho}}
+      \C(g^{\times t}).
+\]
+Thus the bad set is chosen after $f$ but is fixed before the batch is
+evaluated; the circuit computes the same approximating function $g$ exactly
+on all $t$ input blocks.  Define the corresponding leading coefficient by
+\[
+  \Lambda_\gamma^{(\rho)}
+  =\limsup_{n\to\infty}
+    \max_{1\le t\le2^{\gamma n}}
+      \frac{nL_t^{(\rho)}(n)}{2^n}.
+\]
+
+Let
+\[
+  H_2(\rho)
+  =-\rho\log_2\rho-(1-\rho)\log_2(1-\rho),
+  \qquad H_2(0)=0,
+\]
+and abbreviate $A_\rho=1-H_2(\rho)$.  Pippenger's asymptotic approximation
+theorem gives, in the present convention,
+\begin{equation}\label{eq:approx-one-copy}
+  \Lambda_0^{(\rho)}=A_\rho;
+\end{equation}
+his lower bound holds even if every unary and binary Boolean gate is
+available, while the matching upper bound in our basis also follows from the
+construction below.  See \cite{Pippenger1977}.  Andreev, Clementi, and Rolim
+later determined the
+optimal order uniformly over the approximation advantage and the size of a
+partial domain \cite{AndreevClementiRolim1997}.  For fixed $\rho$, the next
+lemma gives the part of the one-copy rate--distortion construction needed
+here and makes it locally recoverable.
+
+\begin{lemma}[Lossy block packing]\label{lem:lossy-block-packing}
+Fix $0\le\rho<1/2$.  For every sufficiently large power of two $s$, there is
+a set $\mathcal K_s\subseteq\bits^s$ and an indexing of its elements by
+$r_s$ bits such that
+\begin{equation}\label{eq:covering-code-rate}
+  r_s=(A_\rho+o_s(1))s
+\end{equation}
+and every $v\in\bits^s$ differs from some member of $\mathcal K_s$ in at most
+$\rho s$ coordinates.  The indexed coordinate map
+\[
+  \operatorname{Dec}_s:\bits^{r_s}\times[s]_0\longrightarrow\bits
+\]
+has a circuit of size $2^{O(s)}$.
+
+Consequently, if $s$ divides $2^p$, then each row
+$a\mapsto f(a,z)$ can be replaced by a row $a\mapsto g(a,z)$ with at most
+$\rho2^p$ errors and represented by
+\begin{equation}\label{eq:compressed-row-length}
+  m_p=\frac{2^p}{s}r_s=(A_\rho+o_s(1))2^p
+\end{equation}
+bits.
+\end{lemma}
+
+\begin{proof}
+Let
+\[
+  V_s=\sum_{j=0}^{\lfloor\rho s\rfloor}\binom{s}{j}
+      =2^{H_2(\rho)s+o(s)}
+\]
+be the size of a Hamming ball of radius $\lfloor\rho s\rfloor$.  Choose
+\[
+  M_s=\left\lceil
+    (s+1)\ln 2\,\frac{2^s}{V_s}
+  \right\rceil
+\]
+independent uniform centers.  A fixed word is uncovered with probability at
+most $\exp(-M_sV_s/2^s)$, so a union bound over all $2^s$ words is smaller
+than one.  Some choice of at most $M_s$ centers therefore covers the cube.
+Conversely, the union of the balls about any covering set has size at most
+$|\mathcal K_s|V_s$, so every covering set has at least $2^s/V_s$ members.
+It follows that, after deleting duplicate centers and putting
+$r_s=\lceil\log_2|\mathcal K_s|\rceil$, one has
+\eqref{eq:covering-code-rate}.
+
+Fix an ordering of $\mathcal K_s$.  On a valid index and a coordinate,
+$\operatorname{Dec}_s$ returns that coordinate of the indexed center; define
+it arbitrarily on unused indices.  A truth-table circuit has size $2^{O(s)}$
+because $r_s\le s+1$.  Finally, partition a length-$2^p$ row into $2^p/s$
+blocks and choose a covering center separately for every block.  Concatenating
+their indices gives \eqref{eq:compressed-row-length}, and the sum of their
+Hamming errors is at most $\rho2^p$.
+\end{proof}
+
+The important point is that the indices, rather than the approximated row
+itself, are fed into the local-recovery code.  All approximation occurs before
+recovery; the resource functions and line decoders remain exact.
+
+\begin{lemma}[Lossy local-recovery composition]
+\label{lem:lossy-composition}
+Fix $0\le\rho<1/2$ and $\ell\ge3$.  Let $n=p+d$, and let $s$ be a power of
+two with $s\to\infty$, $s=o(p)$, and $s=O(\log n)$.  Suppose $s$ divides
+$2^p$.  For every $f:\bits^n\to\bits$, there is a
+$g:\bits^n\to\bits$ with $\operatorname{dist}(f,g)\le\rho$ and parameters
+$q=2^b$, $B$, and $K_{\ell,q}$ satisfying
+\[
+  \log_2q=\frac p\ell-o(p),
+  \qquad \log_2B=o(p),
+  \qquad Bq^\ell b=(A_\rho+o(1))2^p,
+\]
+for which
+\begin{equation}\label{eq:lossy-master}
+\begin{split}
+  \C(g^{\times t})
+  \le{}&(A_\rho+o(1))2^pL_C(d)\\
+  &+\widetilde O_\ell\!\left(
+       K_{\ell,q}+tr_s
+       +\frac{(tr_s)^2q}{C}+tr_sq+CBq^\ell
+     \right)
+     +t2^{O(s)},
+\end{split}
+\end{equation}
+whenever
+\begin{equation}\label{eq:lossy-scheduling-condition}
+  \left\lceil\frac{tr_s}{C}\right\rceil q<D_q.
+\end{equation}
+Here the $o(1)$ terms tend to zero as $p,s\to\infty$.
+\end{lemma}
+
+\begin{proof}
+Apply \cref{lem:lossy-block-packing} independently to every suffix $z$.  For
+each block of the row $a\mapsto f(a,z)$, choose one covering center and
+concatenate its $r_s$-bit index.  This produces an $m_p$-bit compressed row
+$w_z$.  The decoded rows define one fixed function $g$, and the row-wise
+error guarantee gives $\operatorname{dist}(f,g)\le\rho$.
+
+We now repeat the construction of \cref{lem:rate-one-gadget} with the message
+length $m_p$ in place of $2^p$.  Explicitly, put
+\[
+  b=\left\lfloor
+       \frac{\log_2m_p-\sqrt p}{\ell}
+     \right\rfloor,
+  \qquad q=2^b,
+  \qquad N=q^\ell,
+\]
+use the $[\ell,q-1,q]$ lifted Reed--Solomon code of dimension
+$K_{\ell,q}=(1-o_q(1))N$, and take
+\[
+  B=\left\lceil\frac{m_p}{K_{\ell,q}b}\right\rceil.
+\]
+Because $\log_2m_p=p+O(1)$ and $Nb/m_p\le p2^{-\sqrt p+O(1)}$, the same
+calculation as in \eqref{eq:lossless-packing} gives
+\[
+  BNb=(1+o(1))m_p=(A_\rho+o(1))2^p
+\]
+and the asserted estimates for $q$ and $B$.
+
+Given a prefix $a$, split its bits into its block number and its within-block
+coordinate.  For each of the $r_s$ bits of that block's codeword index,
+compute the corresponding position in $w_z$ and treat it as one local-recovery
+target.  Thus $t$ requested values of $g$ create $tr_s$ recovery targets.
+Apply the scheduler and the four-pass routing construction to those targets.
+The bounded-demand invariant is unchanged, and there are $BNb$ Boolean
+resource functions, which gives the first term of \eqref{eq:lossy-master}.
+Replacing $t$ by $tr_s$ in the remaining terms of
+\eqref{eq:high-rate-master} gives the displayed scheduling, incidence, slot,
+and lookup costs.  Once the $r_s$ index bits for an output have been recovered
+exactly, evaluate $\operatorname{Dec}_s$ at the within-block coordinate.  The
+$t$ decoder copies cost $t2^{O(s)}$.  Their outputs are exactly
+$g^{\times t}$.
+\end{proof}
+
+\begin{proposition}[Approximate leading coefficient]
+\label{prop:approx-leading}
+For every fixed $0\le\rho<1/2$ and $0\le\gamma<1$,
+\begin{equation}\label{eq:approx-leading}
+  \boxed{
+  \Lambda_\gamma^{(\rho)}
+  \le\frac{1-H_2(\rho)}{1-\gamma}.}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+First suppose $\gamma=0$.  Take $p=\lceil\sqrt n\rceil$, $d=n-p$, any fixed
+$\ell\ge3$, $t=C=1$, and a power of two
+$s=\Theta(\log n)$ with $s\mid2^p$.  Since $r_s=O(\log n)$, the
+scheduling condition \eqref{eq:lossy-scheduling-condition} holds for large
+$n$.  Every term on the second line of \eqref{eq:lossy-master}, as well as
+the final decoder term, is $2^{o(n)}$.  Using
+$L(d)=(1+o(1))2^d/d$ in the first term gives
+\[
+  L_1^{(\rho)}(n)
+  \le(A_\rho+o(1))2^p\frac{2^d}{d}
+  =(A_\rho+o(1))\frac{2^n}{n}.
+\]
+Together with \eqref{eq:approx-one-copy}, this also recovers the sharp
+one-copy coefficient.
+
+Now let $0<\gamma<1$.  Use the block fractions, current lengths, and copy
+bounds from the proof of \cref{prop:high-rate-leading}: for arbitrary
+$0<\alpha<1-\gamma$, they satisfy
+\[
+  w_0=1-\gamma-\alpha,
+  \qquad W_k=1,
+  \qquad n_j=W_jn+O(1),
+  \qquad T_j=\lceil2^{j\gamma n/k}\rceil.
+\]
+Run the exact high-rate construction through stage $k-1$.  Its coefficient
+is at most
+\[
+  \Lambda_0\frac{W_{k-1}}{w_0}.
+\]
+At the final stage, apply \cref{lem:lossy-composition} to the outermost
+recovery block, with $t=T_k$ and $C=T_{k-1}$.  The factor
+$r_s=O(\log n)$ adds only $o(n)$ to every base-two logarithm, so all strict
+scheduling and overhead inequalities from the exact proof remain valid.
+The new decoder term has exponent $\gamma+o(1)<1$ and is also lower order.
+
+Only the final resource coefficient changes.  It is at most
+\begin{align*}
+  &(A_\rho+o(1))2^{p_k}
+    \left(\Lambda_0\frac{W_{k-1}}{w_0}+o(1)\right)
+    \frac{2^{n_{k-1}}}{n_{k-1}}\\
+  &\hspace{4em}
+   =\left(\frac{A_\rho\Lambda_0}{w_0}+o(1)\right)
+     \frac{2^n}{n}.
+\end{align*}
+The resulting $g$ depends only on $f$, not on the requested input tuple, and
+the construction for $T_k$ copies handles every smaller $t$ by fixing unused
+inputs.  Since $\Lambda_0=1$, letting $\alpha\downarrow0$ proves
+\eqref{eq:approx-leading}.
+\end{proof}
+
+Because the maximum defining $\Lambda_\gamma^{(\rho)}$ includes $t=1$,
+\eqref{eq:approx-one-copy} also gives
+\[
+  \Lambda_\gamma^{(\rho)}\ge1-H_2(\rho).
+\]
+We therefore conjecture the approximate analogue of
+\eqref{eq:sharp-constant-conjecture}:
+\[
+  \boxed{
+  \Lambda_\gamma^{(\rho)}=1-H_2(\rho)
+  \quad\text{for every fixed }0\le\rho<1/2, 0\le\gamma<1.}
+\]
+As in the exact case, the missing factor is not a packing loss: it is the
+suffix-denominator loss caused by synthesizing the induced resource functions
+separately.  The entropy gain also uses the freedom to choose the bad set after
+seeing $f$; approximation on a prescribed set of locations is a different
+partial-function problem.
+
+\section{Circuit implementation details}\label{app:implementation}
+
+This appendix records the gate-level details behind the scheduler and routing
+lemmas.  The main proof uses only their statements and costs.
+
+\subsection{Projective-direction indexing}\label{app:projective-indexing}
+
+\begin{proof}[Proof of \cref{lem:projective-indexing}]
+Normalize a nonzero vector so that its first nonzero coordinate is one.  The
+normalized directions whose first nonzero coordinate is in position
+$h\in\{1,\ldots,\ell\}$ have the form
+\[
+  (0,\ldots,0,1,w_{h+1},\ldots,w_\ell)
+\]
+and form a block of size $q^{\ell-h}$.  Let
+\[
+  B_h=\sum_{r=1}^{h-1}q^{\ell-r},
+  \qquad
+  \operatorname{val}_q(w_{h+1},\ldots,w_\ell)
+   =\sum_{r=h+1}^{\ell}\operatorname{int}(w_r)q^{\ell-r},
+\]
+where $\operatorname{int}(w_r)\in[q]_0$ is the canonical binary
+representation.  The rank is
+\[
+  B_h+\operatorname{val}_q(w_{h+1},\ldots,w_\ell).
+\]
+The blocks are consecutive and their total size is $D_q$.
+
+To rank, find the first nonzero coordinate, invert it, normalize the vector,
+and concatenate the $b$-bit tail coordinates.  To unrank, compare the rank
+with the $\ell$ hardwired block intervals, subtract the appropriate $B_h$,
+and split the remainder into base-$q$ digits.  Since $q=2^b$, the last step is
+bit slicing.  The field operations and comparisons from the circuit
+conventions give size $\poly_\ell(b)$ in both directions.
+\end{proof}
+
+\subsection{The least-missing-direction circuit}\label{app:scheduler-proof}
+
+\begin{proof}[Proof of \cref{lem:scheduler}]
+At step $j$, fewer than $D_q$ directions are forbidden, so a valid direction
+exists.  This proves the combinatorial statement.
+
+For the circuit bound, represent a projective direction by normalizing its
+first nonzero coordinate to one and use the ranking from
+\cref{lem:projective-indexing}.  At stage $j$, for each $y\in U$, output the
+sentinel rank $D_q$ when $y=u_j$ and otherwise output the projective rank of
+$y-u_j$.  At the gate level, first multiplex a fixed nonzero vector in place
+of $y-u_j$ when $y=u_j$, rank that always-nonzero vector, and then overwrite
+the result by $D_q$ on the equality branch.  Use
+$\lceil\log_2(D_q+1)\rceil$ bits per rank.  There are
+$(j-1)(q-1)=O(jq)$ such entries.
+
+Sort these ranks as $r_1\le\cdots\le r_s$.  The least missing rank can be
+found without a dense $D_q$-bit table.  Rank zero is a candidate if $s=0$ or
+$r_1>0$; after position $i$, rank $r_i+1$ is a candidate if
+\[
+  r_i<D_q-1
+  \quad\text{and}\quad
+  \bigl(i=s\text{ or }r_{i+1}>r_i+1\bigr).
+\]
+These tests are applied to the full sorted list, including duplicates and
+sentinels.  Only the last occurrence of a non-sentinel rank can generate its
+successor, and a sentinel cannot generate a candidate.
+
+\begin{samepage}
+A left-to-right
+prefix-OR circuit identifies the first candidate in this order.  Multiplexers
+select its rank using $O(s\log D_q)$ gates.
+\end{samepage}
+
+Since
+$|U\setminus\{u_j\}|<D_q$, fewer than $D_q$ distinct non-sentinel ranks are
+forbidden, so a candidate exists.  Sorting, comparisons, and priority
+selection therefore cost $\widetilde O_\ell(jq)$ gates.  Unrank the selected
+direction using \cref{lem:projective-indexing} and enumerate its $q-1$
+non-target line points, at cost $q\poly_\ell(b)$.  Unrolling the stages and
+summing over $j\le g$ gives $\widetilde O_\ell(g^2q)$.
+\end{proof}
+
+\subsection{Four-pass fixed-wire routing}\label{app:routing-proof}
+
+\begin{proof}[Proof of \cref{lem:routing}]
 For scatter, create one slot record for each of the $Cq^\ell$ keys and combine
 them with the fewer than $tq$ incidence records.  Preserve a copy of every
 incidence record by free fan-out.  Uniqueness inside a group puts at most one
@@ -849,399 +2152,9 @@ $\poly_\ell(n,\log q,\log t,\log C)$, so the standard primitives from the
 circuit conventions give the stated bound.
 \end{proof}
 
-The lemma is the reason no $tq^\ell$ crossbar appears.  Only the actual
-incidences and one dummy record per resource slot are routed.
-
-\section{The master recurrence}\label{sec:master}
-
-\paragraph{Bounded-demand invariant.}
-Fix $f$ and the packing above, and for $y\in\F_q^\ell$ and $k\in[b]_0$ let
-\[
-  H_{y,k}(z)=\bigl(G_y(z)\bigr)_k.
-\]
-This is one fixed Boolean function on $d$ variables.  Inside each request
-group, disjoint recovery ensures that coordinate $y$ occurs at most once;
-hence the pair $(y,k)$ receives at most one suffix from each of the $C$ groups.
-Place those suffixes in the canonical group slots and pad unused slots with a
-fixed dummy suffix.  One circuit for $H_{y,k}^{\times C}$, of size at most
-$L_C(d)$, serves exactly this bounded demand.  There are $q^\ell b$ such
-pairs, and no sharing between different pairs is assumed.
-
-\begin{proposition}[Master bound]\label{prop:master}
-Fix $\ell\ge2$.  Let $n=p+d$ with $p$ sufficiently large depending on
-$\ell$, choose $q=2^b$ minimally so that $s_0^\ell b\ge2^p$, and suppose
-\cref{eq:scheduling-condition} holds.  Then every
-$f:\bits^n\to\bits$ satisfies
-\begin{equation}\label{eq:master}
-\C(f^{\times t})
-\le
-\underbrace{q^\ell b\,L_C(d)}_{\text{recursive resource evaluation}}
-+\widetilde O_\ell\!\left(
-  \underbrace{\frac{t^2q}{C}}_{\text{line scheduling}}
-  +\underbrace{tq}_{\text{incidences and decoding}}
-  +\underbrace{Cq^\ell}_{\text{resource slots}}
-\right).
-\end{equation}
-\end{proposition}
-
-The first term is the only recursive term: there are $q^\ell b$ Boolean
-resource functions, and each is evaluated on at most $C$ suffixes of length
-$d$.  The other three terms are the complete bookkeeping bill.  Increasing
-$C$ decreases the scheduling term but increases both the recursive demand and
-the number of resource slots.  The bootstrap will choose $C$ so that the first
-term stays at scale $2^n/n$ while every bookkeeping term is exponentially
-smaller.
-
-\begin{proof}
-Map every requested prefix $a$ to its information point $u(a)$ and bit position
-$j(a)$ using the canonical packing circuit.  In each request group, use
-\cref{lem:scheduler} to select and enumerate a recovery line.  Together these
-steps cost
-$\widetilde O_\ell(t)+\widetilde O_\ell(t^2q/C+Cq)$ gates.  Each non-target
-point $y$ on a selected line requests $G_y$ on the suffix of the corresponding
-output instance.
-
-For each pair $(y,k)$, use the $H_{y,k}^{\times C}$ circuit from the
-bounded-demand invariant on the canonical group slots.  The definition of
-$L_C(d)$ applies separately to each induced function $H_{y,k}$, so these
-circuits cost $q^\ell bL_C(d)$ in total.  The complete scatter, gather, and
-fixed-wire compaction pipeline costs
-$\widetilde O_\ell(tq+Cq^\ell)$ by \cref{lem:routing}.  Field addition is
-coordinatewise XOR in the fixed $\F_2$ basis, so XORing the $q-1$ returned
-$b$-bit values of a request and selecting bit $j(a)$ costs $O(qb)$ per request
-and $O(tqb)$ in total.  Since each selected line passes through its target
-$u(a)$ and $\deg P_z\le q-2$, \cref{lem:line} shows that this XOR equals
-$P_z(u(a))$ for the request's suffix $z$, and bit $j(a)$ of that symbol is
-$f(a,z)$ by the packing of \cref{subsec:packing}.  The circuit therefore
-computes $f^{\times t}$.
-
-The polynomial $P_z$ and the functions $G_y$ specify the nonuniform resource
-truth tables; no run-time encoder is being assumed.  Since $q\ge2$, all
-smaller terms in this gate ledger are absorbed by the overhead in
-\eqref{eq:master}, proving the bound.
-\end{proof}
-
-\section{The exponent bootstrap}\label{sec:bootstrap}
-
-The master bound becomes transparent at the level of exponential rates.
-Suppose batches of size $2^{\beta m}$ are already known to cost
-$O(2^m/m)$ on $m$ variables.  To handle $t=2^{\gamma n}$ copies, take a suffix
-of length $d\approx\gamma n$ and $C\approx2^{cn}$ request groups.  Ignoring the
-slack from the fixed code dimension $\ell$, the two competing requirements are
-\begin{equation}\label{eq:conceptual-window}
-  \underbrace{2\gamma-1}_{\substack{\text{scheduling and}\\
-                                      \text{routing overhead}}}
-  < c <
-  \underbrace{\beta\gamma}_{\substack{\text{recursive}\\
-                                      \text{capacity}}}.
-\end{equation}
-The left inequality makes the nonrecursive terms sub-$2^n$; the right lets the
-known $\beta$-range handle $C$ copies on $d$ variables.  This window is
-nonempty exactly when $\gamma<1/(2-\beta)$.  Everything below makes this
-calculation uniform, restores the finite-$\ell$ slack, and accounts for floors,
-ceilings, and polynomial factors.
-
-\begin{definition}[Admissible exponent property]\label{def:admissible}
-For $0<\beta\le1$, let $\Adm(\beta)$ denote the following assertion.  For
-every fixed $0<\rho<\beta$, there is a constant $A_{\beta,\rho}$ such that, for
-all sufficiently large $m$, every $h:\bits^m\to\bits$, and every integer
-$1\le r\le2^{\rho m}$,
-\[
-  \C(h^{\times r})\le A_{\beta,\rho}\frac{2^m}{m}.
-\]
-The constant and the threshold may depend on the fixed exponents $\beta$ and
-$\rho$, but not on $m$, $h$, or $r$.
-\end{definition}
-
-\begin{lemma}[Strict exponential margins]\label{lem:strict-margins}
-Suppose $X_n,Y_n>0$ and, for fixed $a<b$,
-\[
-  \log_2X_n\le an+o(n),
-  \qquad
-  \log_2Y_n\ge bn+o(n).
-\]
-Then $R(n)X_n<Y_n$ for every fixed polynomial $R$ and all sufficiently large
-$n$.  Also, for every fixed $a\ge0$ and $\eta>0$,
-$\lceil2^{an}\rceil\le2^{(a+\eta)n}$ for all sufficiently large $n$.
-\end{lemma}
-
-\begin{proof}
-Choose a positive margin smaller than $(b-a)/3$.  The two $o(n)$ terms and
-$\log_2R(n)=o(n)$ are eventually smaller than this margin times $n$, which
-proves the first claim.  The second follows from
-$\lceil2^{an}\rceil\le2^{an}+1\le2^{an+1}$ and
-$an+1\le(a+\eta)n$ once $n\ge1/\eta$.
-\end{proof}
-
-\subsection{The disjoint base range}
-
-\begin{lemma}[Base range]\label{lem:base}
-$\Adm(1/2)$ holds.
-\end{lemma}
-
-Here $C=1$: all recovery sets are globally disjoint, so no recursive
-mass-production hypothesis is needed.  The one-half threshold comes from the
-quadratic scheduling cost, not from an intrinsic shortage of directions.  If
-$d=\delta n$, then as $\ell$ grows the line-availability condition approaches
-$\gamma<1-\delta$, whereas the term $t^2q$ still forces $\gamma<1/2$.  We take
-$\delta=\gamma$ below to match the parameterization used in the bootstrap.
-
-\begin{proof}
-Fix $0<\gamma<1/2$ and let $t\le2^{\gamma n}$.  Choose
-\[
-  d=\lfloor\gamma n\rfloor,
-  \qquad
-  p=n-d,
-  \qquad
-  C=1,
-\]
-and write $\vartheta=1-\gamma$.  By
-\cref{eq:parameter-dictionary},
-\[
-  \log_2q=\frac{\vartheta n}{\ell}+o(n),
-  \qquad
-  \log_2q^\ell=\vartheta n+o(n).
-\]
-
-Choose a sufficiently large fixed $\ell$ so that
-\begin{equation}\label{eq:base-margin}
-  \gamma+\frac{\vartheta}{\ell}
-  <\vartheta\left(1-\frac1\ell\right).
-\end{equation}
-This is possible precisely because $\gamma<1/2$.  Equations
-\eqref{eq:directions} and \eqref{eq:base-margin}, together with
-\cref{lem:strict-margins}, imply $tq<D_q$, so the scheduler is valid for all
-sufficiently large $n$.
-
-The resource term in \cref{eq:master} is, by Shannon--Lupanov synthesis,
-\[
-  q^\ell bL(d)
-  =O_\ell\!\left(2^p\frac{2^d}{d}\right)
-  =O_\gamma(2^n/n).
-\]
-The scheduler exponent is
-\[
-  2\gamma+\frac{\vartheta}{\ell}<1,
-\]
-where the strict inequality follows from the stronger margin
-\eqref{eq:base-margin}.  The $tq$ and $q^\ell$ terms also have exponents below
-one.  After the suppressed polynomial factors are restored, every overhead
-term is $2^{(1-\Omega_\gamma(1))n}$ and is negligible compared with $2^n/n$ by
-\cref{lem:strict-margins}.  The same strict margins absorb the floor in $d$
-and the field-size rounding.
-\end{proof}
-
-\subsection{Recursive congestion reduction}
-
-\begin{lemma}[Bootstrap]\label{lem:bootstrap}
-If $\Adm(\beta)$ holds for some $0<\beta\le1$, then
-\[
-  \Adm\!\left(\frac{1}{2-\beta}\right)
-\]
-holds.
-\end{lemma}
-
-\begin{proof}
-To verify the asserted property, fix a target exponent
-$0<\gamma<1/(2-\beta)$.  The range $\gamma<1/2$ is already covered by
-\cref{lem:base}.  If $\gamma=1/2$, choose
-$\widehat\gamma\in(1/2,1/(2-\beta))$; the construction below for
-$\widehat\gamma$ is uniform for every $t\le2^{\widehat\gamma n}$ and hence,
-by monotonicity of the allowed range, also handles every
-$t\le2^{\gamma n}$.  We may therefore assume
-\[
-  \frac12<\gamma<\frac{1}{2-\beta}.
-\]
-The upper inequality is equivalent to
-\[
-  2\gamma-1<\beta\gamma.
-\]
-Choose a constant $c$ such that
-\begin{equation}\label{eq:c-window}
-  2\gamma-1<c<\beta\gamma.
-\end{equation}
-Put
-\[
-  d=\lfloor\gamma n\rfloor,
-  \qquad
-  p=n-d,
-  \qquad
-  C=\left\lceil2^{cn}\right\rceil.
-\]
-Choose $\rho$ with
-\[
-  \frac{c}{\gamma}<\rho<\beta.
-\]
-Since $c<\rho\gamma$, the bounds
-$C\le2^{cn}+1\le2^{cn+1}$ and $d\ge\gamma n-1$ imply
-$C\le2^{\rho d}$ for all sufficiently large $n$.  Thus
-$\Adm(\beta)$ gives
-\[
-  L_C(d)=O_{\beta,\rho}(2^d/d).
-\]
-By \cref{eq:packing}, the resource term is therefore
-\[
-  q^\ell bL_C(d)=O_{\beta,\gamma,\rho,\ell}(2^n/n).
-\]
-
-Set $\vartheta=1-\gamma$.  The request-group size has exponent $\gamma-c$.
-Choose a sufficiently large fixed $\ell$ so that
-\begin{equation}\label{eq:bootstrap-margin}
-  c>2\gamma-1+\frac{2\vartheta}{\ell}.
-\end{equation}
-This is possible by the left inequality in \eqref{eq:c-window}.  The scheduling
-condition follows because
-\[
-  \gamma-c+\frac{\vartheta}{\ell}
-  <\vartheta\left(1-\frac1\ell\right).
-\]
-Indeed, $\lceil t/C\rceil\le2^{(\gamma-c)n}+1$, while
-\cref{eq:parameter-dictionary,eq:directions,lem:strict-margins} turn this
-strict exponent margin into \cref{eq:scheduling-condition} for all
-sufficiently large $n$.
-
-The three overhead exponents in \cref{eq:master} are bounded by
-\begin{align*}
-  \frac1n\log_2\!\left(\frac{t^2q}{C}\right)
-  &\le2\gamma-c+\frac{\vartheta}{\ell}+o(1)<1,\\
-  \frac1n\log_2(tq)
-  &\le\gamma+\frac{\vartheta}{\ell}+o(1)<1,\\
-  \frac1n\log_2(Cq^\ell)
-  &=c+\vartheta+o(1)<1.
-\end{align*}
-The first inequality follows from \eqref{eq:bootstrap-margin}, the second from
-$\ell>1$, and the third from $c<\beta\gamma\le\gamma$.  Thus every overhead
-term is exponentially smaller than $2^n/n$ by \cref{lem:strict-margins}.  All
-choices in this one-step argument are fixed constants.  In the final finite
-iteration they depend only on the target exponent $\gamma$, so their constants
-combine into $A_\gamma$.
-\end{proof}
-
-The first few iterations are therefore
-\[
-  \frac12\longmapsto\frac23\longmapsto\frac34
-  \longmapsto\frac45\longmapsto\cdots.
-\]
-Each round allows more congestion in exchange for recursing on the shorter
-suffix.  Any fixed target $\gamma<1$ is crossed after finitely many rounds.
-
-\begin{proof}[Proof of \cref{thm:main}]
-For $\gamma=0$, the Shannon--Lupanov upper bound proves the claim for all
-sufficiently large $n$.  Now suppose $0<\gamma<1$.  Starting from
-$\beta_1=1/2$, define
-\[
-  \beta_{k+1}=\frac{1}{2-\beta_k}.
-\]
-An induction gives $\beta_k=k/(k+1)$.  By
-\cref{lem:base,lem:bootstrap}, $\Adm(\beta_k)$ holds for every $k$.
-Choose $k$ such that $\gamma<k/(k+1)$ and apply $\Adm(\beta_k)$ with
-$\rho=\gamma$.  In either case, the asserted bound holds beyond a threshold
-$N_\gamma$.  For the finitely many integers $1\le n<N_\gamma$, use
-$\C(f^{\times t})\le t\C(f)$ and enlarge $A_\gamma$ to dominate
-$nt\C(f)/2^n$ over all relevant $n$, $f$, and $t$.  This proves the statement
-for every $n\ge1$.
-\end{proof}
-
-\begin{remark}[How to place the result]
-The theorem improves one coordinate of the known tradeoff, not all of them at
-once.  Compared with Uhlig, it exchanges the sharp one-copy leading asymptotic
-for an exponentially larger copy range.  Compared with Paul, it exchanges an
-arbitrary copy range for the optimal $2^n/n$ worst-case order throughout every
-fixed exponential range below one.  In particular, the theorem is a plateau
-statement at the level of exponential rates.  It neither identifies the sharp
-leading constant nor locates the transition when the copy exponent approaches
-one with $n$.
-\end{remark}
-
-\section{Discussion and limitations}\label{sec:discussion}
-
-\paragraph{The scheduler bottleneck.}
-The disjoint base case isolates the reason for the bootstrap.  With $C=1$ and
-$d=\delta n$, the resource term remains $O(2^n/(\delta n))$, and for large
-fixed $\ell$ there are enough directions whenever $\gamma<1-\delta$.  It is
-the quadratic scheduling term $t^2q$, not line availability, that restricts
-this argument to $\gamma<1/2$.  Grouping divides that term by $C$, while
-recursion pays for the resulting $C$ simultaneous uses of each resource; the
-map $\beta\mapsto1/(2-\beta)$ records exactly this exchange.  A disjoint-line
-scheduler of size $\widetilde O(tq)$ would remove the need for recursion: for
-any fixed $\gamma<1$, one could choose $0<\delta<1-\gamma$ and take $C=1$.
-Finding such a scheduler, or ruling one out, is therefore a natural next
-problem.
-
-\paragraph{A consequence for lower-bound measures.}
-Suppose a nonnegative measure $\mu$ on Boolean vector functions satisfies
-$\mu(F)\le\C(F)$ and $\mu(f^{\times r})\ge r\mu(f)$.  Taking
-$r=\lfloor2^{(1-\varepsilon)n}\rfloor$ for fixed $0<\varepsilon<1$ in
-\cref{thm:main} gives, uniformly in
-$f:\bits^n\to\bits$,
-\[
-  \mu(f)=O_\varepsilon(2^{\varepsilon n}/n),
-\]
-and hence a uniformly subexponential worst-case value.  Paul's general bound
-already gives the qualitative conclusion, with
-$O_\varepsilon(n2^{\varepsilon n})$ in place of the displayed bound; the new
-content is the factor-$n^2$ improvement in the polynomial prefactor.  This is
-an abstract constraint on lower-bound strategies, not an application to a
-standard named measure: any useful measure satisfying the first inequality
-must fail to charge independent copies fully or must otherwise represent
-cross-instance sharing.
-
-\paragraph{Leading constants.}
-The resource term pays for $q^\ell$ code symbols while carrying
-$s_0^\ell$ information symbols.  Since $s_0/q$ tends to $1/\ell$ for fixed
-$\ell$ as $q$ grows, the ratio $q^\ell/s_0^\ell$ is roughly $\ell^\ell$.
-Moreover, synthesizing the resource functions separately introduces the factor
-$n/d$, which is approximately $1/\gamma$ in a bootstrap step.  Thus, normalized
-by $2^n/n$, the recursive coefficient is multiplied by roughly
-$\ell^\ell/\gamma$ even before field-size rounding, and repeated bootstrapping
-compounds the loss.  The scheduler and routing terms are exponentially lower
-order for every fixed exponent margin, so improving their constant factors
-alone would not recover a sharp leading term.  Our argument therefore does not
-determine whether the one-copy Shannon--Lupanov leading constant for this basis
-can be retained for any fixed exponential number of copies.  We make no claim
-about whether the existing literature settles that question.
-
-\paragraph{The endpoint.}
-The theorem reaches $2^{(1-\varepsilon)n}$ copies for every fixed
-$\varepsilon>0$, but does not treat a rate that approaches one with $n$.
-Some degradation in that regime is forced.  If $n\ge2$ and $f$ depends on all
-$n$ of its variables, every output of a circuit for $f^{\times t}$ is a gate,
-and each of the $tn$ inputs must feed at least one gate, since otherwise the
-corresponding output would not depend on it.  Since gates have fan-in at most
-two,
-\[
-  \C(f^{\times t})\ge\frac{tn}{2}.
-\]
-A bound of the form $A\,2^n/n$ therefore cannot hold once
-$t>2A\cdot2^n/n^2$; in particular, a uniform $O(2^n/n)$ plateau must fail for
-$t=\omega(2^n/n^2)$.  The theorem still leaves the detailed mass-production
-curve throughout the near-endpoint regime $t=2^{n-o(n)}$ unresolved.
-Determining how far the plateau extends, and then characterizing the growth
-beyond it, would require a quantitatively sharper schedule or a different
-recursive decomposition.
-
-\paragraph{Historical scope.}
-The introduction compares the stated guarantees of Uhlig, Paul, and Albrecht.
-These theorem-level comparisons do not assert that the coding, scheduling, or
-routing ingredients are individually new.  The self-contained contribution
-claimed here is their deterministic bounded-congestion combination and the
-resulting exponent bootstrap.
-
-\paragraph{Restricted models.}
-The construction uses arbitrary routing, finite-field linear reconstruction,
-and free fan-out.  Formula size, bounded fan-out circuits, monotone circuits,
-bounded-depth circuits, and branching programs may have different
-mass-production curves.  In those settings, simultaneous demand may become a
-source of genuine direct-sum lower bounds.
-
-\paragraph{Other recovery geometries.}
-Affine lines provide many recovery choices with simple intersection behavior,
-but their recovery sets have size $q-1$.  Batch codes, locally recoverable
-codes, or higher-dimensional varieties may improve the group-size versus
-decoding-cost tradeoff and reduce the number of bootstrap rounds.
-
 \clearpage
 \begin{thebibliography}{99}
+\small
 
 \bibitem{Albrecht1989}
 Andreas Albrecht.
@@ -1250,6 +2163,13 @@ Andreas Albrecht.
 Workshop on Parallel Processing by Cellular Automata and Arrays}, LNCS 342,
 pages 51--56. Springer, 1989.
 \newblock \href{https://doi.org/10.1007/3-540-50647-0_102}{doi:10.1007/3-540-50647-0\_102}.
+
+\bibitem{AndreevClementiRolim1997}
+Alexander E. Andreev, Andrea E. F. Clementi, and Jos\'e D. P. Rolim.
+\newblock Optimal bounds for the approximation of Boolean functions and some
+applications.
+\newblock \emph{Theoretical Computer Science}, 180(1--2):243--268, 1997.
+\newblock \href{https://doi.org/10.1016/S0304-3975(96)00217-4}{doi:10.1016/S0304-3975(96)00217-4}.
 
 \bibitem{Batcher1968}
 Kenneth E. Batcher.
@@ -1263,6 +2183,12 @@ Arman Fazeli, Alexander Vardy, and Eitan Yaakobi.
 \newblock PIR with low storage overhead: Coding instead of replication.
 \newblock arXiv:1505.06241, 2015.
 \newblock \url{https://arxiv.org/abs/1505.06241}.
+
+\bibitem{FrandsenMiltersen2005}
+Gudmund Skovbjerg Frandsen and Peter Bro Miltersen.
+\newblock Reviewing bounds on the circuit size of the hardest functions.
+\newblock \emph{Information Processing Letters}, 95(2):354--357, 2005.
+\newblock \href{https://doi.org/10.1016/j.ipl.2005.03.009}{doi:10.1016/j.ipl.2005.03.009}.
 
 \bibitem{HolzbaurEtAl2020}
 Lukas Holzbaur, Rina Polyanskaya, Nikita Polyanskii, and Ilya Vorobyev.
@@ -1286,13 +2212,6 @@ Communication and Cryptography}, LIPIcs 266, Article 10, pages 10:1--10:11,
 2023.
 \newblock \href{https://doi.org/10.4230/LIPIcs.TQC.2023.10}{doi:10.4230/LIPIcs.TQC.2023.10}.
 
-\bibitem{Lipmaa2011}
-Helger Lipmaa.
-\newblock Efficient multi-query CPIR from Ring-LWE.
-\newblock IACR Cryptology ePrint Archive, Report 2011/595, 2011.
-\newblock Withdrawn in 2014.
-\newblock \url{https://eprint.iacr.org/2011/595}.
-
 \bibitem{Lupanov1958}
 Oleg B. Lupanov.
 \newblock On a method of circuit synthesis.
@@ -1305,6 +2224,12 @@ Wolfgang J. Paul.
 \newblock Realizing Boolean functions on disjoint sets of variables.
 \newblock \emph{Theoretical Computer Science}, 2(3):383--396, 1976.
 \newblock \href{https://doi.org/10.1016/0304-3975(76)90089-X}{doi:10.1016/0304-3975(76)90089-X}.
+
+\bibitem{Pippenger1977}
+Nicholas Pippenger.
+\newblock Information theory and the complexity of Boolean functions.
+\newblock \emph{Mathematical Systems Theory}, 10:129--167, 1977.
+\newblock \href{https://doi.org/10.1007/BF01683269}{doi:10.1007/BF01683269}.
 
 \bibitem{Shannon1949}
 Claude E. Shannon.
