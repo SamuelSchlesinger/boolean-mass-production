@@ -74,22 +74,22 @@ $0\le\gamma<1$,
   \C(f^{\times t})=O_\gamma(2^n/n)
   \qquad\text{for all }t\le 2^{\gamma n}.
 \]
-The bound is uniform in $f$ and $t$.  It controls the optimal order of growth,
-but does not preserve Uhlig's sharp one-copy leading constant.
+The bound is uniform in $f$ and $t$.  Using high-rate lifted evaluation codes,
+we sharpen it to
+$(1/(1-\gamma)+o_\gamma(1))2^n/n$.
 
 The proof uses local coded recovery instead of scanning the whole truth table.
 An evaluation code gives each requested symbol many affine-line recovery sets.
-A deterministic scheduler chooses disjoint lines within request groups, so
-each shorter resource function is queried at most once per group; induction
-handles the demand across groups.  With $k+1$ equal input blocks this gives the
-copy exponents
-\[
-  \frac12,\frac23,\frac34,\ldots,
-\]
-which approach one.
-Unlike a purely combinatorial batch-code guarantee, the schedule here is
-computed from the input addresses and its Boolean gates are included in the
-circuit bound.
+A nonuniform deterministic scheduler selects disjoint recovery sets with
+$\widetilde O_\ell(tq)$ gates, where $q$ is the field size and $\ell$ is the
+fixed geometric dimension.  Its fixed menus of candidate directions work for
+every input batch; a forest bound proves their existence, and sorting circuits
+check all candidates while storing the occupied points only once.  Each phase
+serves half the remaining requests, removing the need for recursive resource
+evaluation.  All gates for schedule selection and routing are counted.
+The menu construction is existential, not an efficient uniform algorithm.
+We also retain an explicit greedy scheduler and its recursive proof of the
+order-of-growth bound, which is the route covered by the Lean companion.
 \end{abstract}
 
 \section{Introduction}
@@ -120,9 +120,9 @@ numerical value can depend on the basis and convention.  Uhlig's 1974 paper
 account of the later result.
 
 We prove, by a different construction, that the order-of-growth plateau reaches
-$2^{\gamma n}$ simultaneous evaluations for every fixed $\gamma<1$.  The price
-is that we control only the optimal worst-case order $2^n/n$, not the sharp
-one-copy leading constant.
+$2^{\gamma n}$ simultaneous evaluations for every fixed $\gamma<1$.  The
+asymptotic coefficient is at most $1/(1-\gamma)$ in our basis.  This does not
+preserve Uhlig's coefficient $1$ for positive fixed $\gamma$.
 
 \subsection{Main result}
 
@@ -140,6 +140,17 @@ integer $1\le t\le 2^{\gamma n}$,
 \]
 \end{theorem}
 
+\begin{theorem}[Quantitative leading coefficient]\label{thm:coefficient}
+For every fixed $0\le\gamma<1$, uniformly over Boolean functions on $n$ bits
+and integers $1\le t\le2^{\gamma n}$,
+\[
+  \C(f^{\times t})
+  \le\left(\frac{1}{1-\gamma}+o_\gamma(1)\right)\frac{2^n}{n}.
+\]
+Equivalently, for every $\varepsilon>0$, the coefficient
+$1/(1-\gamma)+\varepsilon$ suffices for all sufficiently large $n$.
+\end{theorem}
+
 The order of the quantifiers matters.  Once $\gamma$ is fixed, one constant
 $A_\gamma$ works for every function and every batch size in the stated range;
 the bound has no factor depending on $t$.  At the largest allowed batch size,
@@ -148,11 +159,12 @@ the amortized size per requested value is therefore
   \frac{\C(f^{\times t})}{t}
   =O_\gamma\!\left(\frac{2^{(1-\gamma)n}}{n}\right).
 \]
-The theorem does not make $A_\gamma$ uniform as $\gamma\to1$.
+The quantitative bound also depends on $\gamma$ and does not assert a uniform
+plateau as $\gamma\to1$.
 
 There must nevertheless be a transition before the $2^n$-copy scale.  If
 $n\ge2$ and $f$ depends on all $n$ variables, every circuit for
-$f^{\times t}$ has size at least $tn/2$.  Hence a uniform $O(2^n/n)$ plateau
+$f^{\times t}$ has size at least $t(n-1)$.  Hence a uniform $O(2^n/n)$ plateau
 cannot persist once $t=\omega(2^n/n^2)$; see \cref{sec:discussion}.  Our
 theorem reaches every fixed exponential rate, but leaves this near-endpoint
 regime open.
@@ -179,8 +191,9 @@ below.
 We instead turn the truth table into shorter resource functions and recover a
 requested value from a selectable local set of them.  The quantity that has to
 be controlled is \emph{simultaneous demand}: how many different suffixes ask
-for the same resource?  Disjoint recovery sets control demand within a group,
-and recursion controls it across groups.  Both Paul's construction and ours
+for the same resource?  Globally disjoint recovery sets reduce this demand to
+one.  An alternative explicit construction uses disjointness within groups
+and recursion across groups.  Both Paul's construction and ours
 use sorting, but for different jobs.  Paul sorts input addresses before a
 global table scan; we sort scheduling and routing records after choosing the
 local recovery sets.
@@ -190,63 +203,53 @@ through it.
 \begin{enumerate}[label=\textbf{\arabic*.},leftmargin=2.2em]
 \item \textbf{Pack restrictions.}
 Split each input as $x=(a,z)$.  For every fixed suffix $z$, pack the values
-$f(a,z)$ over all prefixes $a$ into the information symbols of a constant-rate
-low-degree evaluation code over $\F_q$.
+$f(a,z)$ over all prefixes $a$ into the information symbols of an evaluation
+code over $\F_q$.  A product code suffices for the order-of-growth bound;
+lifted codes improve the leading coefficient.
 
 \item \textbf{Recover locally.}
 A requested information symbol can be reconstructed from the $q-1$ non-target
 points on any affine line through it.  About $q^{\ell-1}$ directions are
 available, so every request has many alternative recovery sets.
 
-\item \textbf{Schedule bounded congestion.}
-Partition the requests into $C$ groups.  A deterministic greedy circuit chooses
-pairwise disjoint recovery lines inside each group.  Consequently, each code
-coordinate is requested on at most one suffix per group and at most $C$
-suffixes overall.
+\item \textbf{Schedule disjoint recovery.}
+In each phase, test a fixed menu of candidate directions, accept half the
+remaining requests whose lines meet no occupied point or other candidate line,
+and compact the rest.  The menu works for every possible phase state.  Testing
+its candidates together costs $\widetilde O_\ell(tq)$ per phase.
 
-\item \textbf{Recurse on the suffix.}
-For a fixed code coordinate, evaluating its resource function on those at most
-$C$ suffixes is itself a $C$-copy problem, now on only $d=|z|$ variables.
-The recursive hypothesis pays for this remaining simultaneous demand.
+\item \textbf{Synthesize the resources.}
+Each code coordinate is now queried on at most one suffix.  Apply ordinary
+one-copy synthesis to each resource function on $d=|z|$ variables, route its
+value to the requesting line, and decode.
 \end{enumerate}
 
 \Cref{sec:two-copy} first shows the disjoint-recovery idea in Uhlig's
 two-copy construction.  The local gadget is stated in
-\cref{prop:local-gadget}, and \cref{prop:master} accounts for its circuit
-cost.  The parameter choice is then isolated in \cref{sec:induction}.
-Gate-level details for direction selection and routing are deferred to
-\cref{app:implementation}.
+\cref{prop:local-gadget}, and \cref{prop:scheduler-sensitive} accounts for
+its circuit cost.  The direct proof and the high-rate refinement are in
+\cref{sec:direct,sec:high-rate}.  The greedy scheduler and equal-block
+induction in \cref{sec:induction} provide a second proof without existential
+menus.  Additional gate-level details are in \cref{app:implementation}.
 
-\subsection{Why the exponents approach one}
+\subsection{Why nonuniform menus remove recursion}
 
-For an integer $k\ge1$, let $\mathsf P_k$ be the claim that every fixed copy
-exponent below $k/(k+1)$ has worst-case cost $O(2^n/n)$.  To prove
-$\mathsf P_k$, write
-\[
-  n=(k+1)m+O_k(1)
-\]
-and view the input as $k+1$ blocks of length about $m$.  The outer construction
-encodes one block for local recovery; the remaining $k$ blocks support the
-recursive resource functions.
+The greedy scheduler examines all previously occupied points for every new
+request, giving a quadratic cost in the batch size.  The new scheduler instead
+needs only a constant fraction of its current requests to succeed at once.
+Under fixed geometric slack, the probability that fewer than half of $k$
+independent candidate lines are usable is at most $2^{-k}$.  There are only
+$2^{O_\ell(t\log q)}$ relevant states, because the occupied set is described by
+at most $t$ lines.  A menu of $O_\ell(t\log q/k)$ candidates therefore covers
+every state.  It contains only $O_\ell(t\log q)$ candidate lines, even when
+$k$ is small.  A joint sorting circuit checks those lines against one copy of
+the occupied set.  Repeating for $O(\log(t+2))$ phases gives the claimed cost.
 
-Write $\gamma=k/(k+1)-\eta$.  In the new range not already covered by
-$\mathsf P_{k-1}$, choose the number of request groups by
-\[
-  \log_2 C=(k-1)m-\frac{\eta n}{2}+O(1).
-\]
-Since $\log_2t\le km-\eta n+O_k(1)$, each group contains at most
-\[
-  2^{m-\eta n/2+O_k(1)}
-\]
-requests: strictly fewer than the one-block scale $2^m$.  At the same time,
-$C$ has exponent strictly below $(k-1)/k$ when measured against the remaining
-$k$ blocks, so $\mathsf P_{k-1}$ evaluates every resource.  Fixed
-finite-field slack makes all bookkeeping terms exponentially smaller than
-$2^n$.
-
-The base case $\mathsf P_1$ uses two equal blocks and has no recursive
-congestion.  At every later level, one block supplies the scheduling room
-inside each group and the preceding statement is invoked on the other blocks.
+Consequently, we can leave $d=\delta n+O(1)$ suffix bits for any fixed
+$0<\delta<1-\gamma$.  High-rate codes make the number of Boolean resources
+$(1+o(1))2^{n-d}$, and one-copy synthesis costs $(1+o(1))2^d/d$ per resource.
+Their product explains the coefficient $1/\delta$; letting $\delta$ approach
+$1-\gamma$ proves \cref{thm:coefficient}.
 
 \subsection{Relation to earlier work}
 
@@ -287,7 +290,7 @@ Finite-geometry batch codes \cite{IKOS2004,PolyanskiiVorobyev2019}
 This paper
   & $t\le2^{\gamma n}$ for fixed $\gamma<1$
   & $O_\gamma(2^n/n)$
-  & optimal worst-case order throughout every fixed exponential range \\
+  & optimal order; limiting coefficient at most $1/(1-\gamma)$ \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -352,13 +355,15 @@ target-to-record map.
 
 The quantitative distinction is explicit in our scheduler-sensitive
 composition theorem, \cref{prop:scheduler-sensitive}.  For a
-group of $g$ requests, our scheduler has size
+group of $g$ requests, the explicit greedy scheduler has size
 $\widetilde O_\ell(g^2q)$.  Dividing $t$ requests among $C$ groups changes the
 total scheduling cost to
 $\widetilde O_\ell(t^2q/C+Cq)$ and limits every resource to $C$ suffixes.
 The bounded-congestion composition then pays for those suffixes recursively.
-This scheduler cost, rather than the mere existence of disjoint recovery sets,
-is what drives the equal-block induction.
+This cost drives the equal-block induction.  The nonuniform scheduler of
+\cref{thm:linear-scheduler} improves it to $\widetilde O_\ell(gq)$ under a
+constant-factor strengthening of the geometric slack condition.  It permits
+$C=1$ throughout every fixed exponential range and yields a direct proof.
 
 Finite-geometry constructions of primitive batch codes likewise give explicit
 families of mutually disjoint recovery sets \cite{PolyanskiiVorobyev2019}.
@@ -371,24 +376,25 @@ circuits for the input-dependent schedule.  The self-contained proof of
 \cref{thm:main} uses only the elementary product-code and affine-line facts
 proved below.
 
-We claim no novelty for evaluation coding, affine-line recovery, disjoint
-recovery as a combinatorial ingredient, or generic sorting and multiselection
-routing primitives.  The claimed contribution is the quantitative combination
-of a fine-grained deterministic disjoint-line scheduler, explicit accounting
-for the scatter/gather cost, and the bounded-congestion composition that makes
-those costs affordable, yielding the exponential-range mass-production
-theorem.  A sufficiently sharper
-implementation of the deletion-based batch decoder could conceivably improve
-the scheduler term; in particular, a $\widetilde O(tq)$ disjoint-recovery
-scheduler would remove the present recursion, as discussed in
-\cref{sec:discussion}.
+We claim no novelty for evaluation coding, lifted high-rate codes, affine-line
+recovery, disjoint recovery as a combinatorial ingredient, or generic sorting
+and multiselection primitives.  The contribution is the gate-counted
+composition yielding exponential-range mass production, together with the
+nonuniform menu scheduler and the leading-coefficient refinement.  The menu
+argument counts every possible occupied-line state, and its implementation
+shares the occupied-point list across candidates.  These two steps give the
+fine-grained bound needed by the direct proof.  Efficient uniform construction
+of such menus remains open here.
 
 \paragraph{Machine-checked companion.}
 An accompanying Lean~4 development formalizes the circuit model, local
 recovery, constructive scheduler and routing, composition bound, and
-equal-block induction.  It proves a rational, discrete-exponent form of
+equal-block induction.  It covers the explicit recursive alternative, and
+proves a rational, discrete-exponent form of
 \cref{thm:main}; the stated real-rate version follows by choosing a slightly
 larger rational exponent and absorbing finitely many initial input lengths.
+The new nonuniform menu scheduler, its direct proof, and
+\cref{thm:coefficient} are not part of this pinned formalization.
 \ifanonymous
 The public repository URL is omitted during double-blind review.
 \else
@@ -769,6 +775,150 @@ missing one; stage $j$ costs $\widetilde O_\ell(jq)$.  The treatment of
 duplicate targets, sentinel ranks, and the least-missing-rank circuit is given
 in \cref{app:scheduler-proof}.  Summing over the stages gives the stated cost.
 
+\subsection{A nonuniform scheduler with linear dependence on the batch size}
+\label{subsec:linear-scheduler}
+
+The quadratic scan can be replaced by phases that accept half the remaining
+requests.  We prove that a small fixed menu of candidate directions works for
+every possible phase state, then give a circuit that tests the menu.  The
+existence proof uses randomness only to choose constants of the circuit; its
+evaluation is deterministic on every input.
+
+\begin{lemma}[A partial schedule with exponentially small failure]
+\label{lem:partial-schedule}
+Put $N=q^\ell$.  Suppose $512gq\le D_q$, let $1\le k\le g$, and let $U$ be
+the union of at most $g$ affine-line recovery sets.  Fix any $k$ targets, and
+choose one projective direction independently and uniformly for each target.
+Call a candidate recovery set \emph{clean} if it avoids $U$ and every other
+candidate recovery set.  Then
+\[
+  \Pr\{\text{fewer than }\lceil k/2\rceil\text{ sets are clean}\}
+  \le 2^{-k}.
+\]
+\end{lemma}
+
+\begin{proof}
+For any fixed set $B$, a random recovery set through any fixed target meets
+$B$ with probability at most $|B|/D_q$: each point other than the target
+blocks exactly one direction.  Consequently, the probability of
+meeting $U$ is at most $a_0=g(q-1)/D_q$, and that of meeting another fixed
+candidate recovery set is at most $a_1=(q-1)/D_q$.
+
+Form a graph on $\{0,1,\ldots,k\}$.  Join a request to vertex $0$ when its
+recovery set meets $U$, and join two requests when their recovery sets meet.
+The nonclean requests are exactly the nonisolated vertices other than $0$.
+If at least $\lceil k/2\rceil$ requests are nonclean, a spanning forest of
+the nontrivial components has at least $\lceil k/4\rceil$ edges: a component
+with $m$ requests and no $0$ contributes $m-1\ge m/2$ edges, and a component
+containing $0$ contributes $m$ edges.  Retain exactly
+$h=\lceil k/4\rceil$ forest edges.  Root the component containing $0$ there,
+and root each other component at any one of its vertices.
+
+For a fixed rooted forest, expose root directions first and then child
+directions.  A child is independent of its exposed parent.  Its edge event
+has conditional probability at most $a_0$ for parent $0$, and at most $a_1$
+for any other parent.  There are $h$ distinct child vertices.  Summing these
+product bounds over child sets and parent assignments, including extra
+assignments only in the numerical upper bound, gives
+\[
+  \Pr\{\text{such a forest exists}\}
+  \le \binom{k}{h}(a_0+ka_1)^h
+  \le 2^k(1/256)^{k/4}=2^{-k}.
+\]
+Here $a_0+ka_1\le2gq/D_q\le1/256$.  Failure of the stated progress condition
+implies at least $\lceil k/2\rceil$ nonclean requests, so this proves the
+claim.  The forest argument does not assume independence of collision events;
+in particular it includes many lines meeting one candidate line.
+\end{proof}
+
+\begin{lemma}[Universal menus]\label{lem:universal-menus}
+Under the same slack condition, for each $1\le k\le g$ there is a fixed menu
+of
+\begin{equation}\label{eq:menu-size}
+  r_k=\left\lceil\frac{g(1+3\log_2N)+1}{k}\right\rceil
+\end{equation}
+direction $k$-tuples such that every set $U$ described in
+\cref{lem:partial-schedule} and every ordered list of $k$ targets has a menu
+entry with at least $\lceil k/2\rceil$ clean recovery sets.
+\end{lemma}
+
+\begin{proof}
+A recovery set is specified by an anchor and a direction, giving at most
+$ND_q$ descriptions.  Allowing an unused marker in each of $g$ slots, the
+number of occupied-set descriptions is at most $(1+ND_q)^g$.  The targets
+have at most $N^k$ descriptions.  Since $D_q\le N$ and $k\le g$, the total
+number of states is at most
+\[
+  (1+ND_q)^gN^k\le2^{g(1+3\log_2N)}.
+\]
+Choose $r_k$ candidate tuples independently.  For a fixed state, the
+probability that every tuple fails is at most $2^{-kr_k}$ by
+\cref{lem:partial-schedule}.  A union bound over states is strictly below
+one by \eqref{eq:menu-size}.  Thus a menu working for all states exists.
+Fix one such menu as part of the circuit.  Its choice depends on $g,k,q,\ell$,
+not on the input targets or on the function being mass-produced.
+\end{proof}
+
+\begin{theorem}[Nonuniform linear scheduling]\label{thm:linear-scheduler}
+If $512gq\le D_q$, a deterministic nonuniform Boolean circuit maps every
+ordered multiset of $g$ targets in $\F_q^\ell$ to enumerated pairwise disjoint
+affine-line recovery sets using $\widetilde O_\ell(gq)$ gates.
+More explicitly, its size is $O(gq\Lambda^5)$ for
+$\Lambda=\ell\log_2q+\log_2(g+2)$.
+The circuit's fixed menus have total description length
+$O(g(\log N)^2\log(g+2))$ bits.
+\end{theorem}
+
+\begin{proof}
+Maintain $k$ active targets and the occupied set from the $g-k$ accepted
+requests.  Initially $k=g$ and $U$ is empty.  Test the menu from
+\cref{lem:universal-menus}, choose its first successful entry, and accept
+exactly the first $\lceil k/2\rceil$ clean requests in that entry.  These
+sets avoid $U$ and each other.  Compact the other $\lfloor k/2\rfloor$
+requests, retaining their original identifiers.  This gives a fixed sequence
+of at most $1+\lfloor\log_2 g\rfloor$ phase sizes, and never occupies more
+than $g$ recovery sets.  After the last phase, sort accepted records by original
+identifier to enumerate the answer sets in request order.
+
+It remains to bound the cost of testing a menu.  Generate records for all
+$r_k k(q-1)$ candidate points, labelled by candidate, request, and line
+position, and append the $(g-k)(q-1)$ occupied points \emph{once}.  Since
+$r_k k=O(g\log N)$, there are $O(gq\log N)$ records.  Use these fixed passes:
+\begin{enumerate}[label=\textup{(\roman*)},leftmargin=2.1em]
+\item Sort by point, with occupied records first at equal points.  Along each
+equal-point run propagate an occupancy bit.  In sorted position $i$, the
+update is $e_i=\mathrm{occupied}_i\vee
+((y_i=y_{i-1})\wedge e_{i-1})$, with a dummy predecessor at the boundary.
+Thus every candidate point learns whether it lies in $U$.
+\item Compact candidate records and sort them by $(\text{candidate},y)$.
+Mark a record when its predecessor or successor has the same key.  Points on
+one recovery line are distinct, so such a match is exactly an intersection
+between two requests in the same candidate.
+\item Sort by $(\text{candidate},\text{request},\text{line position})$ and
+OR the $q-1$ bad-point flags for each request.  Count the clean requests in
+each candidate and use priority selection to choose its first successful
+entry.  Fixed multiplexers and compaction implement the acceptance step.
+\end{enumerate}
+Every record has polynomial width in $\ell\log q$ and $\log(g+2)$, and a
+constant number of sorting networks and linear scans suffices.  Thus a phase
+has size $O(gq\Lambda^4)$: there are $O(gq\Lambda)$ records, with
+$O(\Lambda)$ bits per point record and $O(\Lambda^2)$ sorting-network
+comparators per record.  Candidate directions and line scalars are hardwired,
+so generating a candidate point adds a constant field vector to the target
+using $O(\ell\log q)$ gates.  Selecting and compacting whole line records
+costs at most $O(gq\Lambda^3)$ additional gates.  There are $O(\Lambda)$
+phases, proving the explicit bound.  The menus contain
+$O(g\log N)$ directions per phase,
+each of $O(\log N)$ bits, giving the description bound.  No search for a menu
+is performed on the input wires, and no $N$-entry occupancy table is needed.
+\end{proof}
+
+The theorem supplies a circuit-existence result in the paper's nonuniform
+model.  It does not give an efficient uniform constructor for the menus.
+In contrast, the earlier greedy scheduler can be constructed directly once
+the field representation is fixed.  The following grouped construction
+records that explicit alternative.
+
 \subsection{Request groups}
 
 Partition the $t$ requests into $C$ fixed groups, each of size at most
@@ -966,9 +1116,161 @@ Apply \cref{prop:scheduler-sensitive}; the $tq$ term is already present, and
 $Cq$ is absorbed by $Cq^\ell$ because $q\ge2$ and $\ell\ge2$.
 \end{proof}
 
-\section{The equal-block induction}\label{sec:induction}
+\section{A direct proof without recursion}\label{sec:direct}
 
-We now apply the composition bound recursively.  At level $k$, split the input
+\begin{proof}[Direct proof of \cref{thm:main}]
+Fix $\gamma<1$, choose any fixed $0<\delta<1-\gamma$, and put
+$d=\lceil\delta n\rceil$ and $p=n-d$.  Choose a fixed $\ell\ge2$ large
+enough that
+\begin{equation}\label{eq:direct-margin}
+  \gamma<(1-2/\ell)(1-\delta).
+\end{equation}
+Use the product-code gadget with its minimal packing field.  Its parameters
+satisfy
+\[
+  \log_2q=(1-\delta)n/\ell+o(n),\qquad
+  \log_2D_q=(1-1/\ell)(1-\delta)n+o(n).
+\]
+Thus \eqref{eq:direct-margin} implies $512tq\le D_q$ for all sufficiently
+large $n$ and every $t\le2^{\gamma n}$.  Apply
+\cref{thm:linear-scheduler,prop:scheduler-sensitive} with $C=1$.  This gives
+\[
+  \C(f^{\times t})\le q^\ell bL(d)
+                 +\widetilde O_\ell(tq+q^\ell).
+\]
+The first term is $O_\ell(2^p2^d/d)=O_\gamma(2^n/n)$.  The two overhead
+exponents are at most $\gamma+(1-\delta)/\ell<1$ and $1-\delta<1$,
+respectively, with fixed positive margins.  All suppressed polynomial factors
+are therefore negligible compared with $2^n/n$.  Enlarge the constant to
+cover the finitely many initial lengths by ordinary circuit replication.
+\end{proof}
+
+\section{High-rate codes and the leading coefficient}\label{sec:high-rate}
+
+The product code's rate approaches $\ell^{-\ell}$ for fixed $\ell$, and
+rounding the field size to a power of two introduces another constant packing
+loss.  Neither loss is necessary.  Lifted Reed--Solomon codes already provide
+rate tending to one with the same line-parity recovery
+\cite{GuoKoppartySudan2013,HolzbaurEtAl2020}.  We give an elementary sufficient
+monomial construction and eliminate the packing loss by using several copies
+of a slightly smaller code.  These are known coding ingredients; the point
+here is their circuit-cost accounting.
+
+\begin{lemma}[High-rate line-parity code]\label{lem:high-rate-code}
+Let $h=\lceil\log_2\ell\rceil$, $q=2^b$, and $N=q^\ell$.  There is a
+linear code on $\F_q^\ell$ of dimension $K$ such that
+\begin{equation}\label{eq:high-rate}
+  \frac KN\ge1-(1-2^{-\ell h})^{\lfloor b/h\rfloor}
+       =1-o_\ell(1)\qquad(b\to\infty),
+\end{equation}
+and each word $P$ satisfies
+\[
+  P(u)=\sum_{\lambda\in\F_q^*}P(u+\lambda v)
+\]
+for every target $u$ and every nonzero direction $v$.  The code can be made
+systematic on a fixed set of $K$ evaluation points.
+\end{lemma}
+
+\begin{proof}
+Consider reduced monomials $X_1^{e_1}\cdots X_\ell^{e_\ell}$ with
+$0\le e_i<2^b$.  Partition the first $h\lfloor b/h\rfloor$ binary digit
+positions into disjoint blocks of length $h$.  Retain a monomial if some block
+is zero in \emph{all} of its exponents.  The fraction retained is exactly
+$1-(1-2^{-\ell h})^{\lfloor b/h\rfloor}$.  These monomials are linearly
+independent as evaluation functions, by repeated univariate interpolation.
+
+To check line parity, expand a retained monomial at $u+\lambda v$.  In
+characteristic two, every possibly nonzero term in this expansion has
+$\lambda$-degree $J=\sum_i j_i$, where the one-bits of $j_i$ are a subset of
+those of $e_i$.  This follows directly by writing
+$(u_i+\lambda v_i)^{e_i}$ as a product over the one-bits of $e_i$ and using
+$(a+c)^{2^r}=a^{2^r}+c^{2^r}$.
+
+Suppose the common zero block starts at position $s$.  Every $j_i$ has the
+same zero block, so its residue modulo $2^{s+h}$ is at most $2^s-1$.
+Consequently,
+\[
+  J\bmod 2^{s+h}=\sum_i(j_i\bmod2^{s+h})
+       \le\ell(2^s-1)\le2^{s+h}-\ell.
+\]
+There is no wraparound in this equality.  If $J$ were a positive multiple
+$a(2^b-1)$, we would have $1\le a\le\ell-1$: the zero block makes every
+$j_i<2^b-1$.  Since $s+h\le b$ and $a<2^{s+h}$, its residue would instead
+be $2^{s+h}-a\ge2^{s+h}-\ell+1$, a contradiction.  Thus every positive
+$\lambda$-degree is not divisible by $q-1$.  The monomial-sum calculation in
+\cref{lem:line} gives zero for the sum over $\F_q$, including the constant
+term.  Linearity proves line parity for the span of the retained monomials.
+
+Finally, choose $K$ independent coordinate columns of a generator matrix.
+Evaluation on those coordinates is an isomorphism to $\F_q^K$, giving a
+systematic information set.  The choice and any change of basis are offline
+parts of the nonuniform code specification.
+\end{proof}
+
+The information set need not have the product code's convenient indexing.
+This does not force a separate lookup circuit of size $K$ for each request.
+Store its ordered list of $K$ points as a hardwired table, and sort its table
+records together with all $t$ live symbol indices, placing a table record
+before its queries at an equal index.  Propagate the table value along each
+equal-index run, then sort queries back to request order.  This costs
+$\widetilde O_\ell(K+t)$ gates and handles repeated indices.  It is the same
+batched lookup primitive used for occupancy broadcast, with a point as payload.
+
+\begin{proof}[Proof of \cref{thm:coefficient}]
+Fix $0<\delta<1-\gamma$, put $d=\lceil\delta n\rceil$, $p=n-d$, and choose
+a fixed $\ell$ satisfying \eqref{eq:direct-margin}.  Instead of the minimal
+packing field, take
+\[
+  b=\left\lfloor\frac{p-3\log_2(n+2)}{\ell}\right\rfloor,
+  \qquad q=2^b,
+  \qquad B=\left\lceil\frac{2^p}{Kb}\right\rceil,
+\]
+for sufficiently large $n$, where $K$ is the dimension in
+\cref{lem:high-rate-code}.  Use $B$ separate copies of this code.  Each has
+$Kb$ information bits, so they hold the $2^p$ prefix values with only the
+last code's information positions padded.  Because $K/N\to1$ and
+$Nb=o(2^p)$, their total number of Boolean resources is
+\begin{equation}\label{eq:sharp-packing}
+  2^p\le BNb
+       \le\frac NK\,2^p+Nb=(1+o(1))2^p.
+\end{equation}
+Here $B=\poly_\ell(n)$ and
+$\log_2q=(1-\delta)n/\ell+O_\ell(\log n)$.
+
+Fixed-divisor arithmetic maps each prefix to its code number, information
+index, and bit position.  The batched table lookup above supplies all target
+points.  Schedule these $t$ targets together, even when they refer to different
+code copies.  By \cref{thm:linear-scheduler}, the resulting recovery sets are
+globally disjoint.  Attaching the requested code number to each incidence
+therefore gives unique keys $(\text{code},y)$.  Route the $t(q-1)$ incidences
+against $BN$ slots by the four-pass construction of \cref{lem:routing}.
+In particular, neither the scheduler nor the incidence list is replicated
+once per code copy.
+
+For each of the $BNb$ Boolean resource functions on $d$ variables, use the
+sharp one-copy synthesis bound
+$L(d)\le(1+o(1))2^d/d$ in the stated basis
+\cite{FrandsenMiltersen2005}.  The complete bound is
+\[
+  \C(f^{\times t})
+  \le BNbL(d)+\widetilde O_\ell(tq+BN+K)
+  \le\left(\frac1\delta+o(1)\right)\frac{2^n}{n}.
+\]
+Indeed, \eqref{eq:sharp-packing} controls the resource term; the other terms
+have exponents at most $\gamma+(1-\delta)/\ell<1$ and $1-\delta<1$.
+All estimates are uniform over $f$ and the allowed $t$.
+
+For every fixed $\delta<1-\gamma$ we have proved a limiting upper coefficient
+$1/\delta$.  Taking the infimum of these bounds as $\delta$ increases to
+$1-\gamma$ proves the theorem.  This last step takes a limit of fixed-parameter
+bounds; it makes no assertion uniform in growing $\ell$ or in $\gamma\to1$.
+\end{proof}
+
+\section{The explicit equal-block alternative}\label{sec:induction}
+
+This second proof uses the greedy scheduler and no existential menus.  It
+proves \cref{thm:main}, but does not establish \cref{thm:coefficient}.
+Apply the composition bound recursively.  At level $k$, split the input
 into $k+1$ approximately equal blocks, encode one block, and invoke the
 preceding level on the remaining $k$.
 
@@ -1136,7 +1438,7 @@ Thus every overhead term is exponentially smaller than $2^n/n$.  This proves
 $\mathsf P_k$.
 \end{proof}
 
-\begin{proof}[Proof of \cref{thm:main}]
+\begin{proof}[Alternative proof of \cref{thm:main}]
 By \cref{lem:base,lem:block-step}, $\mathsf P_k$ holds for every $k\ge1$.
 Fix $0\le\gamma<1$ and choose $k$ so that $\gamma<k/(k+1)$.  Then
 $\mathsf P_k$ gives the asserted bound beyond a threshold $N_\gamma$.  For the
@@ -1148,42 +1450,49 @@ for every $n\ge1$.
 
 \section{Implications and open problems}\label{sec:discussion}
 
-The theorem settles the fixed-rate question: every fixed $\gamma<1$ is
-achievable at the optimal worst-case order.  The two immediate quantitative
-questions are whether recursion is necessary and where the plateau ends as
-the copy exponent approaches one.
+Every fixed $\gamma<1$ is achievable at the optimal worst-case order, and
+recursion can be removed in the nonuniform model.  The remaining distinctions
+concern uniform construction, the optimal coefficient, and rates approaching
+one with the input length.
 
-\paragraph{Can recursion be removed?}
-The disjoint base case isolates the reason for the recursion.  With $C=1$ and
-$d=\delta n$, the resource term remains $O(2^n/(\delta n))$, and for large
-fixed $\ell$ there are enough directions whenever $\gamma<1-\delta$.  It is
-the quadratic scheduling term $t^2q$, not line availability, that restricts
-this argument to $\gamma<1/2$.  Grouping divides that term by $C$, while
-recursion pays for the resulting $C$ simultaneous uses of each resource.  At
-the exponent level, this is the update $\beta\mapsto1/(2-\beta)$ underlying
-the equal-block sequence.  A disjoint-line scheduler of size
-$\widetilde O(tq)$ would remove the need for recursion: for any fixed
-$\gamma<1$, one could choose $0<\delta<1-\gamma$ and take $C=1$.  Finding such
-a scheduler, or ruling one out, is therefore a natural next problem.
+\paragraph{Can the menus be constructed efficiently?}
+\Cref{lem:universal-menus} proves that short menus exist simultaneously for
+all inputs.  Exhaustive search is a finite construction, but no efficient
+uniform procedure for finding such menus is supplied.  The implementation in
+\texttt{scripts/linear\_scheduler.py} evaluates fixed menus by record sorting
+networks; it includes an explicit universal two-request fixture.
+\texttt{scripts/check\_improvements.py} checks that fixture exhaustively,
+compares candidate verification against direct set intersections, and checks
+the forest witness and coded recovery on small instances.  These finite checks
+support the written arguments, not an asymptotic uniform-construction claim.
+
+\paragraph{What is the optimal leading coefficient?}
+The normalized worst-case size has lower limiting coefficient at least $1$
+by one-copy counting, and \cref{thm:coefficient} gives an upper limiting
+coefficient $1/(1-\gamma)$.  Equality with this upper bound is not claimed.
+In particular, preserving coefficient $1$ at a positive fixed exponential
+copy rate remains unresolved here.
 
 \paragraph{Where does the plateau end?}
 The theorem reaches $2^{(1-\varepsilon)n}$ copies for every fixed
 $\varepsilon>0$, but does not treat a rate that approaches one with $n$.
-Some degradation in that regime is forced.  If $n\ge2$ and $f$ depends on all
-$n$ of its variables, every output of a circuit for $f^{\times t}$ is a gate,
-and each of the $tn$ inputs must feed at least one gate, since otherwise the
-corresponding output would not depend on it.  Since gates have fan-in at most
-two,
+Some degradation in that regime is forced.  Suppose $n\ge2$ and $f$ depends
+on all $n$ of its variables.  Restrict a circuit for $f^{\times t}$ to the
+union of its output cones, and write $s$ for the remaining gate count.
+Every one of the $tn$ inputs remains.  Each connected component of the
+underlying undirected graph contains an output, so there are at most $t$
+components.  The graph therefore has at least $tn+s-t$ edges, while fan-in
+at most two permits at most $2s$ edges.  Hence
 \[
-  \C(f^{\times t})\ge\frac{tn}{2}.
+  \C(f^{\times t})\ge t(n-1).
 \]
 A bound of the form $A\,2^n/n$ therefore cannot hold once
-$t>2A\cdot2^n/n^2$; in particular, a uniform $O(2^n/n)$ plateau must fail for
+$t>A\,2^n/(n(n-1))$; in particular, a uniform $O(2^n/n)$ plateau must fail for
 $t=\omega(2^n/n^2)$.  The theorem still leaves the detailed mass-production
 curve throughout the near-endpoint regime $t=2^{n-o(n)}$ unresolved.
-Determining how far the plateau extends, and then characterizing the growth
-beyond it, would require a quantitatively sharper schedule or a different
-recursive decomposition.
+The high-rate and negligible-overhead estimates above keep $\ell$, $\delta$,
+and $\gamma$ fixed.  Substituting parameters that vary with $n$ without new
+uniform estimates would not resolve this near-endpoint question.
 
 \clearpage
 \appendix
@@ -1306,6 +1615,8 @@ constructions, including the scheduling and recursive-composition approach;
 their role went beyond prose editing.  The author selected the directions to
 pursue, checked and revised the proofs and literature claims, and takes full
 responsibility for the correctness, originality, and integrity of the paper.
+The present revision also used Codex to develop and test the nonuniform menu
+scheduler and the high-rate-code refinement.
 
 \begin{thebibliography}{HPPV20}
 \small
@@ -1336,6 +1647,14 @@ Gudmund Skovbjerg Frandsen and Peter Bro Miltersen.
 \newblock Reviewing bounds on the circuit size of the hardest functions.
 \newblock \emph{Information Processing Letters}, 95(2):354--357, 2005.
 \newblock \href{https://doi.org/10.1016/j.ipl.2005.03.009}{doi:10.1016/j.ipl.2005.03.009}.
+
+\bibitem[GKS13]{GuoKoppartySudan2013}
+Alan Guo, Swastik Kopparty, and Madhu Sudan.
+\newblock New affine-invariant codes from lifting.
+\newblock In \emph{Proceedings of the 4th Innovations in Theoretical Computer
+Science Conference}, pages 529--539. ACM, 2013.
+\newblock \href{https://doi.org/10.1145/2422436.2422494}{doi:10.1145/2422436.2422494}.
+\newblock \url{https://arxiv.org/abs/1208.5413}.
 
 \bibitem[HP95]{HiltgenPaterson1995}
 Alain P. Hiltgen and Mike S. Paterson.

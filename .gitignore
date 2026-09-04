@@ -13,3 +13,7 @@ tmp/
 # Editor and operating-system metadata.
 .DS_Store
 *~
+
+# Python checks.
+__pycache__/
+*.pyc
