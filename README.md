@@ -10,26 +10,27 @@ The paper proves that, for every fixed `0 <= gamma < 1`, every Boolean
 function on `n` bits can be evaluated on as many as `2^(gamma n)` independent
 inputs by a circuit of size `O_gamma(2^n / n)`.
 
-The revised manuscript strengthens the asymptotic coefficient to
+The asymptotic coefficient is at most
 `1 / (1 - gamma) + o_gamma(1)`. A deterministic nonuniform scheduler uses
 `~O_ell(t q)` gates to select globally disjoint recovery sets, so the direct
-proof needs no recursive resource evaluation. High-rate lifted codes and
-packing into several smaller codes remove the previous constant rate and
-field-rounding losses.
-Section 8.1 explains the exact accounting extracted from formalization:
+proof evaluates each resource once. High-rate lifted codes and packing into
+several smaller codes give a resource count of `(1 + o(1)) 2^p`.
+Appendix C explains the exact accounting used in the formalization:
 request identity, inactive slots, resource-bank padding, whole field blocks
 at every input length, and the final real-rate quantifiers.
 
 The scheduler's small fixed menus are proved to exist for every input batch.
 An efficient uniform algorithm to construct those general menus remains open
-here. Both upper-bound variants are now formally proved in the pinned Lean
+here. Both upper-bound variants are formally proved in the pinned Lean
 companion.
 
 For a first reading, the introduction explains the sharing obstacle and the
 coefficient calculation, and Section 3 works through two independent requests.
 The notation and codeword/resource tables support the direct proof in
-Sections 4-8. Section 8.1 gives exact formal accounting; Section 9 supplies
-the recursive alternative. Detailed literature comparisons are in Section 10.
+Sections 4-8. Sections 9-10 compare earlier work and discuss open problems.
+Appendix A gives the explicit recursive construction, Appendix B supplies
+gate-level implementation details, and Appendix C connects the argument
+with the Lean formalization.
 
 ## Machine-checked companion
 
