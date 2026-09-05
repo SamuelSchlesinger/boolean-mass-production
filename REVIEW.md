@@ -137,7 +137,7 @@ incidence dependence up to polynomial bit-width factors and establish the
 same sharp mass-production coefficient; the degree-five refinement is not
 claimed as the exact bound emitted by Lean.
 
-The revised 25-page PDF builds without warnings and passes
+The revised 27-page PDF builds without warnings and passes
 `./build.sh --check`. Every page was rendered and visually inspected, with
 the new theorem statements and central proofs also checked at full page size.
 Cross-reference and bibliography checks, author/page metadata checks, and
@@ -146,6 +146,30 @@ to contain exactly the current `main.tex`. The committed packager recreates
 that archive from a fresh clone and checks the abstract's ASCII format and
 1,920-character limit. The extracted source was also compiled independently,
 with no repository-only support files.
+
+## Exposition revision
+
+The introduction now develops the sharing obstacle before introducing the
+code: two requests can select the same restriction at different suffixes,
+so one copy of each restriction circuit does not suffice. It then explains
+alternative recovery sets and derives the leading coefficient from the
+resource-count times synthesis-cost product. A concrete half-rate example
+and a reading route connect the overview to the formal statements.
+
+The two-copy section includes an explicit four-restriction, five-resource
+example with unrelated suffixes. A parameter table distinguishes field symbols
+from Boolean resources, and a second table explains the codeword and resource
+views of the same encoded array. The scheduler section separates the random
+partial schedule, universal-menu existence, and gate-counted menu evaluation.
+The composition bound labels each cost, and the high-rate proof explains why
+avoiding positive multiples of `q-1` is enough for line parity.
+
+The detailed literature comparison is now Section 10, after the constructions,
+with a short attributed comparison retained in the introduction. The paper
+also distinguishes choices made when the circuit is built from operations on
+live inputs, and states explicitly that replication may be better for a
+particular easy function. The theorem statements and pinned Lean revision
+are preserved. The abstract and arXiv metadata describe the revised exposition.
 
 ## Primary-source checks
 

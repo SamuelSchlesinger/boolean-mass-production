@@ -52,13 +52,13 @@ theorem; the coding ingredients do not make `cs.IT` the primary subject.
 Abstract:
 
 ```text
-We study the cost of evaluating one Boolean function on many independent inputs. For $f:\{0,1\}^n\to\{0,1\}$, let $f^{\times t}$ evaluate $f$ on $t$ such inputs. Uhlig showed that $t=2^{o(n/\log n)}$ copies preserve the sharp one-copy asymptotic. We retain the optimal order of growth throughout every fixed exponential range below the $2^n$-copy scale: for every fixed $0\le\gamma<1$, $C(f^{\times t})=O_\gamma(2^n/n)$ for all $t\le 2^{\gamma n}$. The bound is uniform in $f$ and $t$. Using high-rate lifted evaluation codes, we sharpen it to $(1/(1-\gamma)+o_\gamma(1))2^n/n$. The proof uses local coded recovery instead of scanning the whole truth table. An evaluation code gives each requested symbol many affine-line recovery sets. A nonuniform deterministic scheduler selects disjoint recovery sets with $\widetilde O_\ell(tq)$ gates, where $q$ is the field size and $\ell$ is the fixed geometric dimension. Its fixed menus of candidate directions work for every input batch; a forest bound proves their existence, and sorting circuits check all candidates while storing the occupied points only once. Each phase serves half the remaining requests, removing the need for recursive resource evaluation. All gates for schedule selection and routing are counted. The menu construction is existential, not an efficient uniform algorithm. We also retain an explicit greedy scheduler and its recursive proof of the order-of-growth bound. The Lean companion formally verifies both upper-bound variants, including the sharper coefficient.
+We study the cost of evaluating one Boolean function on many independent inputs. For $f:\{0,1\}^n\to\{0,1\}$, let $f^{\times t}$ evaluate $f$ on $t$ such inputs. Uhlig showed that $t=2^{o(n/\log n)}$ copies preserve the sharp one-copy asymptotic. We retain the optimal order of growth throughout every fixed exponential range below the $2^n$-copy scale: for every fixed $0\le\gamma<1$, $C(f^{\times t})=O_\gamma(2^n/n)$ for all $t\le 2^{\gamma n}$. The bound is uniform in $f$ and $t$. Using high-rate lifted evaluation codes, we sharpen it to $(1/(1-\gamma)+o_\gamma(1))2^n/n$. We encode restrictions of $f$ as shorter resource functions with many affine-line recovery sets. A deterministic nonuniform scheduler chooses disjoint sets, allowing each resource function to be evaluated only once. Its size is $\widetilde O_\ell(tq)$, where $q$ is the field size and $\ell$ is the fixed geometric dimension. The scheduler tests fixed menus of candidate directions and serves half the remaining requests in each phase. The menus work for every input batch; their existence is proved, but no efficient uniform construction is given. All gates for schedule selection, resource evaluation, routing, and decoding are counted. We also retain an explicit greedy scheduler and its recursive proof of the order-of-growth bound. The Lean companion formally verifies both upper-bound variants, including the sharper coefficient.
 ```
 
 Comments:
 
 ```text
-25 pages, no figures. Lean 4 proofs of both the explicit recursive and nonuniform variants, including the sharp real-rate coefficient: https://github.com/SamuelSchlesinger/algebraic-circuits/tree/8dd82c96f44dbeeaca31f4cc96c687c6d87d1489
+27 pages, no figures. Lean 4 proofs of both the explicit recursive and nonuniform variants, including the sharp real-rate coefficient: https://github.com/SamuelSchlesinger/algebraic-circuits/tree/8dd82c96f44dbeeaca31f4cc96c687c6d87d1489
 ```
 
 Journal reference: leave blank.
@@ -67,7 +67,7 @@ Report number: leave blank.
 
 DOI: leave blank.
 
-The abstract above is 1,536 ASCII characters, below arXiv's 1,920-character
+The abstract above is 1,414 ASCII characters, below arXiv's 1,920-character
 limit. Paste the text from this guide rather than from the PDF, which may
 introduce unsupported ligatures or Unicode. See arXiv's
 [metadata instructions](https://info.arxiv.org/help/prep.html).
@@ -115,7 +115,7 @@ arXiv's [license choices](https://info.arxiv.org/help/license/index.html).
   a specific audience reason to add one.
 - Select the intended license.
 - Compile with `pdflatex` under TeX Live 2025.
-- Open arXiv's generated PDF and verify that it has 25 pages, identifies
+- Open arXiv's generated PDF and verify that it has 27 pages, identifies
   Samuel Schlesinger, and labels theorem, lemma, proposition, and section
   cross-references correctly.
 - Check that the bibliography includes Guo--Kopparty--Sudan,

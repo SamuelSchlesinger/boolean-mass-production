@@ -78,16 +78,15 @@ The bound is uniform in $f$ and $t$.  Using high-rate lifted evaluation codes,
 we sharpen it to
 $(1/(1-\gamma)+o_\gamma(1))2^n/n$.
 
-The proof uses local coded recovery instead of scanning the whole truth table.
-An evaluation code gives each requested symbol many affine-line recovery sets.
-A nonuniform deterministic scheduler selects disjoint recovery sets with
-$\widetilde O_\ell(tq)$ gates, where $q$ is the field size and $\ell$ is the
-fixed geometric dimension.  Its fixed menus of candidate directions work for
-every input batch; a forest bound proves their existence, and sorting circuits
-check all candidates while storing the occupied points only once.  Each phase
-serves half the remaining requests, removing the need for recursive resource
-evaluation.  All gates for schedule selection and routing are counted.
-The menu construction is existential, not an efficient uniform algorithm.
+We encode restrictions of $f$ as shorter resource functions with many
+affine-line recovery sets.  A deterministic nonuniform scheduler chooses
+disjoint sets, allowing each resource function to be evaluated only once.
+Its size is $\widetilde O_\ell(tq)$, where $q$ is the field size and $\ell$
+is the fixed geometric dimension.  The scheduler tests fixed menus of
+candidate directions and serves half the remaining requests in each phase.
+The menus work for every input batch; their existence is proved, but no
+efficient uniform construction is given.  All gates for schedule selection,
+resource evaluation, routing, and decoding are counted.
 We also retain an explicit greedy scheduler and its recursive proof of the
 order-of-growth bound.  The Lean companion formally verifies both upper-bound
 variants, including the sharper coefficient.
@@ -163,6 +162,9 @@ the amortized size per requested value is therefore
 \]
 The quantitative bound also depends on $\gamma$ and does not assert a uniform
 plateau as $\gamma\to1$.
+This is a worst-case synthesis guarantee.  For a particular function with a
+small circuit, the replication bound $t\C(f)$ may be smaller; one may always
+take the better of the two bounds.
 
 There must nevertheless be a transition before the $2^n$-copy scale.  If
 $n\ge2$ and $f$ depends on all $n$ variables, every circuit for
@@ -173,220 +175,108 @@ regime open.
 
 \subsection{How the construction works}
 
-Paul's general many-copy construction provides a useful contrast
-\cite[Lemma~2]{Paul1976}.  It treats the truth table of $f$ as an ordered
-database: sort the $t$ input addresses, sweep once through the hardwired table,
-and restore the answers to their original order.  This global lookup strategy
-works for arbitrary $t$ and gives
-\[
-  O\!\left(\max\{n2^n,nt\log^2t\}\right).
-\]
-For every fixed $\gamma<1$ and $t\le2^{\gamma n}$, the full-table term
-$n2^n$ eventually dominates.
+Split an input as $x=(a,z)$, with a $p$-bit prefix $a$ and a $d$-bit suffix
+$z$, where $p+d=n$.  The prefix selects one of the $2^p$ shorter functions
+$f_a(z)=f(a,z)$.  The desired saving would come from using only one circuit
+for each shorter function.  But two inputs with the same prefix may require
+that function at two different suffixes, and one circuit has only one set of
+input wires.
 
-Holmgren and Rothblum's multiselection theorem gives a sharper global-lookup
-benchmark: hardwiring the truth table yields
-$O(2^n+tn^3)=O(2^n)$ throughout every fixed exponential range below one
-\cite[Main theorem]{HolmgrenRothblum2024}; we compare the bounds in detail
-below.
+Coding supplies alternative ways to answer each request.  We replace the
+restrictions $f_a$ by a larger bank of shorter functions, called
+\emph{resources}.  Each desired value can be recovered from many different
+sets of resources.  A scheduler chooses one set for each request so that no
+resource is needed twice.  Each resource circuit can then receive the one
+suffix assigned to it, and all requested answers can be reconstructed.
 
-We instead turn the truth table into shorter resource functions and recover a
-requested value from a selectable local set of them.  The quantity that has to
-be controlled is \emph{simultaneous demand}: how many different suffixes ask
-for the same resource?  Globally disjoint recovery sets reduce this demand to
-one.  An alternative explicit construction uses disjointness within groups
-and recursion across groups.  Both Paul's construction and ours
-use sorting, but for different jobs.  Paul sorts input addresses before a
-global table scan; we sort scheduling and routing records after choosing the
-local recovery sets.
-
-Here is the construction in the order in which a requested value passes
-through it.
+The construction has four components.
 \begin{enumerate}[label=\textbf{\arabic*.},leftmargin=2.2em]
 \item \textbf{Pack restrictions.}
-Split each input as $x=(a,z)$.  For every fixed suffix $z$, pack the values
-$f(a,z)$ over all prefixes $a$ into the information symbols of an evaluation
-code over $\F_q$.  A product code suffices for the order-of-growth bound;
-lifted codes improve the leading coefficient.
+For every fixed suffix $z$, encode the values $f(a,z)$ over all prefixes $a$
+in a code over $\F_q$.  As $z$ varies, each bit of each code coordinate
+defines a resource function on $d$ variables.
 
 \item \textbf{Recover locally.}
-A requested information symbol can be reconstructed from the $q-1$ non-target
-points on any affine line through it.  About $q^{\ell-1}$ directions are
-available, so every request has many alternative recovery sets.
+The code coordinates are points in $\F_q^\ell$.  A requested symbol is the
+sum of the $q-1$ other symbols on any line through its information point.
+About $q^{\ell-1}$ directions are available, giving many recovery options.
 
 \item \textbf{Schedule disjoint recovery.}
-In each phase, test a fixed menu of candidate directions, accept half the
-remaining requests whose lines meet no occupied point or other candidate line,
-and compact the rest.  The menu works for every possible phase state.  Testing
-its candidates together costs $\widetilde O_\ell(tq)$ per phase.
+Test a fixed menu of direction assignments and choose one that serves at
+least half the pending requests without collisions.  Reserve those recovery
+sets and repeat on the remaining requests.  The total gate cost is
+$\widetilde O_\ell(tq)$, including selection of a schedule for the live inputs.
 
-\item \textbf{Synthesize the resources.}
+\item \textbf{Evaluate the resources.}
 Each code coordinate is now queried on at most one suffix.  Apply ordinary
 one-copy synthesis to each resource function on $d=|z|$ variables, route its
 value to the requesting line, and decode.
 \end{enumerate}
 
-\Cref{sec:two-copy} first shows the disjoint-recovery idea in Uhlig's
-two-copy construction.  The local gadget is stated in
-\cref{prop:local-gadget}, and \cref{prop:scheduler-sensitive} accounts for
-its circuit cost.  The direct proof and the high-rate refinement are in
-\cref{sec:direct,sec:high-rate}.  The greedy scheduler and equal-block
-induction in \cref{sec:induction} provide a second proof without existential
-menus.  Additional gate-level details are in \cref{app:implementation}.
+The encoding in the first step defines the resource truth tables when the
+circuit is built.  It is not evaluated afresh on the input wires.  At
+evaluation time, the circuit selects recovery sets, routes suffixes, evaluates
+the fixed resource circuits, and decodes.  The menu is also fixed in advance,
+but the choice of an entry depends on the input prefixes.  Nonuniformity
+permits choosing a menu that works for all inputs; it does not permit
+hardwiring a single input's schedule.
 
-\subsection{Why nonuniform menus remove recursion}
+\subsection{Where the leading coefficient comes from}
 
-The greedy scheduler examines all previously occupied points for every new
-request, giving a quadratic cost in the batch size.  The new scheduler instead
-needs only a constant fraction of its current requests to succeed at once.
-Under fixed geometric slack, the probability that fewer than half of $k$
-independent candidate lines are usable is at most $2^{-k}$.  There are only
-$2^{O_\ell(t\log q)}$ relevant states, because the occupied set is described by
-at most $t$ lines.  A menu of $O_\ell(t\log q/k)$ candidates therefore covers
-every state.  It contains only $O_\ell(t\log q)$ candidate lines, even when
-$k$ is small.  A joint sorting circuit checks those lines against one copy of
-the occupied set.  Repeating for $O(\log(t+2))$ phases gives the claimed cost.
+The main cost is the product of the number of resource functions and the cost
+of synthesizing one of them.  A code whose rate tends to one, together with
+packing that leaves only a vanishing fraction of its capacity unused, gives
+\[
+  \underbrace{(1+o(1))2^p}_{\text{Boolean resources}}
+  \;\cdot\;
+  \underbrace{(1+o(1))\frac{2^d}{d}}_{\text{gates per resource}}
+  =(1+o(1))\frac{2^n}{d}.
+\]
+Leaving more suffix bits makes this product smaller, but leaves fewer prefix
+bits to provide distinct recovery options.  The scheduler can accommodate
+$t\le2^{\gamma n}$ while leaving $d=\delta n+O(1)$ suffix bits for any fixed
+$0<\delta<1-\gamma$, by taking the geometric dimension $\ell$ sufficiently
+large and then fixed.  Its scheduling and routing costs are exponentially
+smaller than $2^n/n$.  The displayed product therefore gives the coefficient
+$1/\delta$.  Choosing $\delta$ close enough to $1-\gamma$ gives
+$1/(1-\gamma)+\varepsilon$ for any fixed $\varepsilon>0$.
+For example, the bound for $t\le2^{n/2}$ has coefficient $2+o(1)$.
 
-Consequently, we can leave $d=\delta n+O(1)$ suffix bits for any fixed
-$0<\delta<1-\gamma$.  High-rate codes make the number of Boolean resources
-$(1+o(1))2^{n-d}$, and one-copy synthesis costs $(1+o(1))2^d/d$ per resource.
-Their product explains the coefficient $1/\delta$; letting $\delta$ approach
-$1-\gamma$ proves \cref{thm:coefficient}.
+\paragraph{Two proof routes.}
+The direct proof uses the menu scheduler to ensure that every resource is
+evaluated only once.  An explicit greedy scheduler is simpler to construct
+but has quadratic dependence on the batch size.  To control that cost, the
+second proof schedules smaller groups separately and recursively handles the
+resulting reuse of resources.  Both routes prove \cref{thm:main}; the direct
+route also gives \cref{thm:coefficient}.
+
+For a first reading, start with the two-copy example in \cref{sec:two-copy},
+then use the local-gadget statement (\cref{prop:local-gadget}), the menu
+scheduler (\cref{thm:linear-scheduler}), and the scheduler-sensitive
+composition bound (\cref{prop:scheduler-sensitive}) to reach the direct proof
+in \cref{sec:direct}.  \Cref{sec:high-rate} improves its coefficient.
+\Cref{sec:formal-accounting} explains the exact finite accounting, and
+\cref{sec:induction} contains the alternative recursive proof.  Gate-level
+details are collected in \cref{app:implementation}.
 
 \subsection{Relation to earlier work}
 
-The closest asymptotic guarantees and the main coding antecedent are summarized
-below.  Here ``one-copy leading term'' means the basis-dependent
-Shannon--Lupanov worst-case asymptotic.
+Uhlig preserves the one-copy leading term for
+$\log t=o(n/\log n)$ \cite{Uhlig1992,Wegener1987}.  Global truth-table lookup
+also handles exponentially many requests: Paul's bound is $O(n2^n)$ in our
+range \cite{Paul1976}, while hardwiring the database in Holmgren and
+Rothblum's multiselection theorem gives $O(2^n)$
+\cite{HolmgrenRothblum2024}.  Our bound attains the smaller worst-case
+one-copy order $O_\gamma(2^n/n)$ for every fixed exponential rate below one.
 
-\begin{center}
-\small
-\begin{tabularx}{\linewidth}{@{}
-  >{\raggedright\arraybackslash}p{0.14\linewidth}
-  >{\raggedright\arraybackslash}p{0.20\linewidth}
-  >{\raggedright\arraybackslash}p{0.27\linewidth}
-  >{\raggedright\arraybackslash}X@{}}
-\toprule
-Result & Copy range & Circuit-size bound & Comparison \\
-\midrule
-Uhlig \cite{Uhlig1992,Wegener1987,Kretschmer2023}
-  & $\log t=o(n/\log n)$
-  & one-copy leading term
-  & optimal order and leading constant in a smaller copy range \\
-Paul, Lemma~2 \cite{Paul1976}
-  & arbitrary $t$
-  & $O(\max\{n2^n,nt\log^2t\})$
-  & $O(n2^n)$ throughout every fixed exponential range below one \\
-Holmgren--Rothblum \cite{HolmgrenRothblum2024}
-  & arbitrary $t$
-  & $O(2^n+tn^3)$ after hardwiring
-  & $O(2^n)$ throughout every fixed exponential range below one \\
-Albrecht, Theorem~1 \cite{Albrecht1989}
-  & $t\le2^n$
-  & $O(2^n n^2)$
-  & the full exponential range, with polynomial overhead \\
-Finite-geometry batch codes \cite{IKOS2004,PolyanskiiVorobyev2019}
-  & code-dependent batch size
-  & disjoint local recovery; no bound on $\C(f^{\times t})$
-  & coding antecedents for affine-geometric recovery \\
-This paper
-  & $t\le2^{\gamma n}$ for fixed $\gamma<1$
-  & $O_\gamma(2^n/n)$
-  & optimal order; limiting coefficient at most $1/(1-\gamma)$ \\
-\bottomrule
-\end{tabularx}
-\end{center}
-
-For fixed $\gamma<1$ and $t\le2^{\gamma n}$, Paul's second term is
-$o(n2^n)$, so his displayed bound is $O(n2^n)$.  The theorem proved here
-improves that bound by a factor of $n^2$ at the level of polynomial
-prefactors.  Paul's $g^k$ is the same $k$-fold product task considered here;
-his circuits permit arbitrary binary Boolean gates, which changes our fixed
-basis cost by at most a constant factor.
-
-Holmgren and Rothblum prove that $Q$ indexed bits can be selected from a live
-$N$-bit database by a bounded-fan-in Boolean circuit of size
-$O(N+Q\log^3N)$ and depth $O(\log(N+Q))$
-\cite[Main theorem]{HolmgrenRothblum2024}.  In our nonuniform model, hardwiring
-the database to the $2^n$-bit truth table of $f$ and using the $t$ live
-$n$-bit input blocks as indices gives $O(2^n+tn^3)$, as recorded in the table.
-Hence the upper bound in \cref{thm:main} improves the bound obtained by this
-generic multiselection reduction by a factor of $n$ throughout every fixed
-exponential range below one.  Their result does not choose disjoint affine
-recovery sets, provide the sparse-to-dense scatter, or establish the
-bounded-congestion recursion.
-
-Albrecht studies the same simultaneous-realization problem over a complete
-binary basis \cite[Theorem~1, pp.~53--54]{Albrecht1989}.  His construction handles every
-$t\le2^n$ with size $O(2^n n^2)$ and depth $O(n\log n)$.  Since the one-copy
-Shannon size is $\Theta(2^n/n)$, this is an $O(n^3)$ multiplicative overhead,
-as Albrecht also notes.  Thus his theorem covers the endpoint copy range but
-does not give a constant-factor plateau at the one-copy scale.
-
-Hiltgen and Paterson use ``mass production'' for $\mathrm{PI}_k$-set circuits
-underlying monotone slice functions \cite{HiltgenPaterson1995}.  Their result
-gives sharing in that restricted set-circuit setting and leads to an optimal
-circuit for the Ne\v{c}iporuk slice; it does not give a universal bound for
-$f^{\times t}$ in the unrestricted De Morgan circuit model considered here.
-
-The coding interpretation begins with Uhlig's two-copy construction, which is
-the length-$(2^p+1)$ single-parity-check code viewed as a two-request disjoint
-recovery code.  Systematic multivariate polynomial evaluation, recovery on
-affine lines, and disjoint recovery sets are established batch-code tools,
-especially in Section~3.4 of Ishai--Kushilevitz--Ostrovsky--Sahai
-\cite{IKOS2004}.  Their construction chooses random affine lines and deletes
-intersections while preserving enough points for interpolation.  Their
-Remark~3.11 also observes that the randomized decoding algorithms in that and
-the following sections can be derandomized using limited independence.
-In their terminology, the repeated-request analogue relevant here is a
-primitive multiset batch code.  Our local gadget uses the elementary
-tensor-product evaluation subspace, with a separate degree bound in each
-variable, whereas their construction uses total-degree Reed--Muller evaluation.
-
-That derandomization does not by itself give the circuit bound proved here.
-The requested prefixes are input wires of the mass-production circuit, so a
-schedule valid for one fixed request multiset cannot be chosen once and
-hardwired: the circuit must map every possible multiset of target addresses to
-valid recovery records, and all gates performing that map count toward
-$\C(f^{\times t})$.  A generic polynomial-time or polynomial-size batch decoder
-would give only an unspecified polynomial bound in the exponentially large code
-length and batch size.  Such a bound need not fit below $O(2^n/n)$ and therefore
-cannot justify our conclusion without finer analysis.  The results cited above
-do not state the required fine-grained Boolean-circuit bound on this
-target-to-record map.
-
-The quantitative distinction is explicit in our scheduler-sensitive
-composition theorem, \cref{prop:scheduler-sensitive}.  For a
-group of $g$ requests, the explicit greedy scheduler has size
-$\widetilde O_\ell(g^2q)$.  Dividing $t$ requests among $C$ groups changes the
-total scheduling cost to
-$\widetilde O_\ell(t^2q/C+Cq)$ and limits every resource to $C$ suffixes.
-The bounded-congestion composition then pays for those suffixes recursively.
-This cost drives the equal-block induction.  The nonuniform scheduler of
-\cref{thm:linear-scheduler} improves it to $\widetilde O_\ell(gq)$ under a
-constant-factor strengthening of the geometric slack condition.  It permits
-$C=1$ throughout every fixed exponential range and yields a direct proof.
-
-Finite-geometry constructions of primitive batch codes likewise give explicit
-families of mutually disjoint recovery sets \cite{PolyanskiiVorobyev2019}.
-Later lifted-polynomial constructions also use line-based recovery to obtain
-batch-code guarantees \cite{HolzbaurEtAl2020}.  Private-information-retrieval
-codes of Fazeli, Vardy, and Yaakobi form a related family in which each
-information symbol has many disjoint recovery options
-\cite{FazeliVardyYaakobi2015}.  These are coding guarantees, not gate-counted
-circuits for the input-dependent schedule.  The self-contained proof of
-\cref{thm:main} uses only the elementary product-code and affine-line facts
-proved below.
-
-We claim no novelty for evaluation coding, lifted high-rate codes, affine-line
-recovery, disjoint recovery as a combinatorial ingredient, or generic sorting
-and multiselection primitives.  The contribution is the gate-counted
-composition yielding exponential-range mass production, together with the
-nonuniform menu scheduler and the leading-coefficient refinement.  The menu
-argument counts every possible occupied-line state, and its implementation
-shares the occupied-point list across candidates.  These two steps give the
-fine-grained bound needed by the direct proof.  Efficient uniform construction
-of such menus remains open here.
+Evaluation codes, affine-line recovery, and disjoint recovery sets are
+established batch-code tools \cite{IKOS2004,PolyanskiiVorobyev2019}; high-rate
+lifted codes are also prior work \cite{GuoKoppartySudan2013,HolzbaurEtAl2020}.
+The contribution here is the gate-counted schedule selection and composition
+that turn these ingredients into the stated circuit bound.  In particular,
+a schedule must be selected from live input addresses, and a generic
+polynomial-size decoder need not be small enough.  \Cref{sec:related} gives
+the detailed comparison and attribution.
 
 \paragraph{Machine-checked companion.}
 An accompanying Lean~4 development formally verifies both upper-bound
@@ -455,6 +345,24 @@ All circuits below are nonuniform.  Field representations, irreducible
 polynomials, sorting networks, and other finite combinatorial objects may be
 fixed as part of the circuit for each input length.
 
+The main parameters have the following roles.  Code length and dimension are
+measured in field symbols; multiplying by $b$ converts either count to bits.
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+Parameter & Meaning \\
+\midrule
+$n=p+d$, $t$ & Input length, prefix/suffix split, and number of requests \\
+$q=2^b$, $\ell$ & Field size, bits per symbol, and fixed geometric dimension \\
+$N=q^\ell$, $K$ & Code length and dimension; $K/N$ is the code rate \\
+$D_q=(q^\ell-1)/(q-1)$ & Number of line directions through each target \\
+$C$, $g=\lceil t/C\rceil$ & Number of request groups and maximum group size;
+the direct proof takes $C=1$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
 We use $\widetilde O_\ell(X)$ for
 \[
   X\cdot\poly_\ell(n,\log q,\log(t+2),\log(C+2)).
@@ -501,10 +409,22 @@ Every restriction has two representations:
   f_i=\bigxor_{j=0}^{i}g_j
   =\bigxor_{j=i+1}^{M}g_j.
 \]
-Given requests $i\le j$, recover $f_i$ from the prefix set
-$\{0,\ldots,i\}$ and $f_j$ from the suffix set
+Given two inputs $(i,z^{(1)})$ and $(j,z^{(2)})$ with $i\le j$, recover
+$f_i(z^{(1)})$ from the prefix set
+$\{0,\ldots,i\}$ and $f_j(z^{(2)})$ from the suffix set
 $\{j+1,\ldots,M\}$.  The sets are disjoint, so each resource function $g_j$
 is evaluated on at most one suffix.
+
+For example, take $p=2$, so there are four restrictions and five resources.
+The requests with prefixes $1$ and $2$ can be answered as
+\[
+  f_1(z^{(1)})=g_0(z^{(1)})\xor g_1(z^{(1)}),
+  \qquad
+  f_2(z^{(2)})=g_3(z^{(2)})\xor g_4(z^{(2)}).
+\]
+Resources $g_0,g_1$ receive $z^{(1)}$, resources $g_3,g_4$ receive $z^{(2)}$,
+and $g_2$ is unused.  The suffixes can be completely unrelated.  Even if the
+two prefixes coincide, the prefix and suffix recovery sets remain disjoint.
 
 For two requests arriving in the opposite order, a comparator first orders
 their prefixes, conditional swaps route the two suffixes to the prefix and
@@ -517,20 +437,21 @@ code.  The two representations above are disjoint recovery sets for each
 information coordinate.  This suggests replacing the one-dimensional
 telescoping code by a constant-rate code with many geometric recovery sets.
 
-The full construction keeps two features of this example.  The resource
-functions may be arbitrary; the proof uses only their incidence with the
-recovery sets.  Moreover, recovery sets need be disjoint only for requests
-served in the same group.  We next replace the chain by a geometry with many
-recovery sets, then allow bounded reuse across groups.
+The full construction keeps the same principle: synthesize arbitrary shorter
+resource functions, then control how often each must be evaluated.  The chain
+offers only two recovery choices per restriction.  We next replace it by a
+geometry with many choices, enough to serve exponentially many requests.
+The direct proof makes all their recovery sets disjoint; the recursive
+alternative allows bounded reuse across groups.
 
 \section{The local-recovery gadget}\label{sec:code}
 
-Fix a suffix $z$.  We encode the $2^p$ values $f(a,z)$, as $a$ varies, into
-one evaluation-codeword.  If instead we fix a code coordinate $y$ and vary
-$z$, that coordinate becomes a shorter function $G_y(z)$.  Local recovery
-moves across a codeword; recursion evaluates these coordinate functions down
-the suffix direction.  \Cref{prop:local-gadget} records exactly what the rest
-of the proof needs from this construction.
+We need a code with three features: it stores the $2^p$ prefix values using
+only $O(2^p)$ bits, it offers many recovery sets for every value, and the
+circuit can compute the addresses in those sets cheaply.  The following
+product code supplies all three.  \Cref{prop:local-gadget} is the interface
+used by the rest of the proof; the polynomial construction establishes that
+interface.
 
 Fix an integer $\ell\ge2$ and a field $\F_q$ of characteristic two, where
 $q=2^b$.  Set
@@ -561,13 +482,10 @@ The evaluation map
   \longmapsto
   \bigl(P(y)\bigr)_{y\in\F_q^\ell},
 \]
-is a systematic linear code of length
+is a systematic linear code: the original information symbols appear
+unchanged at the coordinates in $A^\ell$.  Its length and dimension are
 \[
-  N=q^\ell
-\]
-and dimension
-\[
-  K=s_0^\ell=\Theta_\ell(q^\ell).
+  N=q^\ell,\qquad K=s_0^\ell=\Theta_\ell(q^\ell).
 \]
 
 \subsection{Packing Boolean restrictions}\label{subsec:packing}
@@ -633,11 +551,21 @@ For $r\in[b]_0$, write
   H_{y,r}(z)=\bigl(G_y(z)\bigr)_r.
 \]
 
-It is useful to picture the values $P_z(y)$ as a rectangular array.  A row,
-with $z$ fixed and $y$ varying, is a codeword that contains all requested
-prefix values.  A column, with $y$ fixed and $z$ varying, is the resource
-function $G_y$ on $d$ variables.  The line decoder reads selected entries from
-one row, while the recursive circuit evaluates the required columns.
+These definitions view the same array in two ways:
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Held fixed & What varies & What the values describe \\
+\midrule
+Suffix $z$ & Code coordinate $y$ & One codeword $P_z$ \\
+Code coordinate $y$ & Suffix $z$ & One resource function $G_y$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The decoder combines coordinates of a codeword.  The resource circuit
+evaluates one column of this array at the suffix routed to it.  No encoding
+circuit or full array is evaluated on the live inputs: the array specifies
+which shorter functions are synthesized.
 
 \subsection{Affine-line recovery}
 
@@ -729,6 +657,13 @@ then routes only the coordinates actually selected.
 
 \section{Deterministic scheduling and routing}\label{sec:scheduling}
 
+The scheduler sees target coordinates and chooses recovery sets; it does not
+evaluate any resource function.  We first give a greedy implementation as a
+baseline, then replace its quadratic scan by fixed menus.  Routing finally
+connects the chosen coordinates to the resource circuits.  The direct proof
+uses one group containing all requests; grouping is needed only for the
+recursive alternative.
+
 \subsection{Disjoint scheduling inside one group}
 
 The geometric count says that a suitable line exists, but a circuit must find
@@ -788,6 +723,14 @@ every possible phase state, then give a circuit that tests the menu.  The
 existence proof uses randomness only to choose constants of the circuit; its
 evaluation is deterministic on every input.
 
+There are three steps.  First, one random direction assignment succeeds with
+very high probability for any fixed state.  Second, a union bound supplies a
+short menu that contains a successful assignment for every state.  Third, a
+sorting circuit finds such an assignment without multiplying the occupied-set
+cost by the menu length.  Here $g$ is the original group size, $k$ is the
+number of pending requests, and $U$ contains the points reserved earlier.
+A menu entry is a tuple of $k$ directions, one for each pending request.
+
 \begin{lemma}[A partial schedule with exponentially small failure]
 \label{lem:partial-schedule}
 Put $N=q^\ell$.  Suppose $512gq\le D_q$, let $1\le k\le g$, and let $U$ be
@@ -807,6 +750,10 @@ $B$ with probability at most $|B|/D_q$: each point other than the target
 blocks exactly one direction.  Consequently, the probability of
 meeting $U$ is at most $a_0=g(q-1)/D_q$, and that of meeting another fixed
 candidate recovery set is at most $a_1=(q-1)/D_q$.
+
+Pairwise collision events are dependent, so we cannot multiply these bounds
+directly.  Instead, we extract a set of bad requests whose collision witnesses
+all lie outside that set, and condition on the outside directions.
 
 Form a graph on $\{0,1,\ldots,k\}$.  Join a request to vertex $0$ when its
 recovery set meets $U$, and join two requests when their recovery sets meet.
@@ -855,6 +802,8 @@ number of states is at most
 \[
   (1+ND_q)^gN^k\le2^{g(1+3\log_2N)}.
 \]
+Counting line descriptions is essential: treating $U$ as an arbitrary list
+of $g(q-1)$ points would introduce an extra factor of $q$ in this exponent.
 Choose $r_k$ candidate tuples independently.  For a fixed state, the
 probability that every tuple fails is at most $2^{-kr_k}$ by
 \cref{lem:partial-schedule}.  A union bound over states is strictly below
@@ -954,6 +903,13 @@ supply the capacity across groups.
 
 \subsection{Scatter and gather}
 
+The scheduler produces a sparse list of resource addresses, whereas the
+resource circuits occupy fixed positions in the circuit.  \emph{Scatter}
+sends each requested suffix to its resource position; \emph{gather} returns
+the resulting value to the request that needs it.  Sorting implements both
+maps with cost proportional, up to polynomial factors, to the lists being
+connected.
+
 Every non-target point of a selected line produces an incidence record
 containing a request identifier, a group, a line position, the point's code
 coordinate $y$, and the suffix to be evaluated.  There are exactly
@@ -1035,6 +991,12 @@ incidences and one dummy record per resource slot are routed.
 
 \section{The composition bound}\label{sec:master}
 
+We now assemble the circuit.  Its size has three parts: the bank of shorter
+resource circuits, the scheduler that chooses their inputs, and the routing
+and decoding around them.  The number $C$ of groups determines how many
+inputs each resource must handle.  Setting $C=1$ gives the direct proof;
+larger $C$ leads to recursion.
+
 \paragraph{Bounded-demand invariant.}
 Fix $f$ and the local-recovery gadget above.  Each $H_{y,r}$ is one fixed
 Boolean function on $d$ variables.  Inside each request group, disjoint
@@ -1059,9 +1021,10 @@ sets.  Then
 every $f:\bits^n\to\bits$ satisfies
 \begin{equation}\label{eq:scheduler-sensitive}
 \C(f^{\times t})
-\le q^\ell b\,L_C(d)
-   +C S(g,q)
-   +\widetilde O_\ell\!\left(tq+Cq^\ell\right).
+\le \underbrace{q^\ell b\,L_C(d)}_{\text{resource circuits}}
+   +\underbrace{C S(g,q)}_{\text{schedule selection}}
+   +\underbrace{\widetilde O_\ell\!\left(tq+Cq^\ell\right)}_{
+     \text{routing and decoding}}.
 \end{equation}
 \end{proposition}
 
@@ -1122,6 +1085,13 @@ $Cq$ is absorbed by $Cq^\ell$ because $q\ge2$ and $\ell\ge2$.
 
 \section{A direct proof without recursion}\label{sec:direct}
 
+The parameter choice balances storage against recovery capacity.  Keeping
+$d\approx\delta n$ suffix bits leaves about $2^{(1-\delta)n}$ encoded
+prefix bits.  Since a recovery set occupies about $q$ points while a target
+has about $q^{\ell-1}$ directions, the scheduler needs $t$ to be smaller
+than a constant multiple of $q^{\ell-2}$.  The inequality below expresses
+exactly this requirement at the level of exponential rates.
+
 \begin{proof}[Direct proof of \cref{thm:main}]
 Fix $\gamma<1$, choose any fixed $0<\delta<1-\gamma$, and put
 $d=\lceil\delta n\rceil$ and $p=n-d$.  Choose a fixed $\ell\ge2$ large
@@ -1151,14 +1121,19 @@ cover the finitely many initial lengths by ordinary circuit replication.
 
 \section{High-rate codes and the leading coefficient}\label{sec:high-rate}
 
-The product code's rate approaches $\ell^{-\ell}$ for fixed $\ell$, and
-rounding the field size to a power of two introduces another constant packing
-loss.  Neither loss is necessary.  Lifted Reed--Solomon codes already provide
-rate tending to one with the same line-parity recovery
+The preceding proof has two constant losses.  First, the product code's rate
+approaches $\ell^{-\ell}$: it stores substantially more symbols than the
+information it carries.  Second, rounding up to the next allowed field size
+can leave a constant fraction of the information positions unused.
+We remove the first loss with a code of rate tending to one and the second
+with several smaller codewords, so that only the last one needs padding.
+The scheduler and decoder continue to use the same line-recovery interface.
+
+Lifted Reed--Solomon codes already provide
+rate tending to one with line-parity recovery
 \cite{GuoKoppartySudan2013,HolzbaurEtAl2020}.  We give an elementary sufficient
-monomial construction and eliminate the packing loss by using several copies
-of a slightly smaller code.  These are known coding ingredients; the point
-here is their circuit-cost accounting.
+monomial construction below, followed by the packing and circuit-cost
+accounting.
 
 \begin{lemma}[High-rate line-parity code]\label{lem:high-rate-code}
 For integers $\ell\ge2$ and $h\ge\lceil\log_2\ell\rceil$, put $q=2^b$ and
@@ -1177,6 +1152,11 @@ systematic on a fixed set of $K$ evaluation points.
 \end{lemma}
 
 \begin{proof}
+The low-degree condition in \cref{lem:line} was sufficient for line parity,
+but stronger than necessary.  For the sum over $\F_q$ to vanish, it is enough
+that every positive degree appearing on a line avoid multiples of $q-1$.
+We enforce this weaker condition using a common block of zero binary digits.
+
 Consider reduced monomials $X_1^{e_1}\cdots X_\ell^{e_\ell}$ with
 $0\le e_i<2^b$.  Partition the first $h\lfloor b/h\rfloor$ binary digit
 positions into disjoint blocks of length $h$.  Retain a monomial if some block
@@ -1276,6 +1256,9 @@ bounds; it makes no assertion uniform in growing $\ell$ or in $\gamma\to1$.
 The formalization makes several invariants in the preceding argument
 explicit.  They explain how the complete circuit preserves the leading
 coefficient, including at input lengths that do not fit a field block.
+This subsection is independent of the direct asymptotic proof above: it
+provides a finite accounting version for readers comparing the paper with
+the Lean theorem.
 
 \paragraph{Request identity and inactive slots.}
 Each request carries a distinct fixed identifier, even when its target and
@@ -1535,6 +1518,144 @@ $\C(f^{\times t})\le t\C(f)$ and enlarge $A_\gamma$ to dominate
 $nt\C(f)/2^n$ over all relevant $n$, $f$, and $t$.  This proves the statement
 for every $n\ge1$.
 \end{proof}
+
+\section{Relation to earlier work}\label{sec:related}
+
+The closest asymptotic guarantees and the main coding antecedent are summarized
+below.  Here ``one-copy leading term'' means the basis-dependent
+Shannon--Lupanov worst-case asymptotic.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}
+  >{\raggedright\arraybackslash}p{0.14\linewidth}
+  >{\raggedright\arraybackslash}p{0.20\linewidth}
+  >{\raggedright\arraybackslash}p{0.27\linewidth}
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+Result & Copy range & Circuit-size bound & Comparison \\
+\midrule
+Uhlig \cite{Uhlig1992,Wegener1987,Kretschmer2023}
+  & $\log t=o(n/\log n)$
+  & one-copy leading term
+  & optimal order and leading constant in a smaller copy range \\
+Paul, Lemma~2 \cite{Paul1976}
+  & arbitrary $t$
+  & $O(\max\{n2^n,nt\log^2t\})$
+  & $O(n2^n)$ throughout every fixed exponential range below one \\
+Holmgren--Rothblum \cite{HolmgrenRothblum2024}
+  & arbitrary $t$
+  & $O(2^n+tn^3)$ after hardwiring
+  & $O(2^n)$ throughout every fixed exponential range below one \\
+Albrecht, Theorem~1 \cite{Albrecht1989}
+  & $t\le2^n$
+  & $O(2^n n^2)$
+  & the full exponential range, with polynomial overhead \\
+Finite-geometry batch codes \cite{IKOS2004,PolyanskiiVorobyev2019}
+  & code-dependent batch size
+  & disjoint local recovery; no bound on $\C(f^{\times t})$
+  & coding antecedents for affine-geometric recovery \\
+This paper
+  & $t\le2^{\gamma n}$ for fixed $\gamma<1$
+  & $O_\gamma(2^n/n)$
+  & optimal order; limiting coefficient at most $1/(1-\gamma)$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Paul's construction treats the truth table as an ordered database: sort the
+input addresses, sweep through the hardwired table, and restore the answers
+to their original order.  Our circuit instead sorts the records needed to
+select and use local recovery sets.  For fixed $\gamma<1$ and
+$t\le2^{\gamma n}$, Paul's second term is
+$o(n2^n)$, so his displayed bound is $O(n2^n)$.  The theorem proved here
+improves that bound by a factor of $n^2$ at the level of polynomial
+prefactors.  Paul's $g^k$ is the same $k$-fold product task considered here;
+his circuits permit arbitrary binary Boolean gates, which changes our fixed
+basis cost by at most a constant factor.
+
+Holmgren and Rothblum prove that $Q$ indexed bits can be selected from a live
+$N$-bit database by a bounded-fan-in Boolean circuit of size
+$O(N+Q\log^3N)$ and depth $O(\log(N+Q))$
+\cite[Main theorem]{HolmgrenRothblum2024}.  In our nonuniform model, hardwiring
+the database to the $2^n$-bit truth table of $f$ and using the $t$ live
+$n$-bit input blocks as indices gives $O(2^n+tn^3)$, as recorded in the table.
+Hence the upper bound in \cref{thm:main} improves the bound obtained by this
+generic multiselection reduction by a factor of $n$ throughout every fixed
+exponential range below one.  Their result does not choose disjoint affine
+recovery sets, provide the sparse-to-dense scatter, or establish the
+bounded-congestion recursion.
+
+Albrecht studies the same simultaneous-realization problem over a complete
+binary basis \cite[Theorem~1, pp.~53--54]{Albrecht1989}.  His construction handles every
+$t\le2^n$ with size $O(2^n n^2)$ and depth $O(n\log n)$.  Since the one-copy
+Shannon size is $\Theta(2^n/n)$, this is an $O(n^3)$ multiplicative overhead,
+as Albrecht also notes.  Thus his theorem covers the endpoint copy range but
+does not give a constant-factor plateau at the one-copy scale.
+
+Hiltgen and Paterson use ``mass production'' for $\mathrm{PI}_k$-set circuits
+underlying monotone slice functions \cite{HiltgenPaterson1995}.  Their result
+gives sharing in that restricted set-circuit setting and leads to an optimal
+circuit for the Ne\v{c}iporuk slice; it does not give a universal bound for
+$f^{\times t}$ in the unrestricted De Morgan circuit model considered here.
+
+The coding interpretation begins with Uhlig's two-copy construction, which is
+the length-$(2^p+1)$ single-parity-check code viewed as a two-request disjoint
+recovery code.  Systematic multivariate polynomial evaluation, recovery on
+affine lines, and disjoint recovery sets are established batch-code tools,
+especially in Section~3.4 of Ishai--Kushilevitz--Ostrovsky--Sahai
+\cite{IKOS2004}.  Their construction chooses random affine lines and deletes
+intersections while preserving enough points for interpolation.  Their
+Remark~3.11 also observes that the randomized decoding algorithms in that and
+the following sections can be derandomized using limited independence.
+In their terminology, the repeated-request analogue relevant here is a
+primitive multiset batch code.  Our local gadget uses the elementary
+tensor-product evaluation subspace, with a separate degree bound in each
+variable, whereas their construction uses total-degree Reed--Muller evaluation.
+
+That derandomization does not by itself give the circuit bound proved here.
+The requested prefixes are input wires of the mass-production circuit, so a
+schedule valid for one fixed request multiset cannot be chosen once and
+hardwired: the circuit must map every possible multiset of target addresses to
+valid recovery records, and all gates performing that map count toward
+$\C(f^{\times t})$.  A generic polynomial-time or polynomial-size batch decoder
+would give only an unspecified polynomial bound in the exponentially large code
+length and batch size.  Such a bound need not fit below $O(2^n/n)$ and therefore
+cannot justify our conclusion without finer analysis.  The results cited above
+do not state the required fine-grained Boolean-circuit bound on this
+target-to-record map.
+
+The quantitative distinction is explicit in our scheduler-sensitive
+composition theorem, \cref{prop:scheduler-sensitive}.  For a
+group of $g$ requests, the explicit greedy scheduler has size
+$\widetilde O_\ell(g^2q)$.  Dividing $t$ requests among $C$ groups changes the
+total scheduling cost to
+$\widetilde O_\ell(t^2q/C+Cq)$ and limits every resource to $C$ suffixes.
+The bounded-congestion composition then pays for those suffixes recursively.
+This cost drives the equal-block induction.  The nonuniform scheduler of
+\cref{thm:linear-scheduler} improves it to $\widetilde O_\ell(gq)$ under a
+constant-factor strengthening of the geometric slack condition.  It permits
+$C=1$ throughout every fixed exponential range and yields a direct proof.
+
+Finite-geometry constructions of primitive batch codes likewise give explicit
+families of mutually disjoint recovery sets \cite{PolyanskiiVorobyev2019}.
+Later lifted-polynomial constructions also use line-based recovery to obtain
+batch-code guarantees \cite{HolzbaurEtAl2020}.  Private-information-retrieval
+codes of Fazeli, Vardy, and Yaakobi form a related family in which each
+information symbol has many disjoint recovery options
+\cite{FazeliVardyYaakobi2015}.  These are coding guarantees, not gate-counted
+circuits for the input-dependent schedule.  The self-contained proof of
+\cref{thm:main} uses only the elementary product-code and affine-line facts
+proved in \cref{sec:code}.
+
+We claim no novelty for evaluation coding, lifted high-rate codes, affine-line
+recovery, disjoint recovery as a combinatorial ingredient, or generic sorting
+and multiselection primitives.  The contribution is the gate-counted
+composition yielding exponential-range mass production, together with the
+nonuniform menu scheduler and the leading-coefficient refinement.  The menu
+argument counts every possible occupied-line state, and its implementation
+shares the occupied-point list across candidates.  These two steps give the
+fine-grained bound needed by the direct proof.
 
 \section{Implications and open problems}\label{sec:discussion}
 

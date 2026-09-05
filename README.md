@@ -25,6 +25,12 @@ An efficient uniform algorithm to construct those general menus remains open
 here. Both upper-bound variants are now formally proved in the pinned Lean
 companion.
 
+For a first reading, the introduction explains the sharing obstacle and the
+coefficient calculation, and Section 3 works through two independent requests.
+The notation and codeword/resource tables support the direct proof in
+Sections 4-8. Section 8.1 gives exact formal accounting; Section 9 supplies
+the recursive alternative. Detailed literature comparisons are in Section 10.
+
 ## Machine-checked companion
 
 An accompanying [Lean 4 formalization at revision `8dd82c9`](https://github.com/SamuelSchlesinger/algebraic-circuits/tree/8dd82c96f44dbeeaca31f4cc96c687c6d87d1489)
