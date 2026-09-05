@@ -189,6 +189,12 @@ sets of resources.  A scheduler chooses one set for each request so that no
 resource is needed twice.  Each resource circuit can then receive the one
 suffix assigned to it, and all requested answers can be reconstructed.
 
+Uhlig serves two requests using opposite ends of an XOR chain, then scales
+through recursion \cite{Uhlig1992,Wegener1987}.  We replace that chain with a
+code offering many recovery choices, and schedule disjoint choices for an
+entire batch.  The key is making the scheduling cheap enough to preserve the
+savings.  \Cref{sec:two-copy} develops this comparison through a worked example.
+
 The construction has four components.
 \begin{enumerate}[label=\textbf{\arabic*.},leftmargin=2.2em]
 \item \textbf{Pack restrictions.}
@@ -298,6 +304,10 @@ the Lean~4.33.1/mathlib~4.33.1 module
 \texttt{Nonuniform.realSharpMassProduction} for the nonuniform proof.
 The full library and regression build, tests, and lint pass; both endpoints
 use only Lean's standard axioms, with no proof placeholders.
+A small executable Python model of the menu verifier and the high-rate
+subcode, with exhaustive checks on tiny parameters, accompanies the
+manuscript source at revision
+\href{https://github.com/SamuelSchlesinger/boolean-mass-production/tree/1c880d92420ea2709451826074a48945caf9fa67/scripts}{\texttt{1c880d9}}.
 \fi
 
 \paragraph{Development methodology.}
@@ -1667,13 +1677,7 @@ one with the input length.
 \paragraph{Can the menus be constructed efficiently?}
 \Cref{lem:universal-menus} proves that short menus exist simultaneously for
 all inputs.  Exhaustive search is a finite construction, but no efficient
-uniform procedure for finding such menus is supplied.  The implementation in
-\texttt{scripts/linear\_scheduler.py} evaluates fixed menus by record sorting
-networks; it includes an explicit universal two-request fixture.
-\texttt{scripts/check\_improvements.py} checks that fixture exhaustively,
-compares candidate verification against direct set intersections, and checks
-the forest witness and coded recovery on small instances.  These finite checks
-support the written arguments, not an asymptotic uniform-construction claim.
+uniform procedure for finding such menus is supplied.
 
 \paragraph{What is the optimal leading coefficient?}
 The normalized worst-case size has lower limiting coefficient at least $1$
