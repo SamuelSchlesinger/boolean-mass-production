@@ -104,11 +104,21 @@ checks; the larger sampled menus are not. The evaluator counts record-network
 comparators, not individual Boolean gates, and does not implement an efficient
 uniform constructor for the general existential menus.
 
-The pinned Lean companion covers the older explicit greedy/recursive proof.
-The new scheduler, high-rate refinement, and sharper lower-bound argument have
-not been added to Lean. The existing Lean build was not rerun for this paper
-revision. The original explicit proof is retained, and the manuscript, README,
-and submission metadata now make the formalization boundary explicit.
+The [pinned Lean companion at `8dd82c9`](https://github.com/SamuelSchlesinger/algebraic-circuits/tree/8dd82c96f44dbeeaca31f4cc96c687c6d87d1489)
+now formally proves both upper-bound variants. The original explicit endpoint
+is `BlockInduction.exponentialMassProduction`. The new endpoint,
+`Nonuniform.realSharpMassProduction`, includes the complete circuit pipeline,
+rate-one storage estimates, polynomial-overhead absorption, and the paper's
+real-rate and additive-error quantifiers. The intermediate rational endpoint
+is `Nonuniform.sharpExponentialMassProduction`.
+
+The full `lake build Algebraic AlgebraicTests --wfail`, `lake test`,
+`lake lint`, and whitespace checks pass at that revision. Axiom audits of
+both final endpoints report only `propext`, `Classical.choice`, and
+`Quot.sound`; there are no proof placeholders. The manuscript's counting
+lower-bound refinement remains a written argument outside these upper-bound
+formalizations. The circuit model now states explicitly that constant sources
+are free, matching the formal De Morgan cost.
 
 The revised 24-page PDF builds without warnings and passes
 `./build.sh --check`. Every page was rendered and visually inspected, with

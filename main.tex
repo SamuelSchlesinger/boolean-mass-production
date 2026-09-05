@@ -89,7 +89,8 @@ serves half the remaining requests, removing the need for recursive resource
 evaluation.  All gates for schedule selection and routing are counted.
 The menu construction is existential, not an efficient uniform algorithm.
 We also retain an explicit greedy scheduler and its recursive proof of the
-order-of-growth bound, which is the route covered by the Lean companion.
+order-of-growth bound.  The Lean companion formally verifies both upper-bound
+variants, including the sharper coefficient.
 \end{abstract}
 
 \section{Introduction}
@@ -127,8 +128,9 @@ preserve Uhlig's coefficient $1$ for positive fixed $\gamma$.
 \subsection{Main result}
 
 We fix the standard basis $\{\wedge,\vee,\neg\}$, with fan-in two for the
-binary gates.  Fan-out and output designations are free, and circuit size is
-the number of non-input gates.  Any other fixed finite complete basis changes
+binary gates.  Constant sources, fan-out, and output designations are free;
+circuit size counts the $\wedge$, $\vee$, and $\neg$ gates.
+Any other fixed finite complete basis changes
 the result by at most a constant-factor simulation.
 
 \begin{theorem}[Exponential-range mass production]\label{thm:main}
@@ -387,23 +389,25 @@ fine-grained bound needed by the direct proof.  Efficient uniform construction
 of such menus remains open here.
 
 \paragraph{Machine-checked companion.}
-An accompanying Lean~4 development formalizes the circuit model, local
-recovery, constructive scheduler and routing, composition bound, and
-equal-block induction.  It covers the explicit recursive alternative, and
-proves a rational, discrete-exponent form of
-\cref{thm:main}; the stated real-rate version follows by choosing a slightly
-larger rational exponent and absorbing finitely many initial input lengths.
-The new nonuniform menu scheduler, its direct proof, and
-\cref{thm:coefficient} are not part of this pinned formalization.
+An accompanying Lean~4 development formally verifies both upper-bound
+variants.  The explicit greedy scheduler, routing, composition bound, and
+equal-block induction prove a rational, discrete-exponent form of
+\cref{thm:main}.  The nonuniform development proves the universal menus,
+complete scheduler, high-rate code and packing, resource evaluation, and
+recovery in the original request order.  Its parameter estimates establish
+\cref{thm:coefficient}, including the stated real-rate and additive-error
+quantifiers.  Rational approximation and exponent rounding are machine checked.
 \ifanonymous
 The public repository URL is omitted during double-blind review.
 \else
 At revision
-\href{https://github.com/SamuelSchlesinger/algebraic-circuits/tree/b94cbedb988f5b4aa72be15de80879333c5e4725}{\texttt{b94cbed}},
+\href{https://github.com/SamuelSchlesinger/algebraic-circuits/tree/8dd82c96f44dbeeaca31f4cc96c687c6d87d1489}{\texttt{8dd82c9}},
 the Lean~4.33.1/mathlib~4.33.1 module
-\texttt{Algebraic.MassProduction} exposes the endpoint theorem
-\texttt{BlockInduction.exponentialMassProduction}; the checked build command
-is \texttt{lake build --wfail}.
+\texttt{Algebraic.MassProduction} exposes
+\texttt{BlockInduction.exponentialMassProduction} for the explicit proof and
+\texttt{Nonuniform.realSharpMassProduction} for the nonuniform proof.
+The full library and regression build, tests, and lint pass; both endpoints
+use only Lean's standard axioms, with no proof placeholders.
 \fi
 
 \paragraph{Development methodology.}
@@ -1616,7 +1620,8 @@ their role went beyond prose editing.  The author selected the directions to
 pursue, checked and revised the proofs and literature claims, and takes full
 responsibility for the correctness, originality, and integrity of the paper.
 The present revision also used Codex to develop and test the nonuniform menu
-scheduler and the high-rate-code refinement.
+scheduler and the high-rate-code refinement, and to complete their Lean
+formalization through the sharp real-rate theorem.
 
 \begin{thebibliography}{HPPV20}
 \small

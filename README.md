@@ -19,26 +19,35 @@ field-rounding losses.
 
 The scheduler's small fixed menus are proved to exist for every input batch.
 An efficient uniform algorithm to construct those general menus remains open
-here. The new proofs are written mathematical arguments, not additions to the
-pinned Lean formalization.
+here. Both upper-bound variants are now formally proved in the pinned Lean
+companion.
 
 ## Machine-checked companion
 
-An accompanying [Lean 4 formalization at revision `b94cbed`](https://github.com/SamuelSchlesinger/algebraic-circuits/tree/b94cbedb988f5b4aa72be15de80879333c5e4725)
-machine-checks the circuit model and the explicit greedy construction through
-the equal-block induction, retained as an alternative proof. It does not cover
-the new menu scheduler or leading-coefficient theorem.
+An accompanying [Lean 4 formalization at revision `8dd82c9`](https://github.com/SamuelSchlesinger/algebraic-circuits/tree/8dd82c96f44dbeeaca31f4cc96c687c6d87d1489)
+machine-checks both the explicit recursive construction and the complete
+nonuniform construction with its improved leading coefficient.
 With Lean 4.33.1 and mathlib 4.33.1, the umbrella module
-`Algebraic.MassProduction` exposes the endpoint theorem
-`BlockInduction.exponentialMassProduction`. It proves a rational,
-discrete-exponent form of the main theorem; the passage to every real
-`gamma < 1` uses rational slack and absorbs finitely many initial input
-lengths. The pinned revision was checked with:
+`Algebraic.MassProduction` exposes two corresponding endpoints:
+
+- `BlockInduction.exponentialMassProduction` proves the explicit alternative
+  in its rational, discrete-exponent formulation.
+- `Nonuniform.realSharpMassProduction` proves the coefficient theorem for
+  every real `0 <= gamma < 1` and every `epsilon > 0`, uniformly over all
+  functions and positive integer `t <= 2^(gamma*n)` at sufficiently large
+  input lengths. The full scheduler, code and packing, raw-input composition,
+  parameter estimates, rational approximation, and rounding are included.
+
+Both endpoints use only the standard axioms `propext`, `Classical.choice`,
+and `Quot.sound`, with no proof placeholders. The cost charges NOT, AND, and
+OR; constant sources and structural wiring are free. The pinned revision was
+checked with:
 
 ```sh
-lake build --wfail
+lake build Algebraic AlgebraicTests --wfail
 lake test
 lake lint
+git diff --check
 ```
 
 ## AI-assisted development and provenance
