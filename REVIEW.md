@@ -31,9 +31,11 @@ bound `2s` proves the claim. The near-endpoint asymptotic obstruction remains
 For `k` active requests, independently sampled directions fail to leave half
 the requests entirely collision-free with probability at most `2^-k`, under
 the fixed slack condition. Collision indicators are not independent. The
-proof instead extracts a rooted forest with at least `ceil(k/4)` edges from
-any bad configuration, exposes children after parents, and sums product
-bounds over forest descriptions.
+proof instead two-colors a spanning forest and selects `ceil(k/4)` bad
+requests from one color. Every selected request has a collision witness
+outside that selected set. Fixing the complementary directions makes the
+selected tests independent; a union bound over selected sets gives the tail.
+This is the argument formalized in `CollisionCut` and `CollisionTail`.
 
 An occupied set is described by at most `g` anchors and directions, regardless
 of its `g(q-1)` enumerated points. There are at most
@@ -86,7 +88,7 @@ reported scheduler.
 `python3 scripts/check_improvements.py` passes nine checks covering:
 
 - Every graph on the occupied-set vertex plus up to five request vertices:
-  33,866 graphs for the forest witness.
+  33,866 graphs for the forest and two-color cut witnesses.
 - Exact tail and state-count inequalities.
 - Record verification against an independent direct set-intersection oracle.
 - All 256 ordered pairs of targets in `GF(4)^2`, including repeated targets,
@@ -120,12 +122,30 @@ lower-bound refinement remains a written argument outside these upper-bound
 formalizations. The circuit model now states explicitly that constant sources
 are free, matching the formal De Morgan cost.
 
-The revised 24-page PDF builds without warnings and passes
+Section 8.1 now integrates the formalization's exact accounting into the
+paper: distinct request identifiers even for repeated data, inactive zero
+scalar slots, one-bit output restoration, shared prefix metadata lookup,
+and a resource bank with no extra evaluations from routing padding. It also
+gives the integer block/slopes construction, the finite code-rate inequality,
+the degree-seven overhead envelope, and the passage from integer precision
+to the paper's real-rate coefficient. The high-rate lemma now explicitly
+allows every fixed block width at least `ceil(log2 ell)`, as used in Lean.
+
+The formal endpoint uses a coarser polynomial envelope than the optimized
+degree-five scheduler pass count in the written proof. Both preserve linear
+incidence dependence up to polynomial bit-width factors and establish the
+same sharp mass-production coefficient; the degree-five refinement is not
+claimed as the exact bound emitted by Lean.
+
+The revised 25-page PDF builds without warnings and passes
 `./build.sh --check`. Every page was rendered and visually inspected, with
 the new theorem statements and central proofs also checked at full page size.
 Cross-reference and bibliography checks, author/page metadata checks, and
 `git diff --check` pass. The local submission archive was refreshed and checked
-to contain exactly the current `main.tex`.
+to contain exactly the current `main.tex`. The committed packager recreates
+that archive from a fresh clone and checks the abstract's ASCII format and
+1,920-character limit. The extracted source was also compiled independently,
+with no repository-only support files.
 
 ## Primary-source checks
 

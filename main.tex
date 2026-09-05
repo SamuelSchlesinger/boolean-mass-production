@@ -811,21 +811,21 @@ candidate recovery set is at most $a_1=(q-1)/D_q$.
 Form a graph on $\{0,1,\ldots,k\}$.  Join a request to vertex $0$ when its
 recovery set meets $U$, and join two requests when their recovery sets meet.
 The nonclean requests are exactly the nonisolated vertices other than $0$.
-If at least $\lceil k/2\rceil$ requests are nonclean, a spanning forest of
-the nontrivial components has at least $\lceil k/4\rceil$ edges: a component
-with $m$ requests and no $0$ contributes $m-1\ge m/2$ edges, and a component
-containing $0$ contributes $m$ edges.  Retain exactly
-$h=\lceil k/4\rceil$ forest edges.  Root the component containing $0$ there,
-and root each other component at any one of its vertices.
+Take a spanning forest of the nontrivial components and two-color it.
+Every nonclean request has a forest neighbor of the opposite color.  If at
+least $\lceil k/2\rceil$ requests are nonclean, one color contains at least
+$h=\lceil k/4\rceil$ of them.  Choose exactly $h$ such requests as a set
+$S$, excluding vertex $0$.  Every request in $S$ then has a collision witness
+outside $S$, either vertex $0$ or an unselected request.
 
-For a fixed rooted forest, expose root directions first and then child
-directions.  A child is independent of its exposed parent.  Its edge event
-has conditional probability at most $a_0$ for parent $0$, and at most $a_1$
-for any other parent.  There are $h$ distinct child vertices.  Summing these
-product bounds over child sets and parent assignments, including extra
-assignments only in the numerical upper bound, gives
+For each fixed set $S$ of size $h$, condition on all directions outside $S$.
+Their recovery sets, together with $U$, form a fixed set of at most
+$(g+k)(q-1)$ points.  Each selected request meets that set with probability
+at most $a_0+ka_1$.  These $h$ tests are conditionally independent, since
+each uses only its own unexposed direction.  Averaging over the complementary
+directions and taking a union bound over $S$ gives
 \[
-  \Pr\{\text{such a forest exists}\}
+  \Pr\{\text{such a collision cut exists}\}
   \le \binom{k}{h}(a_0+ka_1)^h
   \le 2^k(1/256)^{k/4}=2^{-k}.
 \]
@@ -1161,7 +1161,8 @@ of a slightly smaller code.  These are known coding ingredients; the point
 here is their circuit-cost accounting.
 
 \begin{lemma}[High-rate line-parity code]\label{lem:high-rate-code}
-Let $h=\lceil\log_2\ell\rceil$, $q=2^b$, and $N=q^\ell$.  There is a
+For integers $\ell\ge2$ and $h\ge\lceil\log_2\ell\rceil$, put $q=2^b$ and
+$N=q^\ell$.  There is a
 linear code on $\F_q^\ell$ of dimension $K$ such that
 \begin{equation}\label{eq:high-rate}
   \frac KN\ge1-(1-2^{-\ell h})^{\lfloor b/h\rfloor}
@@ -1269,6 +1270,89 @@ $1/\delta$.  Taking the infimum of these bounds as $\delta$ increases to
 $1-\gamma$ proves the theorem.  This last step takes a limit of fixed-parameter
 bounds; it makes no assertion uniform in growing $\ell$ or in $\gamma\to1$.
 \end{proof}
+
+\subsection{Exact accounting in the formal proof}\label{sec:formal-accounting}
+
+The formalization makes several invariants in the preceding argument
+explicit.  They explain how the complete circuit preserves the leading
+coefficient, including at input lengths that do not fit a field block.
+
+\paragraph{Request identity and inactive slots.}
+Each request carries a distinct fixed identifier, even when its target and
+suffix coincide with another request's.  The scheduler maintains a
+permutation of accepted and pending requests, together with disjoint recovery
+lines for the accepted prefix.  Each phase preserves all original payloads.
+For regular array sizes, a line uses $q$ scalar slots: the zero scalar is
+marked inactive, and its recovered Boolean contribution is fixed to zero.
+After XOR recovery, only the identifier and the one-bit answer need to be
+sorted back into request order.  Thus restoring output order does not require
+another permutation of the full point lists.
+
+\paragraph{Charge exactly the resource bank.}
+A single hardwired table indexed by the source prefix can return the code
+number, information point, and basis-bit selector together.  Batched lookup
+handles repeated prefixes and removes runtime division from this version of
+the construction.  The resource key is
+$(\text{code number},\text{point},\text{basis bit})$; valid scheduled
+incidences have distinct keys.  Evaluate precisely the $R=BNb$ Boolean
+resource circuits, once each.  Padding the sorting networks adds inactive
+routing records, not resource evaluations.  This distinction avoids a
+constant-factor loss in the main term.  If $\widehat L(d)$ bounds the chosen
+one-copy synthesis circuits, the full cost is bounded by
+\[
+  R\widehat L(d)+H,\qquad H\le c_\ell 2^p n^7
+\]
+in the parameter regime below, with $c_\ell$ independent of $n,f,t$.
+For each fixed positive integer $Q$, the actual synthesis circuits eventually
+admit $\widehat L(d)=\lfloor(Q+1)2^d/(Qd)\rfloor$.
+This checked polynomial envelope is coarser than the optimized pass count
+in \cref{thm:linear-scheduler}; both give the required negligible overhead.
+
+\paragraph{Whole field blocks, arbitrary input lengths.}
+One exact parameter choice fixes positive integers $h,\ell,G,S$, with
+$\ell\le2^h$, and sets
+\[
+  P=\ell h+1<S,\qquad
+  m=\lfloor n/S\rfloor,\qquad b=hm,\qquad p=Pm,\qquad d=n-p.
+\]
+Choose $G+h+1\le h(\ell-1)$ and $\gamma<G/S$.
+For sufficiently large $m$, the scheduler batch $2^{Gm}$ covers the requested
+copies, including rounding, and has $512\,2^{Gm}q\le D_q$.
+Also $2^{Gm}q\le2^p$.  Put the incomplete input block into the suffix; then
+\[
+  p+d=n,\qquad \frac dn\ge\frac{S-P}{S}>0.
+\]
+Integer slopes can make $P/S$ arbitrarily close to $\gamma$ from above
+while keeping all these inequalities strict.  All dimensions and slopes
+are fixed before $n$ varies.
+
+For $A=2^{\ell h}$ the retained dimension on this subsequence is exactly
+$K=A^m-(A-1)^m$.  At a fixed positive integer precision $Q$, the elementary
+rate estimate is
+\[
+  m\ge Q(A-1)\quad\Longrightarrow\quad QA^m\le(Q+1)K.
+\]
+The formal packing uses $B=\lfloor2^p/(Kb)\rfloor+1$, charging at most one
+extra codeword.  Since $Nb=2^{\ell hm}hm$ and $p=(\ell h+1)m$, eventually
+$QNb\le2^p$.  Consequently $QR\le(Q+2)2^p$.
+The number $B$ need not be polynomial in this alternative parameter choice;
+the bounds on the total resource bank and the key widths are what matter.
+Finally, $m\le d$ and every fixed polynomial in $n$ is eventually smaller
+than $2^m$.  These facts absorb $H$ after normalization by $n/2^n$.
+
+\paragraph{Uniform quantifiers.}
+For a rational rate $u/v<1$ and every positive integer precision $J$, the
+checked integer endpoint supplies one cutoff, uniform over $f$ and all
+positive $t\le2^{\lfloor un/v\rfloor}$, with
+\[
+  J(v-u)n\,\C(f^{\times t})\le(J+1)v2^n.
+\]
+The final real-rate theorem chooses a slightly larger rational rate and a
+large enough precision inside the requested additive error.  Upward exponent
+rounding is covered by the scheduler's strict capacity margin.  The result
+has exactly the real-rate and $\varepsilon$ quantifiers of
+\cref{thm:coefficient}, without substituting growing dimensions into a
+fixed-dimension estimate.
 
 \section{The explicit equal-block alternative}\label{sec:induction}
 

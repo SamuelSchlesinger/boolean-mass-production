@@ -16,6 +16,9 @@ The revised manuscript strengthens the asymptotic coefficient to
 proof needs no recursive resource evaluation. High-rate lifted codes and
 packing into several smaller codes remove the previous constant rate and
 field-rounding losses.
+Section 8.1 explains the exact accounting extracted from formalization:
+request identity, inactive slots, resource-bank padding, whole field blocks
+at every input length, and the final real-rate quantifiers.
 
 The scheduler's small fixed menus are proved to exist for every input batch.
 An efficient uniform algorithm to construct those general menus remains open
@@ -74,6 +77,8 @@ and takes responsibility for the paper.
   sorting networks and a small exact high-rate code.
 - `scripts/check_improvements.py` checks the combinatorial and implementation
   invariants, including exhaustive small cases and end-to-end recovery.
+- `scripts/package_arxiv.py` recreates the verified source-only submission
+  archive and checks arXiv's abstract format and length requirements.
 - `.githooks/pre-commit` checks that a staged PDF matches the staged source.
 
 The bibliography is contained in `main.tex`; there is no separate BibTeX
@@ -107,6 +112,9 @@ modifying it, run:
 ```sh
 ./build.sh --check
 ```
+
+To prepare the arXiv upload after these checks, run
+`python3 scripts/package_arxiv.py` and follow [the submission guide](ARXIV_SUBMISSION.md).
 
 To enable the optional repository hook:
 

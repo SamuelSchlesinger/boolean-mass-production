@@ -30,14 +30,15 @@ class ImprovementChecks(unittest.TestCase):
 
     def test_forest_witness_exhaustively(self):
         # Vertex 0 represents the fixed occupied set. Every non-isolated
-        # request is bad. In a component without 0, choose one root; orient
-        # all spanning-tree edges toward the root (toward 0 when present).
+        # request is bad. Two-color a spanning forest and select bad
+        # requests from its larger color class, as in the Lean proof.
         graphs = 0
         for width in range(1, 6):
             edges = list(combinations(range(width + 1), 2))
             for mask in range(1 << len(edges)):
                 parent = list(range(width + 1))
                 bad = set()
+                forest = [set() for _ in range(width + 1)]
 
                 def root(vertex):
                     while parent[vertex] != vertex:
@@ -52,8 +53,28 @@ class ImprovementChecks(unittest.TestCase):
                         if first != second:
                             parent[first] = second
                             forest_edges += 1
+                            forest[left].add(right)
+                            forest[right].add(left)
                 if len(bad) >= (width + 1) // 2:
                     self.assertGreaterEqual(forest_edges, (width + 3) // 4)
+                    color = {}
+                    for vertex in range(width + 1):
+                        if vertex in color:
+                            continue
+                        color[vertex] = 0
+                        pending = [vertex]
+                        while pending:
+                            current = pending.pop()
+                            for neighbor in forest[current]:
+                                if neighbor not in color:
+                                    color[neighbor] = 1 - color[current]
+                                    pending.append(neighbor)
+                    sides = [{v for v in bad if color[v] == side} for side in (0, 1)]
+                    selected = max(sides, key=len)
+                    self.assertGreaterEqual(len(selected), (width + 3) // 4)
+                    self.assertNotIn(0, selected)
+                    for vertex in selected:
+                        self.assertTrue(forest[vertex] - selected)
                 graphs += 1
         self.assertEqual(graphs, 33866)
 
