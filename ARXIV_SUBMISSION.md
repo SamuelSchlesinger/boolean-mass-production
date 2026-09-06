@@ -4,9 +4,11 @@ Use the source archive at
 `output/exponential-range-mass-production-arxiv.tar.gz`. It contains only the
 single required source file, `main.tex`.
 
-The manuscript and both Lean upper-bound proofs are complete and locally
-validated. This repository prepares an upload; it does not record an arXiv
-submission or identifier. The author still completes the account, license,
+The manuscript includes the Boolean upper bounds and a matching upper and
+lower bound for approximate quantum state mass production. The pinned Lean
+companion covers the Boolean upper bounds; the quantum arguments are written
+proofs outside that formalization. This repository prepares an upload; it
+does not record an arXiv submission or identifier. The author still completes the account, license,
 preview, and final submission steps below.
 
 ## Rebuild the upload
@@ -16,6 +18,7 @@ From the repository root:
 ```sh
 ./build.sh
 python3 scripts/check_improvements.py
+python3 scripts/check_quantum.py
 python3 scripts/package_arxiv.py
 ```
 
@@ -31,7 +34,7 @@ in the linked repositories, outside the TeX upload.
 Title:
 
 ```text
-Exponential-Range Mass Production of Boolean Functions: Local recovery, disjoint scheduling, and bounded congestion
+Exponential-Range Mass Production of Boolean Functions: Local recovery and optimal quantum state preparation
 ```
 
 Authors:
@@ -46,19 +49,19 @@ Primary category:
 cs.CC - Computational Complexity
 ```
 
-Cross-list: none recommended. The main result is a Boolean circuit-complexity
-theorem; the coding ingredients do not make `cs.IT` the primary subject.
+Suggested cross-list: `quant-ph`, for the optimal quantum state preparation
+tradeoff. Keep `cs.CC` primary; the Boolean circuit theorem drives the application.
 
 Abstract:
 
 ```text
-We study the cost of evaluating one Boolean function on many independent inputs. For $f:\{0,1\}^n\to\{0,1\}$, let $f^{\times t}$ evaluate $f$ on $t$ such inputs. Uhlig showed that $t=2^{o(n/\log n)}$ copies preserve the sharp one-copy asymptotic. We retain the optimal order of growth throughout every fixed exponential range below the $2^n$-copy scale: for every fixed $0\le\gamma<1$, $ C(f^{\times t})=O_\gamma(2^n/n) \qquad\text{for all }t\le 2^{\gamma n}. $ The bound is uniform in $f$ and $t$. Using high-rate lifted evaluation codes, we sharpen it to $(1/(1-\gamma)+o_\gamma(1))2^n/n$. We encode restrictions of $f$ as shorter resource functions with many affine-line recovery sets. A deterministic nonuniform scheduler chooses disjoint sets, allowing each resource function to be evaluated only once. The scheduler has size $\widetilde O_\ell(tq)$, where $q$ is the field size and $\ell$ is the fixed geometric dimension. It tests fixed menus of candidate directions and serves half the remaining requests in each phase. The menus work for every input batch; their existence is proved, but no efficient uniform construction is given. The circuit bound includes schedule selection, resource evaluation, routing, and decoding. An explicit greedy scheduler also gives a recursive proof of the order-of-growth bound. A Lean companion formally verifies both upper-bound variants, including the sharper coefficient.
+The hardest Boolean functions on $n$ bits require $\Theta(2^n/n)$ gates to evaluate once. Must evaluating the same function on $t$ unrelated inputs cost $t$ times as much? We show that every Boolean function can be evaluated on any $t\le2^{\gamma n}$ inputs using a total of $O_\gamma(2^n/n)$ gates, for every fixed $0\le\gamma<1$. Thus exponentially many evaluations fit within a constant factor of the worst-case cost of one. In the standard AND, OR, NOT basis, our bound is $(1/(1-\gamma)+o_\gamma(1))2^n/n$ gates. Uhlig previously achieved $(1+o(1))2^n/n$ gates for the smaller range $t=2^{o(n/\log n)}$. Our construction encodes shorter restrictions of the function and recovers the requested outputs from disjoint sets of encoded functions. The gate bound includes choosing those sets, evaluating the functions, and routing the answers. The circuits are nonuniform; an efficient algorithm for constructing their fixed scheduling data remains open. A Lean companion verifies the Boolean upper bounds. As an application, we determine the optimal worst-case cost of preparing $t$ copies of a specified $n$-qubit pure state throughout the same range: $\Theta_\gamma((2^n/n)\log_2(t+1))$ elementary Clifford+$T$ gates. The error is at most $1/10$ in trace distance for the entire batch, and scratch qubits are restored to zero. Coherent Boolean evaluation gives the upper bound; a packing and circuit-counting argument gives the matching lower bound.
 ```
 
 Comments:
 
 ```text
-26 pages, no figures. Lean 4 proofs of both the explicit recursive and nonuniform variants, including the sharp real-rate coefficient: https://github.com/SamuelSchlesinger/algebraic-circuits/tree/8dd82c96f44dbeeaca31f4cc96c687c6d87d1489
+33 pages, no figures. Quantum state preparation tradeoff with matching bounds; quantum proofs are not formalized. Lean 4 proofs of the Boolean upper bounds: https://github.com/SamuelSchlesinger/algebraic-circuits/tree/8dd82c96f44dbeeaca31f4cc96c687c6d87d1489
 ```
 
 Journal reference: leave blank.
@@ -67,7 +70,7 @@ Report number: leave blank.
 
 DOI: leave blank.
 
-The abstract above is 1,414 ASCII characters, below arXiv's 1,920-character
+The abstract above is 1,451 ASCII characters, below arXiv's 1,920-character
 limit. Paste the text from this guide rather than from the PDF, which may
 introduce unsupported ligatures or Unicode. See arXiv's
 [metadata instructions](https://info.arxiv.org/help/prep.html).
@@ -111,19 +114,24 @@ arXiv's [license choices](https://info.arxiv.org/help/license/index.html).
 ## Final submission checklist
 
 - Confirm the title, author spelling, and abstract in the metadata preview.
-- Confirm `cs.CC` as the primary category and omit a cross-list unless there is
-  a specific audience reason to add one.
+- Confirm `cs.CC` as the primary category and consider `quant-ph` as the cross-list
+  for the quantum state preparation theorem.
 - Select the intended license.
 - Compile with `pdflatex` under TeX Live 2025.
-- Open arXiv's generated PDF and verify that it has 26 pages, identifies
+- Open arXiv's generated PDF and verify that it has 33 pages, identifies
   Samuel Schlesinger, and labels theorem, lemma, proposition, and section
   cross-references correctly.
 - Check that the bibliography includes Guo--Kopparty--Sudan,
-  Holmgren--Rothblum, Hiltgen--Paterson, and Polyanskii--Vorobyev.
+  Holmgren--Rothblum, Hiltgen--Paterson, Polyanskii--Vorobyev,
+  Kretschmer, Huggins--Khattar--Wiebe, and Gosset--Kothari--Wu.
 - Confirm that both upper-bound variants reference Lean revision `8dd82c9`,
   including the nonuniform scheduler and sharp real-rate coefficient theorem.
-- Check Section 8.1, which explains the cost, padding, and rounding invariants
+  The quantum result is not included in this formalization.
+- Check Appendix C, which explains the cost, padding, and rounding invariants
   extracted from the formalization.
+- Check Section 10 for the quantum model, joint-error accounting, and matching
+  upper and lower bounds; these results are outside the Lean companion.
+- Confirm the acknowledgement to Shreyas Srinivas.
 - Submit only after the arXiv preview matches the locally reviewed manuscript.
 
 These instructions were checked against arXiv's official help on

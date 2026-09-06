@@ -6,7 +6,7 @@ a counterexample to its packing, greedy scheduling, routing, or equal-block
 induction. Its largest avoidable costs were the quadratic greedy scheduler,
 the product code's low rate, and rounding a single code's field size upward.
 
-The revision adds two written results to `main.tex`:
+The Boolean construction establishes two refinements in `main.tex`:
 
 1. **A nonuniform scheduler with linear dependence on the batch size.** For
    `512 g q <= D_q`, the circuit size is `~O_ell(g q)`, replacing
@@ -107,7 +107,7 @@ comparators, not individual Boolean gates, and does not implement an efficient
 uniform constructor for the general existential menus.
 
 The [pinned Lean companion at `8dd82c9`](https://github.com/SamuelSchlesinger/algebraic-circuits/tree/8dd82c96f44dbeeaca31f4cc96c687c6d87d1489)
-now formally proves both upper-bound variants. The original explicit endpoint
+formally proves both Boolean upper-bound variants. The original explicit endpoint
 is `BlockInduction.exponentialMassProduction`. The new endpoint,
 `Nonuniform.realSharpMassProduction`, includes the complete circuit pipeline,
 rate-one storage estimates, polynomial-overhead absorption, and the paper's
@@ -122,7 +122,7 @@ lower-bound refinement remains a written argument outside these upper-bound
 formalizations. The circuit model now states explicitly that constant sources
 are free, matching the formal De Morgan cost.
 
-Section 8.1 now integrates the formalization's exact accounting into the
+Appendix C integrates the formalization's exact accounting into the
 paper: distinct request identifiers even for repeated data, inactive zero
 scalar slots, one-bit output restoration, shared prefix metadata lookup,
 and a resource bank with no extra evaluations from routing padding. It also
@@ -137,7 +137,7 @@ incidence dependence up to polynomial bit-width factors and establish the
 same sharp mass-production coefficient; the degree-five refinement is not
 claimed as the exact bound emitted by Lean.
 
-The revised 27-page PDF builds without warnings and passes
+The revised PDF builds without warnings and passes
 `./build.sh --check`. Every page was rendered and visually inspected, with
 the new theorem statements and central proofs also checked at full page size.
 Cross-reference and bibliography checks, author/page metadata checks, and
@@ -164,11 +164,11 @@ partial schedule, universal-menu existence, and gate-counted menu evaluation.
 The composition bound labels each cost, and the high-rate proof explains why
 avoiding positive multiples of `q-1` is enough for line parity.
 
-The detailed literature comparison is now Section 10, after the constructions,
-with a short attributed comparison retained in the introduction. The paper
+The full literature comparison is Section 2, immediately after the introduction,
+and includes recent quantum mass-production and state-synthesis work. The paper
 also distinguishes choices made when the circuit is built from operations on
 live inputs, and states explicitly that replication may be better for a
-particular easy function. The theorem statements and pinned Lean revision
+particular easy function. The Boolean theorem statements and pinned Lean revision
 are preserved. The abstract and arXiv metadata describe the revised exposition.
 
 ## Primary-source checks
@@ -189,3 +189,81 @@ mathematical arguments still warrant independent research review. No claim is
 made that the optimal positive-rate coefficient is known, that the
 `t = 2^(n-o(n))` regime is settled, or that a practical general menu constructor
 has been found.
+
+## Quantum application and exposition integration (September 5, 2026)
+
+The abstract now states the worst-case cost of one Boolean evaluation before
+comparing copy ranges. It gives explicit gate bounds instead of undefined
+phrases such as "sharp one-copy asymptotic". The complete prior-work section
+follows the introduction. The acknowledgement thanks Shreyas Srinivas for
+exposition and literature feedback and, specifically, his suggestion to attack
+the quantum variant.
+
+The new quantum theorem determines the worst-case total elementary gate count
+`M(n,t) = Theta_gamma((2^n/n) log2(t+1))` for every fixed `0 <= gamma < 1`
+and `1 <= t <= 2^(gamma n)`. It uses `{H,T,T-dagger,CNOT}`, arbitrary
+connectivity, no measurements or postselection, and scratch qubits initialized
+and returned exactly to zero. The trace-distance error is at most `1/10`
+for the entire `nt`-qubit output, not separately for each copy.
+
+The proof accounts for:
+
+- Exact coherent simulation of Boolean circuits, including output copying,
+  constant sources, repeated controls, and uncomputation.
+- Conditional rotation synthesis that preserves its control exactly even
+  when the implemented rotation is approximate. Pairing a word with its
+  exact inverse also cancels its global phase.
+- Padding all short address tables to `ceil(alpha*n)` for fixed
+  `gamma < alpha < 1`, so a single fixed Boolean copy-rate theorem applies
+  at every stage.
+- Geometrically allocated errors `delta_k = 2^(k-n)/(40t)` and precision
+  `O(n-k+log(t+1))`, which give the logarithmic overhead without an extra
+  `log n` factor. Finite-gate synthesis costs only `t poly(n)` extra gates.
+- A packing of at least `(4t)^(2^n-1)` single-copy states whose tensor powers
+  have constant pairwise trace distance. Gate counting includes all active
+  ancillary wires by canonical relabeling, so unrestricted scratch space
+  does not invalidate the lower bound.
+
+The lower bound also includes `Omega(nt)` from touching all output wires
+for the all-ones target. The proof settles the fixed-rate range; it leaves
+`t = 2^(n-o(n))`, optimal constants, other resource tradeoffs, and arbitrary
+unitary mass production open. It provides existence of worst-case hard states,
+not an explicit hard family.
+
+The quantum proof is outside the pinned Lean companion. The five tests in
+`scripts/check_quantum.py` pass: they check controlled rotations, phase
+cancellation, cleanup on entangled data with shared intermediate values,
+recursive preparation including zero amplitudes, exact finite error/cost
+inequalities, and tensor-power separation. Numerical identities use double
+precision, while the arithmetic inequalities use exact rational arithmetic.
+These finite checks are neither an asymptotic proof nor a quantum compiler.
+The nine existing Boolean checks also pass.
+
+Primary sources checked for the quantum revision:
+
+- [Kretschmer (2023)](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.TQC.2023.10):
+  exact state and unitary mass production, conditional-rotation decomposition,
+  and the different continuous-gate model.
+- [Huggins, Khattar, and Wiebe (2025)](https://arxiv.org/html/2506.00132v1):
+  QROM mass production, larger-copy cost analysis, and the QROM-to-state
+  preparation connection in Appendix B.5.
+- [Gosset, Kothari, and Wu (2026)](https://arxiv.org/html/2411.04790v3):
+  optimal T-count, the known single-copy total-gate endpoint, and geometric
+  allocation of precision in Appendix B.
+- [Shende, Bullock, and Markov (2006)](https://arxiv.org/abs/quant-ph/0406176):
+  quantum logic synthesis and conditional rotations.
+- [Dawson and Nielsen (2006)](https://arxiv.org/abs/quant-ph/0505030):
+  polynomial-logarithmic finite-gate approximation.
+
+These sources do not state the matching exponential-range total-gate curve
+proved here. This targeted comparison does not establish priority; the new
+written theorem and its proof still warrant independent mathematical review.
+
+Validation of this revision: the 33-page PDF builds without warnings and
+passes the reproducible freshness check. All pages were rendered and visually
+inspected, with the abstract, theorem statement, and quantum proofs also
+inspected at higher resolution. All 57 labels are unique and all 21 cited
+bibliography entries resolve. The 1,451-character ASCII submission abstract
+exactly matches the manuscript abstract. The regenerated source-only archive
+compiles independently without warnings and reproduces the reviewed PDF text.
+`git diff --check` passes.

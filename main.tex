@@ -43,19 +43,19 @@
 \anonymousfalse
 
 \title{\textbf{Exponential-Range Mass Production of Boolean Functions}\\[0.35em]
-\large Local recovery, disjoint scheduling, and bounded congestion}
+\large Local recovery and optimal quantum state preparation}
 \ifanonymous
   \author{}
   \date{}
   \hypersetup{
-    pdftitle={Exponential-Range Mass Production of Boolean Functions: Local recovery, disjoint scheduling, and bounded congestion},
+    pdftitle={Exponential-Range Mass Production of Boolean Functions: Local recovery and optimal quantum state preparation},
     pdfauthor={}
   }
 \else
   \author{Samuel Schlesinger}
   \date{September 2026}
   \hypersetup{
-    pdftitle={Exponential-Range Mass Production of Boolean Functions: Local recovery, disjoint scheduling, and bounded congestion},
+    pdftitle={Exponential-Range Mass Production of Boolean Functions: Local recovery and optimal quantum state preparation},
     pdfauthor={Samuel Schlesinger}
   }
 \fi
@@ -64,32 +64,30 @@
 \maketitle
 
 \begin{abstract}
-We study the cost of evaluating one Boolean function on many independent
-inputs.  For $f:\bits^n\to\bits$, let $f^{\times t}$ evaluate $f$ on $t$
-such inputs.  Uhlig showed that $t=2^{o(n/\log n)}$ copies preserve the sharp
-one-copy asymptotic.  We retain the optimal order of growth throughout every
-fixed exponential range below the $2^n$-copy scale: for every fixed
-$0\le\gamma<1$,
-\[
-  \C(f^{\times t})=O_\gamma(2^n/n)
-  \qquad\text{for all }t\le 2^{\gamma n}.
-\]
-The bound is uniform in $f$ and $t$.  Using high-rate lifted evaluation codes,
-we sharpen it to
-$(1/(1-\gamma)+o_\gamma(1))2^n/n$.
+The hardest Boolean functions on $n$ bits require $\Theta(2^n/n)$ gates
+to evaluate once.  Must evaluating the same function on $t$ unrelated
+inputs cost $t$ times as much?  We show that every Boolean function can
+be evaluated on any $t\le2^{\gamma n}$ inputs using a total of
+$O_\gamma(2^n/n)$ gates, for every fixed $0\le\gamma<1$.
+Thus exponentially many evaluations fit within a constant factor of the
+worst-case cost of one.  In the standard AND, OR, NOT basis, our bound
+is $(1/(1-\gamma)+o_\gamma(1))2^n/n$ gates.  Uhlig previously achieved
+$(1+o(1))2^n/n$ gates for the smaller range $t=2^{o(n/\log n)}$.
 
-We encode restrictions of $f$ as shorter resource functions with many
-affine-line recovery sets.  A deterministic nonuniform scheduler chooses
-disjoint sets, allowing each resource function to be evaluated only once.
-The scheduler has size $\widetilde O_\ell(tq)$, where $q$ is the field size and
-$\ell$ is the fixed geometric dimension.  It tests fixed menus of
-candidate directions and serves half the remaining requests in each phase.
-The menus work for every input batch; their existence is proved, but no
-efficient uniform construction is given.  The circuit bound includes schedule
-selection, resource evaluation, routing, and decoding.  An explicit greedy
-scheduler also gives a recursive proof of the order-of-growth bound.
-A Lean companion formally verifies both upper-bound
-variants, including the sharper coefficient.
+Our construction encodes shorter restrictions of the function and recovers
+the requested outputs from disjoint sets of encoded functions.  The gate
+bound includes choosing those sets, evaluating the functions, and routing
+the answers.  The circuits are nonuniform; an efficient algorithm for
+constructing their fixed scheduling data remains open.  A Lean companion
+verifies the Boolean upper bounds.
+
+As an application, we determine the optimal worst-case cost of preparing
+$t$ copies of a specified $n$-qubit pure state throughout the same range:
+$\Theta_\gamma((2^n/n)\log_2(t+1))$ elementary Clifford+$T$ gates.
+The error is at most $1/10$ in trace distance for the entire batch, and
+scratch qubits are restored to zero.  Coherent Boolean evaluation gives
+the upper bound; a packing and circuit-counting argument gives the
+matching lower bound.
 \end{abstract}
 
 \section{Introduction}
@@ -108,13 +106,17 @@ The naive construction uses $t$ disjoint copies of a circuit for $f$ and gives
 \[
   \C(f^{\times t})\le t\C(f).
 \]
+Here $\C$ counts elementary Boolean gates.  The classical
+Shannon--Lupanov bounds say that the hardest functions on $n$ bits have
+circuit size $\Theta(2^n/n)$; in our basis the worst-case size is
+$(1+o(1))2^n/n$ \cite{Shannon1949,Lupanov1958,FrandsenMiltersen2005}.
+We call this the worst-case cost of one evaluation.
 The mass-production problem asks how large $t$ can become before the cost must
-rise above the worst-case scale for one copy.  For unrestricted circuits, the
+rise above that scale.  For unrestricted circuits, the
 naive direct-sum bound can be far from optimal.  Uhlig's theorem allows
 $t=2^{o(n/\log n)}$ independent evaluations with no asymptotic increase in
 the leading worst-case one-copy synthesis cost
-\cite{Uhlig1992,Wegener1987,Kretschmer2023}.  In our basis and cost convention,
-the sharp one-copy coefficient is $1$ \cite{FrandsenMiltersen2005}.
+\cite{Uhlig1992,Wegener1987,Kretschmer2023}.
 
 We prove, by a different construction, that the order-of-growth plateau reaches
 $2^{\gamma n}$ simultaneous evaluations for every fixed $\gamma<1$.  The
@@ -166,6 +168,46 @@ $f^{\times t}$ has size at least $t(n-1)$.  Hence a uniform $O(2^n/n)$ plateau
 cannot persist once $t=\omega(2^n/n^2)$; see \cref{sec:discussion}.  Our
 theorem reaches every fixed exponential rate, but leaves this near-endpoint
 regime open.
+
+\subsection{An optimal quantum state preparation tradeoff}
+
+Mass production also matters when many copies of the same quantum state
+are needed.  A synthesis circuit may be designed for the specified state,
+and sharing can occur while the copies are prepared from all-zero inputs.
+Kretschmer established quantum analogues of Uhlig's theorem
+\cite{Kretschmer2023}; recent work connects mass production to coherent
+data loading and quantum algorithms \cite{HugginsKhattarWiebe2025}.
+Our Boolean theorem yields a matching upper and lower bound for approximate
+state preparation in a finite gate set.
+
+Let $M(n,t)$ be the maximum, over $n$-qubit pure states $|\psi\rangle$,
+of the minimum number of elementary Clifford+$T$ gates needed to prepare
+$|\psi\rangle^{\otimes t}$ to trace-distance error at most $1/10$.
+The error is measured on all $nt$ output qubits together: no measurement
+on the batch can change an outcome probability by more than $1/10$.
+Gates may connect any qubits; scratch qubits start and end in zero.  We count every gate,
+including Clifford gates, and permit circuits tailored to $\psi$.
+\Cref{sec:quantum} gives the precise model and the proof.
+
+\begin{theorem}[Optimal approximate quantum state mass production]
+\label{thm:quantum}
+For every fixed $0\le\gamma<1$, uniformly over integers
+$1\le t\le2^{\gamma n}$ as $n\to\infty$,
+\[
+  M(n,t)=\Theta_\gamma\!\left(\frac{2^n}{n}\log_2(t+1)\right).
+\]
+\end{theorem}
+
+The cost grows logarithmically with the number of copies.  In particular,
+it is $\Theta(2^n/n)$ for one copy, $\Theta(2^n\log n/n)$ for
+$t=n^a$ with fixed $a>0$, and $\Theta_\gamma(2^n)$ for
+$t=\lfloor2^{\gamma n}\rfloor$ with fixed $0<\gamma<1$.
+The single-copy endpoint is already known \cite{GossetKothariWu2026}.
+Our upper bound uses coherent Boolean mass production and carefully
+allocated rotation precision.  The lower bound reflects the fact that
+$t$ copies distinguish states whose single-copy distance is on the order
+of $1/\sqrt t$.  The quantum arguments are written proofs and are outside
+the Lean companion.
 
 \subsection{How the construction works}
 
@@ -240,24 +282,8 @@ $1/\delta$.  Choosing $\delta$ close enough to $1-\gamma$ gives
 $1/(1-\gamma)+\varepsilon$ for any fixed $\varepsilon>0$.
 For example, the bound for $t\le2^{n/2}$ has coefficient $2+o(1)$.
 
-\subsection{Relation to earlier work}
-
-Global truth-table lookup also handles exponentially many requests:
-Paul's bound is $O(n2^n)$ in our
-range \cite{Paul1976}, while hardwiring the database in Holmgren and
-Rothblum's multiselection theorem gives $O(2^n)$
-\cite{HolmgrenRothblum2024}.  Our bound attains the smaller worst-case
-one-copy order $O_\gamma(2^n/n)$ for every fixed exponential rate below one.
-
-Evaluation codes, affine-line recovery, and disjoint recovery sets are
-established batch-code tools \cite{IKOS2004,PolyanskiiVorobyev2019}; high-rate
-lifted codes are also prior work \cite{GuoKoppartySudan2013,HolzbaurEtAl2020}.
-Our scheduler selects recovery sets from the input addresses within a gate
-budget small enough to obtain the stated circuit bound.  \Cref{sec:related}
-gives the detailed comparison and attribution.
-
 \paragraph{Machine-checked companion.}
-An accompanying Lean~4 development verifies the recursive construction in a
+An accompanying Lean~4 development verifies the Boolean recursive construction in a
 rational, discrete-exponent formulation and the complete nonuniform
 construction with the real-rate and additive-error quantifiers of
 \cref{thm:coefficient}.  \Cref{sec:formal-accounting} records the theorem
@@ -269,15 +295,152 @@ literature discovery, and proof development, as detailed in the AI Disclosure
 at the end of the paper.
 
 \paragraph{Organization.}
+\Cref{sec:related} compares prior work before the constructions.
 \Cref{sec:two-copy} illustrates disjoint recovery with two requests.
 \Cref{sec:code,sec:scheduling,sec:master} develop the code, scheduler, and
 composition bound used in the direct proof in \cref{sec:direct};
 \cref{sec:high-rate} sharpens the coefficient.
+\Cref{sec:quantum} proves the quantum state preparation tradeoff.
 An alternative proof in \cref{sec:induction} uses an explicitly constructible
 greedy scheduler.  Its quadratic scheduling cost is controlled by grouping
 requests and recursively handling resource reuse.
 \Cref{app:implementation,sec:formal-accounting} give circuit implementation
 details and the exact finite accounting used in Lean.
+
+\section{Relation to earlier work}\label{sec:related}
+
+The table compares the circuit bounds and the main coding antecedents.
+Here ``one-copy leading term'' means $(1+o(1))2^n/n$ gates in our basis,
+the worst-case cost of evaluating one function once.
+Uhlig's 1974 paper \cite{Uhlig1974} is a precursor to
+the mass-production theorem presented in \cite{Uhlig1992} and in Wegener's
+Theorem~10.2.3 \cite{Wegener1987}.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}
+  >{\raggedright\arraybackslash}p{0.14\linewidth}
+  >{\raggedright\arraybackslash}p{0.20\linewidth}
+  >{\raggedright\arraybackslash}p{0.27\linewidth}
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+Result & Copy range & Circuit-size bound & Comparison \\
+\midrule
+Uhlig \cite{Uhlig1992,Wegener1987,Kretschmer2023}
+  & $\log t=o(n/\log n)$
+  & one-copy leading term
+  & optimal order and leading constant in a smaller copy range \\
+Paul, Lemma~2 \cite{Paul1976}
+  & arbitrary $t$
+  & $O(\max\{n2^n,nt\log^2t\})$
+  & $O(n2^n)$ throughout every fixed exponential range below one \\
+Holmgren--Rothblum \cite{HolmgrenRothblum2024}
+  & arbitrary $t$
+  & $O(2^n+tn^3)$ after hardwiring
+  & $O(2^n)$ throughout every fixed exponential range below one \\
+Albrecht, Theorem~1 \cite{Albrecht1989}
+  & $t\le2^n$
+  & $O(2^n n^2)$
+  & the full exponential range, with polynomial overhead \\
+Finite-geometry batch codes \cite{IKOS2004,PolyanskiiVorobyev2019}
+  & code-dependent batch size
+  & disjoint local recovery; no bound on $\C(f^{\times t})$
+  & coding antecedents for affine-geometric recovery \\
+This paper
+  & $t\le2^{\gamma n}$ for fixed $\gamma<1$
+  & $O_\gamma(2^n/n)$
+  & optimal order; limiting coefficient at most $1/(1-\gamma)$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Paul's construction treats the truth table as an ordered database: sort the
+input addresses, sweep through the hardwired table, and restore the answers
+to their original order.  For fixed $\gamma<1$ and $t\le2^{\gamma n}$,
+$nt\log^2t=o(n2^n)$, giving the table's $O(n2^n)$ bound.
+Paul's $g^k$ is the same product task considered here; his arbitrary binary
+Boolean gates can be simulated in our basis at constant cost.
+
+Holmgren and Rothblum prove that $Q$ indexed bits can be selected from a live
+$N$-bit database by a bounded-fan-in Boolean circuit of size
+$O(N+Q\log^3N)$ and depth $O(\log(N+Q))$
+\cite[Main theorem]{HolmgrenRothblum2024}.  In our nonuniform model, hardwiring
+the database to the $2^n$-bit truth table of $f$ and using the $t$ live
+$n$-bit input blocks as indices gives $O(2^n+tn^3)$, as recorded in the table.
+Thus, throughout every fixed exponential range below one, \cref{thm:main}
+improves the bounds from Paul's construction and this multiselection reduction
+by factors of $n^2$ and $n$, respectively.  Multiselection also implements the
+gather step of our routing; \cref{app:routing-proof} gives the reduction.
+
+Albrecht studies the same simultaneous-realization problem over a complete
+binary basis \cite[Theorem~1, pp.~53--54]{Albrecht1989}.  His construction
+covers the endpoint $t=2^n$, with depth $O(n\log n)$ and size a factor
+$O(n^3)$ above the one-copy scale, as Albrecht also notes.
+
+Hiltgen and Paterson use ``mass production'' for $\mathrm{PI}_k$-set circuits
+underlying monotone slice functions \cite{HiltgenPaterson1995}.  Their result
+gives sharing in that restricted set-circuit setting and leads to an optimal
+circuit for the Ne\v{c}iporuk slice.  The task here is simultaneous evaluation
+of an arbitrary Boolean function on disjoint input blocks.
+
+\paragraph{Coding ingredients and circuit costs.}
+Systematic polynomial evaluation, affine-line recovery, and disjoint recovery
+sets are established batch-code tools.  Section~3.4 of
+Ishai--Kushilevitz--Ostrovsky--Sahai \cite{IKOS2004} chooses random affine lines
+and deletes
+intersections while preserving enough points for interpolation.  Their
+Remark~3.11 also observes that the randomized decoding algorithms in that and
+the following sections can be derandomized using limited independence.
+In their terminology, the repeated-request analogue relevant here is a
+primitive multiset batch code.  Our local gadget uses the elementary
+tensor-product evaluation subspace, with a separate degree bound in each
+variable, whereas their construction uses total-degree Reed--Muller evaluation.
+
+Finite-geometry constructions of primitive batch codes likewise give explicit
+families of mutually disjoint recovery sets \cite{PolyanskiiVorobyev2019}.
+Later lifted-polynomial constructions also use line-based recovery to obtain
+batch-code guarantees \cite{HolzbaurEtAl2020}.  Private-information-retrieval
+codes of Fazeli, Vardy, and Yaakobi form a related family in which each
+information symbol has many disjoint recovery options
+\cite{FazeliVardyYaakobi2015}.
+
+For circuit mass production, selecting recovery sets is itself part of the
+computation: the prefixes are input wires, and every batch must produce valid
+recovery records within the gate budget.  A generic polynomial bound in the
+exponentially large code length and batch size need not fit below $2^n/n$.
+The menu scheduler provides the more precise bound
+$\widetilde O_\ell(tq)$, which \cref{prop:scheduler-sensitive} combines with
+resource synthesis and routing.  Counting occupied-line descriptions keeps the
+menus short; sharing the occupied-point list across candidates keeps their
+verification small.  Together with high-rate packing, this gives the stated
+exponential-range bound and its leading coefficient.
+
+\paragraph{Quantum mass production and synthesis.}
+Kretschmer \cite{Kretschmer2023} gives exact synthesis of
+$t=2^{o(n/\log n)}$ copies of any $n$-qubit state with $O(2^n)$ CNOT
+gates, allowing arbitrary one-qubit gates.  He also obtains an $O(4^n)$
+bound for $t$ uses of an arbitrary $n$-qubit unitary.  His discussion asks
+what happens for larger copy ranges.  \Cref{thm:quantum} treats a finite
+gate set and constant error for the whole batch; these model differences
+are essential to the comparison with exact synthesis.
+
+Huggins, Khattar, and Wiebe \cite{HugginsKhattarWiebe2025} combine mass
+production with quantum read-only memory, which loads fixed classical
+data at addresses held in quantum registers.  They give applications to
+quantum algorithms and analyze both a small-copy plateau and a
+larger-copy regime.  Their Appendix~B.5 explains the passage from data
+loading to state preparation.  Our upper proof uses this established
+connection with the stronger Boolean synthesis bound.
+
+Gosset, Kothari, and Wu \cite{GossetKothariWu2026} determine the optimal
+$T$-gate count for state preparation and diagonal-unitary synthesis.
+Their discussion also records an $O(2^n/n)$ total-gate bound for preparing
+one state at constant error, and their Appendix~B allocates approximation
+error geometrically across conditional rotations.  We count all elementary
+gates and determine their dependence on $t$ through an exponential copy
+range.  Our proof uses standard conditional-rotation synthesis
+\cite{ShendeBullockMarkov2006} and finite-gate approximation
+\cite{DawsonNielsen2006}, followed by a matching packing lower bound.
 
 \section{Circuit conventions and worst-case notation}
 
@@ -1099,117 +1262,331 @@ $1-\gamma$ proves the theorem.  This last step takes a limit of fixed-parameter
 bounds; it makes no assertion uniform in growing $\ell$ or in $\gamma\to1$.
 \end{proof}
 
-\section{Relation to earlier work}\label{sec:related}
+\section{Optimal approximate quantum state mass production}
+\label{sec:quantum}
 
-The table compares the circuit bounds and the main coding antecedents.
-Here ``one-copy leading term'' means the basis-dependent Shannon--Lupanov
-worst-case asymptotic.  Uhlig's 1974 paper \cite{Uhlig1974} is a precursor to
-the mass-production theorem presented in \cite{Uhlig1992} and in Wegener's
-Theorem~10.2.3 \cite{Wegener1987}.
+We now prove \cref{thm:quantum}.  Its upper bound transfers Boolean mass
+production to quantum state preparation.  Its lower bound counts how many
+states become distinguishable after taking tensor powers.  Both depend on
+charging all elementary gates and measuring error on the entire batch.
 
-\begin{center}
-\small
-\begin{tabularx}{\linewidth}{@{}
-  >{\raggedright\arraybackslash}p{0.14\linewidth}
-  >{\raggedright\arraybackslash}p{0.20\linewidth}
-  >{\raggedright\arraybackslash}p{0.27\linewidth}
-  >{\raggedright\arraybackslash}X@{}}
-\toprule
-Result & Copy range & Circuit-size bound & Comparison \\
-\midrule
-Uhlig \cite{Uhlig1992,Wegener1987,Kretschmer2023}
-  & $\log t=o(n/\log n)$
-  & one-copy leading term
-  & optimal order and leading constant in a smaller copy range \\
-Paul, Lemma~2 \cite{Paul1976}
-  & arbitrary $t$
-  & $O(\max\{n2^n,nt\log^2t\})$
-  & $O(n2^n)$ throughout every fixed exponential range below one \\
-Holmgren--Rothblum \cite{HolmgrenRothblum2024}
-  & arbitrary $t$
-  & $O(2^n+tn^3)$ after hardwiring
-  & $O(2^n)$ throughout every fixed exponential range below one \\
-Albrecht, Theorem~1 \cite{Albrecht1989}
-  & $t\le2^n$
-  & $O(2^n n^2)$
-  & the full exponential range, with polynomial overhead \\
-Finite-geometry batch codes \cite{IKOS2004,PolyanskiiVorobyev2019}
-  & code-dependent batch size
-  & disjoint local recovery; no bound on $\C(f^{\times t})$
-  & coding antecedents for affine-geometric recovery \\
-This paper
-  & $t\le2^{\gamma n}$ for fixed $\gamma<1$
-  & $O_\gamma(2^n/n)$
-  & optimal order; limiting coefficient at most $1/(1-\gamma)$ \\
-\bottomrule
-\end{tabularx}
-\end{center}
+\subsection{Model and coherent Boolean evaluation}
 
-Paul's construction treats the truth table as an ordered database: sort the
-input addresses, sweep through the hardwired table, and restore the answers
-to their original order.  For fixed $\gamma<1$ and $t\le2^{\gamma n}$,
-$nt\log^2t=o(n2^n)$, giving the table's $O(n2^n)$ bound.
-Paul's $g^k$ is the same product task considered here; his arbitrary binary
-Boolean gates can be simulated in our basis at constant cost.
+Fix the finite gate set
+$\mathcal G=\{H,T,T^\dagger,\mathrm{CNOT}\}$, with arbitrary connectivity.
+Here $H$ is the Hadamard gate, $T=\operatorname{diag}(1,e^{i\pi/4})$,
+and CNOT is the controlled-NOT gate.  Every gate has cost one.  A synthesis
+circuit starts with all qubits in zero, has $nt$ fixed designated output
+qubits, and returns every other qubit exactly to zero.  The number of
+scratch qubits is unrestricted.  Circuits have no measurements or
+postselection and may depend on the target state.
 
-Holmgren and Rothblum prove that $Q$ indexed bits can be selected from a live
-$N$-bit database by a bounded-fan-in Boolean circuit of size
-$O(N+Q\log^3N)$ and depth $O(\log(N+Q))$
-\cite[Main theorem]{HolmgrenRothblum2024}.  In our nonuniform model, hardwiring
-the database to the $2^n$-bit truth table of $f$ and using the $t$ live
-$n$-bit input blocks as indices gives $O(2^n+tn^3)$, as recorded in the table.
-Thus, throughout every fixed exponential range below one, \cref{thm:main}
-improves the bounds from Paul's construction and this multiselection reduction
-by factors of $n^2$ and $n$, respectively.  Multiselection also implements the
-gather step of our routing; \cref{app:routing-proof} gives the reduction.
+For normalized pure states, write
+\[
+ d(\psi,\phi)=\sqrt{1-|\langle\psi\mid\phi\rangle|^2}
+\]
+for their trace distance; this identifies states differing only by a
+global phase.  Let $Q_\varepsilon(\psi,t)$ be the minimum gate count
+whose output is within trace distance $\varepsilon$ of
+$|\psi\rangle^{\otimes t}$, and set
+\[
+ M(n,t)=\max_{\psi\in\mathbb C^{2^n},\ \|\psi\|=1}
+                   Q_{1/10}(\psi,t).
+\]
+The construction below bounds these integer-valued minima uniformly,
+so the maximum is well-defined.  The state is specified when the circuit
+is designed; no copy of it is supplied as an input.
 
-Albrecht studies the same simultaneous-realization problem over a complete
-binary basis \cite[Theorem~1, pp.~53--54]{Albrecht1989}.  His construction
-covers the endpoint $t=2^n$, with depth $O(n\log n)$ and size a factor
-$O(n^3)$ above the one-copy scale, as Albrecht also notes.
+\begin{lemma}[Coherent Boolean mass production]\label{lem:coherent}
+If a Boolean circuit of size $s$ computes $f^{\times t}$, there is a
+quantum circuit of size $O(s+t+1)$ implementing
+\[
+ |x_1,\ldots,x_t\rangle|z_1,\ldots,z_t\rangle|0^a\rangle
+ \longmapsto
+ |x_1,\ldots,x_t\rangle
+ |z_1\xor f(x_1),\ldots,z_t\xor f(x_t)\rangle|0^a\rangle.
+\]
+In particular, for fixed $0\le\eta<1$, $k\ge1$, and
+$t\le2^{\eta k}$, this map has size $O_\eta(2^k/k+t)$ for every
+$k$-bit Boolean function $f$.
+\end{lemma}
 
-Hiltgen and Paterson use ``mass production'' for $\mathrm{PI}_k$-set circuits
-underlying monotone slice functions \cite{HiltgenPaterson1995}.  Their result
-gives sharing in that restricted set-circuit setting and leads to an optimal
-circuit for the Ne\v{c}iporuk slice.  The task here is simultaneous evaluation
-of an arbitrary Boolean function on disjoint input blocks.
+\begin{proof}
+Compute each Boolean gate into a fresh zero qubit, preserving its source
+qubits.  NOT, AND, and OR each require a constant number of NOT, CNOT,
+and Toffoli gates; repeated sources and constants are handled by their
+one-input or constant simplifications.  These gates have exact
+constant-size implementations over $\mathcal G$.  Copy the $t$ output
+bits to the $z$ register with CNOTs, and reverse the computation.
+Prepared constant sources are also restored.  Repeated use of a source
+as a control implements classical fan-out without an additional gate
+per use beyond those already charged for computing its successors.
 
-\paragraph{Coding ingredients and circuit costs.}
-Systematic polynomial evaluation, affine-line recovery, and disjoint recovery
-sets are established batch-code tools.  Section~3.4 of
-Ishai--Kushilevitz--Ostrovsky--Sahai \cite{IKOS2004} chooses random affine lines
-and deletes
-intersections while preserving enough points for interpolation.  Their
-Remark~3.11 also observes that the randomized decoding algorithms in that and
-the following sections can be derandomized using limited independence.
-In their terminology, the repeated-request analogue relevant here is a
-primitive multiset batch code.  Our local gadget uses the elementary
-tensor-product evaluation subspace, with a separate degree bound in each
-variable, whereas their construction uses total-degree Reed--Muller evaluation.
+The displayed equality holds on every computational basis state, hence
+by linearity on every superposition and on inputs entangled with other
+registers.  Apply \cref{thm:main} for the final assertion.
+\end{proof}
 
-Finite-geometry constructions of primitive batch codes likewise give explicit
-families of mutually disjoint recovery sets \cite{PolyanskiiVorobyev2019}.
-Later lifted-polynomial constructions also use line-based recovery to obtain
-batch-code guarantees \cite{HolzbaurEtAl2020}.  Private-information-retrieval
-codes of Fazeli, Vardy, and Yaakobi form a related family in which each
-information symbol has many disjoint recovery options
-\cite{FazeliVardyYaakobi2015}.
+\subsection{Conditional rotations with clean scratch space}
 
-For circuit mass production, selecting recovery sets is itself part of the
-computation: the prefixes are input wires, and every batch must produce valid
-recovery records within the gate budget.  A generic polynomial bound in the
-exponentially large code length and batch size need not fit below $2^n/n$.
-The menu scheduler provides the more precise bound
-$\widetilde O_\ell(tq)$, which \cref{prop:scheduler-sensitive} combines with
-resource synthesis and routing.  Counting occupied-line descriptions keeps the
-menus short; sharing the occupied-point list across candidates keeps their
-verification small.  Together with high-rate packing, this gives the stated
-exponential-range bound and its leading coefficient.
+For $a\in\{y,z\}$, let $R_a(\theta)=\exp(-i\theta\sigma_a/2)$,
+where $\sigma_a$ is the corresponding Pauli matrix.  A \emph{multiplexed
+rotation} on $k$ address qubits and one target qubit is
+\[
+ U_\theta=\sum_{x\in\bits^k}|x\rangle\langle x|
+                           \otimes R_a(\theta(x)).
+\]
+Thus an address selects a rotation angle while remaining unchanged.
+We use $\|\cdot\|$ for the operator norm on operators.
+
+\begin{lemma}[Batched conditional rotations]\label{lem:quantum-rotation}
+Fix $0\le\eta<1$.  Suppose $k\ge1$, $t\le2^{\eta k}$, and
+$0<\delta\le1/4$.  Put $b=\lceil\log_2(8\pi/\delta)\rceil$.
+For every multiplexed rotation $U_\theta$, a circuit over $\mathcal G$
+with clean scratch space approximates $U_\theta^{\otimes t}$ to
+operator-norm error at most $t\delta$, using
+\[
+ O_\eta\!\left(b\frac{2^k}{k}+t\,\poly(b)\right)
+\]
+gates.  The polynomial is fixed, independent of $k,t,\theta$.
+The circuit preserves every address qubit exactly.
+\end{lemma}
+
+\begin{proof}
+Represent each angle modulo $4\pi$, and round it down to
+$4\pi\sum_{j=1}^b2^{-j}f_j(x)$, where each $f_j$ is a Boolean
+function of the address.  Since
+$\|R_a(u)-R_a(v)\|\le |u-v|/2$, this changes each selected rotation
+by at most $2\pi2^{-b}\le\delta/4$.
+
+For each $j$, use \cref{lem:coherent} to compute
+$f_j(x_1),\ldots,f_j(x_t)$ into zero qubits.  On block $i$, rotate
+the target by $4\pi2^{-j}$ controlled by the computed bit, and then
+uncompute the bits.  This charges
+$O_\eta(b2^k/k+bt)$ gates for Boolean evaluation and its reversal.
+The address registers and all computed control bits are unchanged by
+the controlled rotations, so reversing the lookup erases its scratch
+space exactly.
+
+It remains to synthesize a controlled rotation in the finite gate set
+without losing this property.  Write $X$ for the NOT matrix.  Given a
+one-qubit word $A$ approximating $R_a(\theta/2)$, use the two-CNOT
+circuit with block form
+\[
+ |0\rangle\langle0|\otimes I+
+ |1\rangle\langle1|\otimes A X A^\dagger X.
+\]
+The identity $X R_a(u)X=R_a(-u)$ shows that the ideal choice of $A$
+implements the desired controlled rotation.  For every implemented
+word $A$, the control-zero block is exactly $I$ and the control is
+preserved exactly.  A global phase in $A$ cancels against $A^\dagger$.
+The Solovay--Kitaev theorem \cite{DawsonNielsen2006} supplies $A$ of
+length polynomial in $\log(b/\delta)$ so that this controlled gate
+has error at most $\delta/(4b)$.
+
+After lookup and uncomputation the resulting operation on the data is
+the tensor product of the corresponding approximate one-block
+multiplexors: each computed bit depends only on its own block's address.
+The error in one block is at most $\delta/4+b\delta/(4b)\le\delta$.
+The tensor-product telescoping inequality gives error at most $t\delta$.
+There are $bt$ synthesized controlled gates.  Since
+$\log(b/\delta)=O(b)$, their total cost is $t\poly(b)$, as claimed.
+\end{proof}
+
+\begin{lemma}[State preparation by conditional rotations]
+\label{lem:state-rotations}
+Up to global phase, every $n$-qubit pure state can be prepared using
+two multiplexed rotations, one about each of the $y$ and $z$ axes,
+at each address length $k=0,\ldots,n-1$.
+\end{lemma}
+
+\begin{proof}
+This is the standard recursive state-synthesis decomposition
+\cite{ShendeBullockMarkov2006,Kretschmer2023}.  To see it directly,
+write the target as
+\[
+ |\psi\rangle=\sum_{x\in\bits^{n-1}}|x\rangle
+                   (a_x|0\rangle+b_x|1\rangle).
+\]
+For each $x$, choose angles $\theta_x,\phi_x$ and a complex scalar
+$c_x$ such that
+\[
+ a_x|0\rangle+b_x|1\rangle
+   =c_x R_z(\phi_x)R_y(\theta_x)|0\rangle,
+ \qquad |c_x|^2=|a_x|^2+|b_x|^2.
+\]
+Two rotations parametrize any normalized one-qubit state up to phase;
+when both amplitudes vanish take $c_x=0$ and arbitrary angles.
+The state $\sum_x c_x|x\rangle$ is normalized.  Prepare it recursively,
+adjoin a zero target, and apply the two rotations controlled by $x$.
+The induction ends with a scalar of modulus one, which contributes
+only an irrelevant global phase.
+\end{proof}
+
+\subsection{Upper bound and precision allocation}
+
+\begin{proposition}[Quantum upper bound]\label{prop:quantum-upper}
+For every fixed $0\le\gamma<1$, every $n$-qubit pure state $\psi$,
+and every $1\le t\le2^{\gamma n}$,
+\[
+ Q_{1/10}(\psi,t)
+   =O_\gamma\!\left(\frac{2^n}{n}\log_2(t+1)\right).
+\]
+\end{proposition}
+
+\begin{proof}
+Fix constants $\gamma<\alpha<1$ and $\gamma/\alpha<\eta<1$,
+and put $m=\lceil\alpha n\rceil$ and $L=1+\log_2t$.
+For sufficiently large $n$ we have $1\le m<n$.
+Use \cref{lem:state-rotations} on each of the $t$ blocks.  At address
+length $k$, approximate each of the two rotations with the one-block
+error allowance
+\[
+ \delta_k=\frac{1}{40t}\,2^{k-n}.
+\]
+The number of angle bits in \cref{lem:quantum-rotation} is then
+\[
+ b_k=O(n-k+L)=O(n).
+\]
+Since $t\delta_k$ bounds the error of each batched rotation, telescoping
+over the stages gives total operator-norm error at most
+\[
+ 2t\sum_{k=0}^{n-1}\delta_k
+   =\frac1{20}\sum_{k=0}^{n-1}2^{k-n}<\frac1{10}.
+\]
+Acting on the all-zero state gives the same bound on vector distance
+after aligning global phases, and hence on trace distance.
+
+To apply the Boolean theorem at short address lengths, replace $k$ by
+$k'=\max\{k,m\}$.  When $k<m$, add zero address qubits and extend
+each angle function to ignore them.  They are preserved and can be
+reused.  The fixed rate $\eta$ works at every stage, since
+\[
+ \log_2t\le\gamma n<\eta\alpha n\le\eta k'.
+\]
+Thus no stage invokes a mass-production bound outside its allowed range.
+
+For $k\ge m$, \cref{lem:quantum-rotation} bounds the Boolean lookup
+cost, summed over the two rotations per stage, by
+\begin{align*}
+ O_\gamma\!\left(\sum_{k=m}^{n-1}(n-k+L)\frac{2^k}{k}\right)
+ &\le O_\gamma\!\left(\frac{2^n}{n}
+                  \sum_{j\ge1}(j+L)2^{-j}\right)\\
+ &=O_\gamma\!\left(\frac{2^n}{n}L\right).
+\end{align*}
+Here $k\ge\alpha n$ bounds the denominators, and the two geometric
+sums are finite.  The $O(n)$ short stages each have $b_k=O(n)$ and
+address length $m$, for a total lookup cost
+\[
+ O_\gamma(n^2 2^m/m)=O_\gamma(n2^{\alpha n})=o(2^n/n).
+\]
+Finally, all rotation-synthesis and output-copying costs sum to
+$t\poly(n)=o(2^n/n)$ uniformly for $t\le2^{\gamma n}$.
+The strict fixed margins $\alpha<1$ and $\gamma<1$ justify both
+absorptions.  The scratch space is restored exactly at each stage.
+Enlarging the constant covers the finitely many remaining input lengths.
+\end{proof}
+
+The geometric precision allocation is useful even for one copy: the
+largest address tables need only $O(L)$ precision bits, while the
+extra precision at short tables has a geometrically smaller synthesis
+cost.  Related allocations appear in
+\cite[Appendix~B]{GossetKothariWu2026}.
+
+\subsection{Packing tensor powers and counting circuits}
+
+\begin{lemma}[Packing tensor-power states]\label{lem:quantum-packing}
+For $D\ge2$ and $t\ge1$, there is a set $\mathcal P$ of pure states
+in $\mathbb C^D$ with $|\mathcal P|\ge(4t)^{D-1}$ such that distinct
+$\psi,\phi\in\mathcal P$ satisfy
+\[
+ d(\psi^{\otimes t},\phi^{\otimes t})
+     \ge\sqrt{1-e^{-1/4}}>2/10.
+\]
+\end{lemma}
+
+\begin{proof}
+For a fixed pure state $\psi$ and a Haar-random pure state $\phi$,
+a trace-distance ball of radius $r\in[0,1]$ has probability
+\[
+ \Pr[d(\psi,\phi)\le r]=r^{2(D-1)}.
+\]
+Indeed, unitary invariance lets us take $\psi$ to be the first basis
+vector.  Normalize $D$ independent standard complex Gaussian entries
+to generate $\phi$.  Their squared moduli are independent exponentials,
+and the first divided by their sum has the
+$\operatorname{Beta}(1,D-1)$ distribution.  Its upper-tail probability
+at $1-r^2$ is $(r^2)^{D-1}$.
+
+Choose a maximal set of states separated by at least
+$r=1/(2\sqrt t)$.  Compactness guarantees such a finite set, and
+maximality makes its radius-$r$ balls cover the pure-state space.
+Their volumes give $|\mathcal P|r^{2(D-1)}\ge1$.
+For distinct members,
+\begin{align*}
+ d(\psi^{\otimes t},\phi^{\otimes t})^2
+  &=1-|\langle\psi\mid\phi\rangle|^{2t}\\
+  &\ge1-\left(1-\frac1{4t}\right)^t
+   \ge1-e^{-1/4}.
+\end{align*}
+This proves both assertions.
+\end{proof}
+
+\begin{proposition}[Quantum lower bound]\label{prop:quantum-lower}
+Uniformly over integers $1\le t\le2^n$ as $n\to\infty$,
+\[
+ M(n,t)=\Omega\!\left(nt+\frac{2^n}{n}\log_2(t+1)\right).
+\]
+\end{proposition}
+
+\begin{proof}
+Put $D=2^n$ and use \cref{lem:quantum-packing}.  The triangle
+inequality implies that one circuit output can approximate at most
+one of the $|\mathcal P|$ tensor-power targets to error $1/10$.
+
+Let $g\ge1$ bound the number of gates.  A circuit uses at most $2g$
+scratch qubits that participate in any gate; unused zero qubits can
+be removed.  Canonically relabel the scratch qubits by their first use,
+keeping the $nt$ designated output wires fixed.  A gate is specified
+by its type in the fixed finite set $\mathcal G$ and at most two wire
+indices in a set of size $nt+2g$.  Therefore the number of circuits
+of size at most $g$ is at most
+\[
+ (g+1)\bigl(|\mathcal G|(nt+2g+2)^2\bigr)^g.
+\]
+This upper bound includes circuits that fail to restore their scratch
+space, so imposing the clean-scratch condition cannot invalidate it.
+
+If every target had a circuit of size at most $g$, taking logarithms
+and comparing with $|\mathcal P|$ would give
+\[
+ (D-1)\log_2(4t)
+    \le O\!\left(g\log_2(nt+g+2)+\log_2(g+1)\right).
+\]
+For $g\le2^n$ and $t\le2^n$, the logarithm on the right is $O(n)$,
+which yields the logarithmic term.  If $g>2^n$, that term already follows
+from $\log_2(t+1)\le n+1$.
+
+For the remaining $nt$ term, take $|\psi\rangle=|1^n\rangle$.
+Any untouched output wire stays in zero, making the output orthogonal
+to $|1^{nt}\rangle$.  Error below one therefore requires every output
+wire to participate in a gate, and a gate touches at most two wires.
+Thus $M(n,t)\ge nt/2$.  Combining the two lower bounds proves the claim.
+\end{proof}
+
+\Cref{prop:quantum-upper,prop:quantum-lower} prove
+\cref{thm:quantum}.  The lower bound is a worst-case existence statement;
+it does not identify an explicit family of hard states.  Together the
+bounds determine the order of growth, not its leading constant, and
+do not assert an efficient uniform procedure for finding the circuits.
+
 
 \section{Implications and open problems}\label{sec:discussion}
 
-The results leave three questions: efficient construction of the menus, the
-optimal leading coefficient, and the behavior at copy rates approaching one.
+The Boolean results leave questions about efficient construction of the
+menus, the optimal leading coefficient, and copy rates approaching one.
+The quantum application determines the fixed-rate order of growth, but
+also leaves a transition near the endpoint.
 
 \paragraph{Can the menus be constructed efficiently?}
 \Cref{lem:universal-menus} proves that short menus exist simultaneously for
@@ -1242,6 +1619,18 @@ $t=\omega(2^n/n^2)$.  The theorem still leaves the detailed mass-production
 curve throughout the near-endpoint regime $t=2^{n-o(n)}$ unresolved.
 Analyzing this regime requires uniform control of the code rate and circuit
 overhead as the parameters vary with $n$.
+
+\paragraph{What happens near the quantum endpoint?}
+For $t\le2^n$, \cref{prop:quantum-lower} gives
+$M(n,t)=\Omega(nt+(2^n/n)\log_2(t+1))$.
+\Cref{thm:quantum} matches this order for each fixed rate below one,
+where $nt$ is negligible, but does not settle $t=2^{n-o(n)}$.
+In particular, the $\Theta(2^n)$ cost at fixed positive rates cannot
+continue to $t=2^n$, where touching all output wires already costs
+$\Omega(n2^n)$.  Matching the two-term lower bound near this endpoint,
+or optimizing scratch space and $T$ count simultaneously with total
+gate count, remains open here.  The state theorem also does not settle
+the corresponding optimal tradeoff for arbitrary unitary operations.
 
 \clearpage
 \appendix
@@ -1758,6 +2147,14 @@ has exactly the real-rate and $\varepsilon$ quantifiers of
 \cref{thm:coefficient}, without substituting growing dimensions into a
 fixed-dimension estimate.
 
+\ifanonymous\else
+\section*{Acknowledgements}
+
+I thank Shreyas Srinivas for helpful feedback on the exposition and the
+quantum literature.  I am especially grateful for his suggestion to attack
+the quantum variant of the mass-production problem.
+\fi
+
 \section*{AI Disclosure}
 
 This project began in an interactive conversation on ChatGPT.com that was
@@ -1771,7 +2168,8 @@ pursue, checked and revised the proofs and literature claims, and takes full
 responsibility for the correctness, originality, and integrity of the paper.
 Codex also assisted with development and testing of the nonuniform menu
 scheduler and the high-rate-code refinement, and with their Lean formalization
-through the sharp real-rate theorem.
+through the sharp real-rate theorem.  Codex also assisted with the
+quantum state preparation application and its packing lower bound.
 
 \begin{thebibliography}{HPPV20}
 \small
@@ -1791,17 +2189,23 @@ Kenneth E. Batcher.
 AFIPS Conference Proceedings 32, pages 307--314, 1968.
 \newblock \href{https://doi.org/10.1145/1468075.1468121}{doi:10.1145/1468075.1468121}.
 
-\bibitem[FVY15]{FazeliVardyYaakobi2015}
-Arman Fazeli, Alexander Vardy, and Eitan Yaakobi.
-\newblock PIR with low storage overhead: Coding instead of replication.
-\newblock arXiv:1505.06241, 2015.
-\newblock \url{https://arxiv.org/abs/1505.06241}.
+\bibitem[DN06]{DawsonNielsen2006}
+Christopher M. Dawson and Michael A. Nielsen.
+\newblock The Solovay--Kitaev algorithm.
+\newblock \emph{Quantum Information \& Computation}, 6(1):81--95, 2006.
+\newblock \url{https://arxiv.org/abs/quant-ph/0505030}.
 
 \bibitem[FM05]{FrandsenMiltersen2005}
 Gudmund Skovbjerg Frandsen and Peter Bro Miltersen.
 \newblock Reviewing bounds on the circuit size of the hardest functions.
 \newblock \emph{Information Processing Letters}, 95(2):354--357, 2005.
 \newblock \href{https://doi.org/10.1016/j.ipl.2005.03.009}{doi:10.1016/j.ipl.2005.03.009}.
+
+\bibitem[FVY15]{FazeliVardyYaakobi2015}
+Arman Fazeli, Alexander Vardy, and Eitan Yaakobi.
+\newblock PIR with low storage overhead: Coding instead of replication.
+\newblock arXiv:1505.06241, 2015.
+\newblock \url{https://arxiv.org/abs/1505.06241}.
 
 \bibitem[GKS13]{GuoKoppartySudan2013}
 Alan Guo, Swastik Kopparty, and Madhu Sudan.
@@ -1810,6 +2214,19 @@ Alan Guo, Swastik Kopparty, and Madhu Sudan.
 Science Conference}, pages 529--539. ACM, 2013.
 \newblock \href{https://doi.org/10.1145/2422436.2422494}{doi:10.1145/2422436.2422494}.
 \newblock \url{https://arxiv.org/abs/1208.5413}.
+
+\bibitem[GKW26]{GossetKothariWu2026}
+David Gosset, Robin Kothari, and Kewen Wu.
+\newblock Quantum state preparation with optimal $T$-count.
+\newblock \emph{Quantum}, 10:2168, 2026.
+\newblock \href{https://doi.org/10.22331/q-2026-07-22-2168}{doi:10.22331/q-2026-07-22-2168}.
+\newblock \url{https://arxiv.org/abs/2411.04790}.
+
+\bibitem[HKW25]{HugginsKhattarWiebe2025}
+William J. Huggins, Tanuj Khattar, and Nathan Wiebe.
+\newblock Productionizing quantum mass production.
+\newblock arXiv:2506.00132, 2025.
+\newblock \url{https://arxiv.org/abs/2506.00132}.
 
 \bibitem[HP95]{HiltgenPaterson1995}
 Alain P. Hiltgen and Mike S. Paterson.
@@ -1855,12 +2272,6 @@ Oleg B. Lupanov.
 \newblock In Russian.
 \newblock \url{https://radiophysics.unn.ru/issues/1958/1/120}.
 
-\bibitem[Pau76]{Paul1976}
-Wolfgang J. Paul.
-\newblock Realizing Boolean functions on disjoint sets of variables.
-\newblock \emph{Theoretical Computer Science}, 2(3):383--396, 1976.
-\newblock \href{https://doi.org/10.1016/0304-3975(76)90089-X}{doi:10.1016/0304-3975(76)90089-X}.
-
 \bibitem[PV19]{PolyanskiiVorobyev2019}
 Nikita Polyanskii and Ilya Vorobyev.
 \newblock Constructions of batch codes via finite geometry.
@@ -1868,6 +2279,20 @@ Nikita Polyanskii and Ilya Vorobyev.
 pages 360--364. IEEE, 2019.
 \newblock \href{https://doi.org/10.1109/ISIT.2019.8849736}{doi:10.1109/ISIT.2019.8849736}.
 \newblock arXiv:1901.06741.
+
+\bibitem[Pau76]{Paul1976}
+Wolfgang J. Paul.
+\newblock Realizing Boolean functions on disjoint sets of variables.
+\newblock \emph{Theoretical Computer Science}, 2(3):383--396, 1976.
+\newblock \href{https://doi.org/10.1016/0304-3975(76)90089-X}{doi:10.1016/0304-3975(76)90089-X}.
+
+\bibitem[SBM06]{ShendeBullockMarkov2006}
+Vivek V. Shende, Stephen S. Bullock, and Igor L. Markov.
+\newblock Synthesis of quantum logic circuits.
+\newblock \emph{IEEE Transactions on Computer-Aided Design of Integrated
+Circuits and Systems}, 25(6):1000--1010, 2006.
+\newblock \href{https://doi.org/10.1109/TCAD.2005.855930}{doi:10.1109/TCAD.2005.855930}.
+\newblock \url{https://arxiv.org/abs/quant-ph/0406176}.
 
 \bibitem[Sha49]{Shannon1949}
 Claude E. Shannon.

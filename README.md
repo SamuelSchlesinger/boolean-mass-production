@@ -1,8 +1,8 @@
 # Exponential-Range Mass Production of Boolean Functions
 
 This repository contains the manuscript *Exponential-Range Mass Production of
-Boolean Functions: Local recovery, disjoint scheduling, and bounded
-congestion* by Samuel Schlesinger.
+Boolean Functions: Local recovery and optimal quantum state preparation*
+by Samuel Schlesinger.
 
 [Read the current manuscript](main.pdf).
 
@@ -21,16 +21,27 @@ at every input length, and the final real-rate quantifiers.
 
 The scheduler's small fixed menus are proved to exist for every input batch.
 An efficient uniform algorithm to construct those general menus remains open
-here. Both upper-bound variants are formally proved in the pinned Lean
+here. Both Boolean upper-bound variants are formally proved in the pinned Lean
 companion.
 
-For a first reading, the introduction explains the sharing obstacle and the
-coefficient calculation, and Section 3 works through two independent requests.
-The notation and codeword/resource tables support the direct proof in
-Sections 4-8. Sections 9-10 compare earlier work and discuss open problems.
-Appendix A gives the explicit recursive construction, Appendix B supplies
-gate-level implementation details, and Appendix C connects the argument
-with the Lean formalization.
+The quantum application determines the optimal worst-case total gate count
+for preparing `t` copies of a specified `n`-qubit pure state:
+`Theta_gamma((2^n/n) log2(t+1))`, uniformly for `1 <= t <= 2^(gamma n)`.
+It uses the fixed finite Clifford+T gate set, arbitrary connectivity, and
+scratch qubits returned exactly to zero. Trace-distance error is at most
+`1/10` for the entire batch. The upper bound uses coherent Boolean mass
+production; a packing and circuit-counting argument proves the matching
+lower bound. These quantum arguments are written proofs, outside the
+pinned Lean formalization.
+
+For a first reading, the introduction states both the Boolean and quantum
+results and explains the sharing obstacle. Section 2 gives the full prior-work
+comparison, including recent quantum work, before the constructions.
+Section 4 works through two independent Boolean requests; Sections 5-9 give
+the code, scheduler, composition, and coefficient arguments. Section 10
+proves the quantum tradeoff, and Section 11 discusses open problems.
+Appendices A-C give the explicit recursive alternative, gate-level details,
+and exact finite accounting used in Lean.
 
 ## Machine-checked companion
 
@@ -84,6 +95,10 @@ and takes responsibility for the paper.
   sorting networks and a small exact high-rate code.
 - `scripts/check_improvements.py` checks the combinatorial and implementation
   invariants, including exhaustive small cases and end-to-end recovery.
+- `scripts/check_quantum.py` checks finite identities used in the quantum proof,
+  including scratch-space cleanup on entangled inputs, rotation decomposition,
+  error allocation, and tensor-power separation. It is not a formal proof or
+  a quantum circuit synthesizer.
 - `scripts/package_arxiv.py` recreates the verified source-only submission
   archive and checks arXiv's abstract format and length requirements.
 - `.githooks/pre-commit` checks that a staged PDF matches the staged source.
@@ -101,10 +116,11 @@ in the preamble of `main.tex`.
 ./build.sh
 ```
 
-Run the dependency-free exact checks with:
+Run the dependency-free checks with:
 
 ```sh
 python3 scripts/check_improvements.py
+python3 scripts/check_quantum.py
 ```
 
 The checks include a certified universal two-request menu and fixed sampled
