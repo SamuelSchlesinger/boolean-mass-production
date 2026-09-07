@@ -174,11 +174,13 @@ regime open.
 Mass production also matters when many copies of the same quantum state
 are needed.  A synthesis circuit may be designed for the specified state,
 and sharing can occur while the copies are prepared from all-zero inputs.
-Kretschmer established quantum analogues of Uhlig's theorem
-\cite{Kretschmer2023}; recent work connects mass production to coherent
-data loading and quantum algorithms \cite{HugginsKhattarWiebe2025}.
-Our Boolean theorem yields a matching upper and lower bound for approximate
-state preparation in a finite gate set.
+Kretschmer established quantum analogues of Uhlig's theorem by mass
+producing conditional rotations and using them to prepare states
+\cite{Kretschmer2023}.  Building on this framework and the connection to
+coherent data loading \cite{HugginsKhattarWiebe2025}, our stronger Boolean
+theorem yields an upper bound for approximate state preparation in a finite
+gate set throughout the exponential copy range.  A packing lower bound
+gives the matching tradeoff.
 
 Let $M(n,t)$ be the maximum, over $n$-qubit pure states $|\psi\rangle$,
 of the minimum number of elementary Clifford+$T$ gates needed to prepare
@@ -416,13 +418,17 @@ verification small.  Together with high-rate packing, this gives the stated
 exponential-range bound and its leading coefficient.
 
 \paragraph{Quantum mass production and synthesis.}
-Kretschmer \cite{Kretschmer2023} gives exact synthesis of
+Kretschmer \cite[Sections~3--4]{Kretschmer2023} gives exact synthesis of
 $t=2^{o(n/\log n)}$ copies of any $n$-qubit state with $O(2^n)$ CNOT
 gates, allowing arbitrary one-qubit gates.  He also obtains an $O(4^n)$
-bound for $t$ uses of an arbitrary $n$-qubit unitary.  His discussion asks
-what happens for larger copy ranges.  \Cref{thm:quantum} treats a finite
-gate set and constant error for the whole batch; these model differences
-are essential to the comparison with exact synthesis.
+bound for $t$ uses of an arbitrary $n$-qubit unitary.  His reduction from
+mass production of conditional rotations to state preparation provides
+the framework for our upper bound.  His discussion asks what happens for
+larger copy ranges.  \Cref{thm:quantum} determines the total elementary
+gate count for $t\le2^{\gamma n}$, for every fixed $\gamma<1$, in a finite
+gate set at constant error for the whole batch.  The larger copy range
+and matching finite-gate bounds are the advance over his result; the
+model differences remain essential to the comparison with exact synthesis.
 
 Huggins, Khattar, and Wiebe \cite{HugginsKhattarWiebe2025} combine mass
 production with quantum read-only memory, which loads fixed classical
