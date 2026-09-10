@@ -15,14 +15,24 @@ The asymptotic coefficient is at most
 `~O_ell(t q)` gates to select globally disjoint recovery sets, so the direct
 proof evaluates each resource once. High-rate lifted codes and packing into
 several smaller codes give a resource count of `(1 + o(1)) 2^p`.
-Appendix C explains the exact accounting used in the formalization:
-request identity, inactive slots, resource-bank padding, whole field blocks
-at every input length, and the final real-rate quantifiers.
-
 The scheduler's small fixed menus are proved to exist for every input batch.
-An efficient uniform algorithm to construct those general menus remains open
-here. Both Boolean upper-bound variants are formally proved in the pinned Lean
-companion.
+Efficient deterministic construction of those menus remains open here.
+Both Boolean size-only upper-bound variants are formally proved in the
+pinned Lean companion. The depth, randomized-construction, quantum, and
+lower-bound results below are written proofs outside that companion.
+
+The simultaneous bound attains `O_gamma(2^n/n)` gates and `O_gamma(n)` depth
+throughout the same range. It uses the geometric slack to leave
+an exponentially small fraction of requests unfinished per phase, giving a
+constant number of phases. Holmgren and Rothblum's low-depth sorting theorem
+implements each phase in linear depth. This refinement does not preserve the
+sharp leading coefficient.
+
+Given the full truth table, the proof yields a randomized algorithm to
+construct circuits with these size and depth bounds in time polynomial in `2^n`.
+With probability at least `1 - 2^(-n)` over construction, its output circuit
+is exact on every input batch. The randomness selects fixed scheduling
+menus; the algorithm does not certify their correctness.
 
 The quantum application determines the optimal worst-case total gate count
 for preparing `t` copies of a specified `n`-qubit pure state:
@@ -31,17 +41,34 @@ It uses the fixed finite Clifford+T gate set, arbitrary connectivity, and
 scratch qubits returned exactly to zero. Trace-distance error is at most
 `1/10` for the entire batch. The upper bound uses coherent Boolean mass
 production; a packing and circuit-counting argument proves the matching
-lower bound. These quantum arguments are written proofs, outside the
-pinned Lean formalization.
+lower bound.
+
+The coherent Boolean evaluation lemma also gives exact batch oracles with
+`O_gamma(2^n/n)` gates, `O_gamma(n^2)` depth, and clean scratch space.
+This depth bound applies to Boolean evaluation; no corresponding depth
+bound is asserted for the full state-preparation construction.
+
+Appendix D proves the restricted lower bound
+`(1-gamma) S + gamma W >= (1-o(1)) 2^n/n` for circuits covering all
+functions at `t = floor(2^(gamma*n))`, fixed `0 < gamma < 1`, with total
+size `S = O(2^n/n)`. They may use at most `2^(mu*n)` modules, fixed
+`0 < mu < 1`, with polynomial interfaces and `W` exterior gates.
+A negligible exterior forces the coefficient `1/(1-gamma)` within this
+architecture. A separate inverse-bit reduction transfers assumed nonuniform
+inversion hardness to the bound `C(h_m^t) >= H(m)/ceil(m/t)`.
+Neither lower bound closes the
+unrestricted coefficient gap.
 
 For a first reading, the introduction states both the Boolean and quantum
 results and explains the sharing obstacle. Section 2 gives the full prior-work
 comparison, including recent quantum work, before the constructions.
 Section 4 works through two independent Boolean requests; Sections 5-9 give
-the code, scheduler, composition, and coefficient arguments. Section 10
-proves the quantum tradeoff, and Section 11 discusses open problems.
-Appendices A-C give the explicit recursive alternative, gate-level details,
-and exact finite accounting used in Lean.
+the code, scheduler, composition, and coefficient arguments. Section 10 gives
+the simultaneous size and depth bound and its randomized construction.
+Section 11 proves the quantum tradeoff. Section 12 groups secure evaluation,
+lower bounds, and open problems into separate subsections.
+Appendices A-D give the explicit recursive alternative, gate-level details,
+exact finite accounting used in Lean, and the restricted module lower bound.
 
 ## Machine-checked companion
 

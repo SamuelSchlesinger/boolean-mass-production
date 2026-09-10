@@ -23,12 +23,16 @@
 \newaliascnt{proposition}{theorem}
 \newtheorem{proposition}[proposition]{Proposition}
 \aliascntresetthe{proposition}
+\newaliascnt{corollary}{theorem}
+\newtheorem{corollary}[corollary]{Corollary}
+\aliascntresetthe{corollary}
 
 % arXiv's TeX Live 2025 currently requires explicit cleveref aliases for
 % theorem-like environments that share a section counter.
 \AddToHook{env/theorem/begin}{\crefalias{section}{theorem}}
 \AddToHook{env/lemma/begin}{\crefalias{section}{lemma}}
 \AddToHook{env/proposition/begin}{\crefalias{section}{proposition}}
+\AddToHook{env/corollary/begin}{\crefalias{section}{corollary}}
 
 \newcommand{\bits}{\{0,1\}}
 \newcommand{\F}{\mathbb{F}}
@@ -73,13 +77,17 @@ Thus exponentially many evaluations fit within a constant factor of the
 worst-case cost of one.  In the standard AND, OR, NOT basis, our bound
 is $(1/(1-\gamma)+o_\gamma(1))2^n/n$ gates.  Uhlig previously achieved
 $(1+o(1))2^n/n$ gates for the smaller range $t=2^{o(n/\log n)}$.
+We also attain $O_\gamma(2^n/n)$ gates and $O_\gamma(n)$ depth
+simultaneously.
 
 Our construction encodes shorter restrictions of the function and recovers
 the requested outputs from disjoint sets of encoded functions.  The gate
 bound includes choosing those sets, evaluating the functions, and routing
-the answers.  The circuits are nonuniform; an efficient algorithm for
-constructing their fixed scheduling data remains open.  A Lean companion
-verifies the Boolean upper bounds.
+the answers.  Given the truth table, a randomized algorithm constructs
+circuits attaining the simultaneous size and depth bounds in polynomial
+time in the table length, with high probability.  Efficient deterministic
+construction of their fixed scheduling menus remains open.  A Lean
+companion verifies the recursive and sharp-coefficient Boolean size bounds.
 
 As an application, we determine the optimal worst-case cost of preparing
 $t$ copies of a specified $n$-qubit pure state throughout the same range:
@@ -93,9 +101,9 @@ matching lower bound.
 \section{Introduction}
 
 How much circuit size can be saved when the same function must be evaluated on
-many unrelated inputs?  This is a direct-sum question in which the outputs are
-independent but the circuit implementing them need not be: intermediate
-computations may be reorganized and shared across copies.
+many unrelated inputs?  Each output depends on a separate input block, but
+the circuit may reorganize and share intermediate computations across copies.
+This is the direct-sum question studied here; the input values may repeat.
 
 For a Boolean function $f:\bits^n\to\bits$ and an integer $t\ge 1$, define
 \[
@@ -123,7 +131,7 @@ $2^{\gamma n}$ simultaneous evaluations for every fixed $\gamma<1$.  The
 asymptotic coefficient is at most $1/(1-\gamma)$ in our basis.  This does not
 preserve Uhlig's coefficient $1$ for positive fixed $\gamma$.
 
-\subsection{Main result}
+\subsection{Boolean size and depth bounds}
 
 We fix the standard basis $\{\wedge,\vee,\neg\}$, with fan-in two for the
 binary gates.  Constant sources, fan-out, and output designations are free;
@@ -140,6 +148,8 @@ integer $1\le t\le 2^{\gamma n}$,
 \]
 \end{theorem}
 
+The next theorem refines the leading constant in this bound.
+
 \begin{theorem}[Quantitative leading coefficient]\label{thm:coefficient}
 For every fixed $0\le\gamma<1$, uniformly over Boolean functions on $n$ bits
 and integers $1\le t\le2^{\gamma n}$,
@@ -150,6 +160,27 @@ and integers $1\le t\le2^{\gamma n}$,
 Equivalently, for every $\varepsilon>0$, the coefficient
 $1/(1-\gamma)+\varepsilon$ suffices for all sufficiently large $n$.
 \end{theorem}
+
+The order-of-growth size bound can also be attained at linear depth.
+
+\begin{theorem}[Simultaneous size and depth]\label{thm:linear-depth}
+For every fixed $0\le\gamma<1$, there are constants $A_\gamma,B_\gamma$
+such that, for every $n\ge1$, every Boolean function $f:\bits^n\to\bits$,
+and every integer $1\le t\le2^{\gamma n}$, there is a circuit $C$ computing
+$f^{\times t}$ with
+\[
+  \operatorname{size}(C)\le A_\gamma\frac{2^n}{n},
+  \qquad
+  \operatorname{depth}(C)\le B_\gamma n.
+\]
+\end{theorem}
+
+This simultaneous bound preserves the order of size in \cref{thm:main};
+its proof does not retain the leading coefficient of \cref{thm:coefficient}.
+\Cref{cor:randomized-construction} gives a randomized algorithm that,
+given the full truth table, constructs such a circuit in time polynomial
+in $2^n$, with probability at least $1-2^{-n}$ of correctness on every
+input batch.
 
 For fixed $\gamma$, the bound is independent of the batch size throughout
 the stated range.  At the largest allowed batch size, the amortized size per
@@ -208,8 +239,7 @@ The single-copy endpoint is already known \cite{GossetKothariWu2026}.
 Our upper bound uses coherent Boolean mass production and carefully
 allocated rotation precision.  The lower bound reflects the fact that
 $t$ copies distinguish states whose single-copy distance is on the order
-of $1/\sqrt t$.  The quantum arguments are written proofs and are outside
-the Lean companion.
+of $1/\sqrt t$.
 
 \subsection{How the construction works}
 
@@ -261,7 +291,8 @@ The encoding defines the resource truth tables when the circuit is built.
 At evaluation time, the circuit selects recovery sets, routes suffixes,
 evaluates the fixed resource circuits, and decodes.  The menus are fixed in
 advance and work for every batch; the input prefixes determine which entries
-the circuit selects.
+the circuit selects.  The depth refinement in \cref{sec:linear-depth}
+increases the progress per phase so that only constantly many phases remain.
 
 \subsection{Where the leading coefficient comes from}
 
@@ -283,13 +314,16 @@ smaller than $2^n/n$.  The displayed product therefore gives the coefficient
 $1/\delta$.  Choosing $\delta$ close enough to $1-\gamma$ gives
 $1/(1-\gamma)+\varepsilon$ for any fixed $\varepsilon>0$.
 For example, the bound for $t\le2^{n/2}$ has coefficient $2+o(1)$.
+\Cref{app:module-bound} explains when this coefficient is forced by the
+resource-bank architecture.
 
 \paragraph{Machine-checked companion.}
-An accompanying Lean~4 development verifies the Boolean recursive construction in a
-rational, discrete-exponent formulation and the complete nonuniform
-construction with the real-rate and additive-error quantifiers of
-\cref{thm:coefficient}.  \Cref{sec:formal-accounting} records the theorem
-endpoints, pinned sources, and finite accounting.
+A Lean~4 companion verifies the recursive size bound and the complete
+nonuniform construction yielding \cref{thm:coefficient}, including its
+real-rate and additive-error quantifiers.  \Cref{sec:formal-accounting}
+records the theorem endpoints, pinned sources, and finite accounting.
+The depth, randomized-construction, quantum, and lower-bound results
+are written proofs outside this companion.
 
 \paragraph{Development methodology.}
 Generative-AI systems materially assisted mathematical experiments,
@@ -297,17 +331,21 @@ literature discovery, and proof development, as detailed in the AI Disclosure
 at the end of the paper.
 
 \paragraph{Organization.}
-\Cref{sec:related} compares prior work before the constructions.
-\Cref{sec:two-copy} illustrates disjoint recovery with two requests.
+\Cref{sec:related,sec:conventions} compare prior work and fix the circuit
+model.  \Cref{sec:two-copy} illustrates disjoint recovery with two requests.
 \Cref{sec:code,sec:scheduling,sec:master} develop the code, scheduler, and
-composition bound used in the direct proof in \cref{sec:direct};
-\cref{sec:high-rate} sharpens the coefficient.
-\Cref{sec:quantum} proves the quantum state preparation tradeoff.
-An alternative proof in \cref{sec:induction} uses an explicitly constructible
-greedy scheduler.  Its quadratic scheduling cost is controlled by grouping
-requests and recursively handling resource reuse.
-\Cref{app:implementation,sec:formal-accounting} give circuit implementation
-details and the exact finite accounting used in Lean.
+composition bound for the direct proof in \cref{sec:direct}.
+\Cref{sec:high-rate,sec:linear-depth} refine the coefficient and depth;
+the latter also gives the randomized construction.
+\Cref{sec:quantum} proves the quantum state preparation tradeoff, and
+\cref{sec:discussion} treats secure evaluation, lower bounds, and open
+problems.
+
+The appendices give an explicit recursive alternative
+(\cref{sec:induction}), circuit implementation details
+(\cref{app:implementation}), exact accounting for the Lean companion
+(\cref{sec:formal-accounting}), and the lower bound for modules with
+polynomial interfaces (\cref{app:module-bound}).
 
 \section{Relation to earlier work}\label{sec:related}
 
@@ -385,6 +423,15 @@ gives sharing in that restricted set-circuit setting and leads to an optimal
 circuit for the Ne\v{c}iporuk slice.  The task here is simultaneous evaluation
 of an arbitrary Boolean function on disjoint input blocks.
 
+\paragraph{Direct sums in oracle models.}
+Suruga \cite[Theorem~1]{Suruga2024} characterizes limiting amortized
+worst-case oracle complexity by optimal expected one-instance oracle
+complexity, for a fixed problem and positive per-instance error.
+His framework charges oracle calls and leaves internal computation
+uncharged.  Our circuits compute every output exactly, and their savings
+concern the gates used for that internal computation, including schedule
+selection and routing.
+
 \paragraph{Coding ingredients and circuit costs.}
 Systematic polynomial evaluation, affine-line recovery, and disjoint recovery
 sets are established batch-code tools.  Section~3.4 of
@@ -448,7 +495,7 @@ range.  Our proof uses standard conditional-rotation synthesis
 \cite{ShendeBullockMarkov2006} and finite-gate approximation
 \cite{DawsonNielsen2006}, followed by a matching packing lower bound.
 
-\section{Circuit conventions and worst-case notation}
+\section{Circuit conventions and worst-case notation}\label{sec:conventions}
 
 Our circuits are finite directed acyclic graphs.  Source vertices are input
 bits or the constants zero and one.  Internal vertices are labelled by
@@ -457,7 +504,9 @@ $F:\bits^N\to\bits^m$ has $m$ designated output wires, which may be input
 wires or gate outputs and may repeat.  Fan-out, constants, and output
 designations carry no cost; size is the number of internal gates.  We write
 $\C(F)$ for the minimum size of such a circuit.  All leading-constant
-comparisons in this paper refer to this fixed model.
+comparisons in this paper refer to this fixed model.  The depth of a circuit
+is the maximum number of internal gates on a path from a source to a
+designated output, counting a $\neg$ gate as one gate on such a path.
 
 Let
 \[
@@ -468,19 +517,23 @@ The Shannon counting lower bound and Lupanov's synthesis upper bound imply
   L(n)=\Theta(2^n/n)
 \]
 for every fixed finite complete basis; see
-\cite{Shannon1949,Lupanov1958,FrandsenMiltersen2005,Wegener1987}.  We use only
-the upper bound.
+\cite{Shannon1949,Lupanov1958,FrandsenMiltersen2005,Wegener1987}.
 
 Fixing all but one input block and retaining its output gives
 $\C(f^{\times t})\ge\C(f)$.  Thus $2^n/n$ is the optimal worst-case
 order even when several outputs are requested.
 
-All circuits below are nonuniform.  Field representations, irreducible
-polynomials, sorting networks, and other finite combinatorial objects may be
-fixed as part of the circuit for each input length.
+Circuits may depend on the full truth table of $f$.  Their size and depth
+measure evaluation after the circuit has been constructed.  Field
+representations, irreducible polynomials, sorting networks, and scheduling
+menus may all be fixed as part of that construction.
+\Cref{cor:randomized-construction} separately bounds the time to construct
+the circuits for the simultaneous size and depth theorem from a supplied
+truth table.
 
-The main parameters have the following roles.  Code length and dimension are
-measured in field symbols; multiplying by $b$ converts either count to bits.
+The parameters of the Boolean construction have the following roles.
+Code length and dimension are measured in field symbols; multiplying by
+$b$ converts either count to bits.
 \begin{center}
 \small
 \begin{tabularx}{\linewidth}{@{}lX@{}}
@@ -789,7 +842,8 @@ The scheduler maps target coordinates to disjoint recovery sets.  A greedy
 construction first shows how the blocking bound gives a circuit of size
 $\widetilde O_\ell(g^2q)$ for $g$ requests.  Fixed menus reduce this cost to
 $\widetilde O_\ell(gq)$.  Routing then connects the selected addresses to the
-resource circuits.
+resource circuits.  The main proof uses the menu scheduler; the greedy
+version supplies the explicit recursive alternative in \cref{sec:induction}.
 
 \subsection{Greedy line scheduling}
 
@@ -1268,24 +1322,356 @@ $1-\gamma$ proves the theorem.  This last step takes a limit of fixed-parameter
 bounds; it makes no assertion uniform in growing $\ell$ or in $\gamma\to1$.
 \end{proof}
 
+\section{Linear depth at the same size order}\label{sec:linear-depth}
+
+To prove \cref{thm:linear-depth}, we return to the constant-rate product
+code of \cref{sec:code} and adapt its packing to make the prefix map a
+wiring operation.  The scheduler also needs a depth refinement: halving
+uses $O(\log t)$ dependent phases.  Testing larger menus lets each phase
+leave only an exponentially small fraction of requests unfinished.
+A constant number of phases then suffices, with total gate count still
+negligible beside $2^n/n$.
+
+The collision estimate below refines the same forest-conditioning argument
+used in \cref{lem:partial-schedule}.  To implement a phase at low depth we use
+Holmgren and Rothblum's sorting theorem
+\cite[Lemma~6]{HolmgrenRothblum2024}: $R$ records of $w$ bits, with
+$\kappa$-bit keys, can be sorted by a bounded-fan-in Boolean circuit of size
+$O(Rw\log(R+2))$ and depth $O(\kappa+\log(R+2))$.
+Their proof uses the sorting networks of Ajtai, Koml\'os, and Szemer\'edi,
+with a bit-position argument that bounds the depth of the complete Boolean
+network \cite[Section~4]{HolmgrenRothblum2024}.
+
+\subsection{Menus that leave few requests unfinished}
+
+\begin{lemma}[Collision tail]\label{lem:collision-tail}
+Let $1\le k\le g$, let $U$ be a union of at most $g$ recovery sets, and
+fix any ordered list of $k$ target points.  Choose their directions
+independently and uniformly.  A request is bad if its candidate recovery
+set meets $U$ or another candidate recovery set.
+For every integer $0\le v<k$, put $h=\lceil(v+1)/2\rceil$.  Then
+\[
+  \Pr\{\text{more than }v\text{ requests are bad}\}
+  \le \binom{k}{h}\left(\frac{2gq}{D_q}\right)^h.
+\]
+\end{lemma}
+
+\begin{proof}
+Form the collision graph on the requests and a vertex $0$ representing
+$U$, as in \cref{lem:partial-schedule}.  If more than $v$ requests are
+bad, two-color a spanning forest of its nontrivial components.  One color
+contains at least $h$ bad requests, not counting vertex $0$.  Choose
+exactly $h$ of them as $S$.  Every member of $S$ has a forest neighbor
+outside $S$, which may be vertex $0$.
+
+For a fixed $S$, condition on all directions outside $S$.  Their recovery
+sets together with $U$ contain at most $2g(q-1)$ points.  Each target in
+$S$ independently chooses a direction whose recovery set meets this
+fixed union with probability at most $2gq/D_q$.  A union bound over
+the $\binom{k}{h}$ possible choices of $S$ gives the estimate.
+\end{proof}
+
+\begin{lemma}[Menus with a prescribed remainder]\label{lem:small-remainder-menus}
+Put $N=q^\ell$ and $E_g=g(1+3\log_2N)$.  Suppose $0<\alpha\le1/2$ and
+\[
+  \frac{4e\,gq}{D_q}\le\alpha^2,
+\]
+where $e$ is the base of the natural logarithm.
+For each $1\le k\le g$, define
+\[
+  v_k=\lfloor\alpha k\rfloor,\qquad
+  h_k=\left\lceil\frac{v_k+1}{2}\right\rceil,\qquad
+  r_k=\left\lceil
+       \frac{E_g+1}{h_k\log_2(1/\alpha)}
+      \right\rceil.
+\]
+There is a fixed menu of $r_k$ direction $k$-tuples such that, for every
+occupied set $U$ that is a union of at most $g$ recovery sets and every
+ordered list of $k$ targets, a menu entry has at least $k-v_k$ clean
+recovery sets.  Moreover,
+\begin{equation}\label{eq:small-remainder-menu-work}
+  r_k k\le
+  g+\frac{2(E_g+1)}{\alpha\log_2(1/\alpha)}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+We have $h_k>\alpha k/2$.  By \cref{lem:collision-tail} and the inequality
+$\binom{k}{h}\le(ek/h)^h$, one random tuple fails with probability at most
+\[
+  \left(\frac{ek}{h_k}\frac{2gq}{D_q}\right)^{h_k}
+  \le
+  \left(\frac{4e\,gq}{\alpha D_q}\right)^{h_k}
+  \le\alpha^{h_k}.
+\]
+As in \cref{lem:universal-menus}, there are at most
+$(1+ND_q)^gN^k\le2^{E_g}$ states to serve.  A menu of $r_k$ independent
+tuples fails on any particular state with probability at most
+$2^{-r_kh_k\log_2(1/\alpha)}\le2^{-E_g-1}$.
+The union bound is less than one, so a menu works for all states.
+Finally, the ceiling in $r_k$ and $k/h_k<2/\alpha$ give
+\eqref{eq:small-remainder-menu-work}.
+\end{proof}
+
+In a successful phase, accept exactly the first $k-v_k$ clean requests,
+reserve their recovery sets, and compact the remaining $v_k$ requests.
+The successive values of $k$ are fixed in advance, since each is replaced
+by $\lfloor\alpha k\rfloor$.  The number of phases is at most
+\[
+  1+\left\lfloor\frac{\log_2g}{\log_2(1/\alpha)}\right\rfloor.
+\]
+This includes the final phase, when $\lfloor\alpha k\rfloor=0$.
+
+\subsection{Depth of one phase and of the resources}
+
+For a phase with $k$ pending requests, generate the $r_k k(q-1)$
+candidate-point records and append the occupied points once.  Thus the
+record count is
+\[
+  R=O\bigl(q(g+r_k k)\bigr).
+\]
+The three verification passes from \cref{thm:linear-scheduler} still
+apply.  Candidate directions and line scalars are hardwired, so each
+candidate point is its target plus a fixed field vector.
+
+The occupancy propagation in the first pass need not be a serial scan.
+Writing its update as $e_i=a_i\vee(b_i\wedge e_{i-1})$, encode it by
+the pair $(a_i,b_i)$.  Composition is the associative operation
+\[
+  (a,b)\circ(c,d)=\bigl(a\vee(b\wedge c),\,b\wedge d\bigr).
+\]
+A doubling prefix circuit therefore computes every occupancy bit in
+$O(\log(R+2))$ depth and $O(R\log(R+2))$ gates.  This is the usual
+parallel-prefix method; a related propagation primitive is given in
+\cite[Lemma~26]{HolmgrenRothblum2024}, with credit there to Ladner and
+Fischer.
+
+OR the bad-point flags along each request's line with a balanced tree.
+To test whether a candidate has at least $k-v_k$ clean requests, sort
+its $k$ clean bits and inspect the appropriate fixed position.
+Prefix OR selects the first successful candidate.  One-hot multiplexers
+select its records, and sorting by the clean flag and request position
+accepts exactly the required number of clean requests.  All these
+operations have depth $O(w+\log(R+2))$ and size
+$R\,\operatorname{poly}(w+\log(R+2))$, when all keys and records have
+width $O(w)$.  The record sorting steps use
+\cite[Lemma~6]{HolmgrenRothblum2024}.  In the parameter choice below,
+$w=O_\gamma(n)$ and $\log(R+2)=O_\gamma(n)$, so a phase has depth
+$O_\gamma(n)$.
+
+The resource circuits run in parallel, so their contribution to depth is
+the maximum depth of any one resource.  The following synthesis bound
+keeps this part linear as well.
+
+\begin{lemma}[One-copy synthesis with a depth bound]\label{lem:size-depth-synthesis}
+Every Boolean function on $d\ge1$ bits has a circuit of size $O(2^d/d)$
+and depth $d+O(\log(d+2))$.
+\end{lemma}
+
+\begin{proof}
+For $d\ge4$, let $k=\lfloor\log_2d\rfloor-1$ and split the input into
+$d-k$ prefix bits and $k$ suffix bits.  Compute all minterms of the prefix
+with $O(2^{d-k})$ gates and depth $O(\log(d+2))$: recursively form the
+minterms on the two halves and AND every pair of half-minterms.
+
+On the suffix, compute all $2^{2^k}$ Boolean functions.  Computing all
+suffix minterms once and then the OR for each truth table uses
+$O(2^k2^{2^k})$ gates and depth $k+O(\log(k+2))$.
+For each prefix assignment, select by fixed wiring the suffix function
+specified by the desired restriction.  AND it with that prefix's
+minterm, and OR all $2^{d-k}$ terms using a balanced tree.
+The size is
+\[
+  O(2^{d-k}+2^k2^{2^k})=O(2^d/d),
+\]
+because $d/4<2^k\le d/2$.  The final OR contributes $d-k$ layers, giving
+the stated depth.  Supplying negated input bits adds at most one layer.
+The finitely many smaller values of $d$ are absorbed in the constants.
+\end{proof}
+
+\subsection{The simultaneous bound}
+
+\begin{proof}[Proof of \cref{thm:linear-depth}]
+Fix $0\le\gamma<1$, choose $0<\delta<1-\gamma$, and take a fixed
+$\ell$ sufficiently large that
+\[
+  \gamma<(1-2/\ell)(1-\delta).
+\]
+Put $d=\lceil\delta n\rceil$, $p=n-d$, and
+$\lambda=(1-\delta)/\ell$.  We use the product-code construction, with
+a minor packing choice that makes the prefix map a wiring operation.
+
+Let $c=\lceil\log_2\ell\rceil+1$.  For a sufficiently large field
+$q=2^b$, take $A$ to be the first $2^{b-c}$ elements in the fixed binary
+representation of $\F_q$.  Use the product grid $A^\ell$, of size
+$K=2^{\ell(b-c)}$.  The interpolating polynomial has degree at most
+$\ell(2^{b-c}-1)\le q-2$, so the same line-parity recovery identity
+applies.  Pack only $b'=2^{\lfloor\log_2 b\rfloor}$ information bits
+into each field symbol, padding its remaining $b-b'$ bits with zeros.
+Choose the least sufficiently large $b$ such that $Kb'\ge2^p$.
+
+Since $Kb'$ is a power of two, pad a prefix with leading zero bits
+and split it into $\ell$ coordinate indices of $b-c$ bits and one
+bit-position index of $\log_2b'$ bits.  Prepending $c$ zeros to each
+coordinate index gives its field representation.  Thus no division or
+table lookup is needed for this prefix map.
+Increasing $b$ by one multiplies $Kb'$ by at most $2^{\ell+1}$, while
+$b<2b'$.  Minimality therefore gives
+\[
+  q^\ell b=O_\ell(2^p),\qquad
+  \log_2q=\lambda n+O_\ell(\log(n+2)).
+\]
+The constant loss in this packing is harmless for the order-of-growth
+bound.
+
+Set
+\[
+  \beta=(\ell-2)\lambda-\gamma>0,\qquad
+  \rho=\beta/4,\qquad
+  \alpha=2^{-\lfloor\rho n\rfloor}.
+\]
+For all sufficiently large $n$ and uniformly for $g=t\le2^{\gamma n}$,
+\[
+  \frac{gq}{D_q}\le2^{-\beta n+O_\ell(\log(n+2))},
+\]
+so $4e\,gq/D_q\le\alpha^2$ and $0<\alpha\le1/2$.
+Apply \cref{lem:small-remainder-menus}.
+Since $E_g=O_\gamma(gn)$ and $\log_2(1/\alpha)=\Theta_\gamma(n)$,
+\eqref{eq:small-remainder-menu-work} gives $r_k k=O_\gamma(g/\alpha)$
+uniformly over every phase.  The number of phases is $O_\gamma(1)$,
+and each phase uses
+\[
+  R\le C_\gamma gq/\alpha
+  \le2^{(\gamma+\lambda+\rho)n+O_\gamma(\log(n+2))}
+\]
+records per phase, for a suitable constant $C_\gamma$.  Moreover,
+\[
+  \gamma+\lambda+\rho
+  =\tfrac34\gamma+\tfrac{\ell+2}{4}\lambda
+  <(\ell-1)\lambda<1.
+\]
+The scheduler consequently has depth $O_\gamma(n)$ and size
+$o_\gamma(2^n/n)$, even with the polynomial factors from its
+Boolean implementation.  Its menus remain fixed nonuniform data.
+
+Scatter and gather use the four passes of \cref{lem:routing}, now
+implemented with Holmgren--Rothblum sorting.  There are
+$O(gq+q^\ell)$ records of $O_\gamma(n)$ bits.  Each pass has depth
+$O_\gamma(n)$, and their total size is $o_\gamma(2^n/n)$ because
+$\gamma+\lambda<1$ and $\ell\lambda=1-\delta<1$.
+Balanced XOR trees recover each field symbol in $O(\log q)$ depth;
+selecting its requested bit adds $O(\log(b+2))$ depth.
+
+Finally, apply \cref{lem:size-depth-synthesis} independently to the
+$q^\ell b$ Boolean resource functions.  Their total size is
+\[
+  O\left(q^\ell b\,\frac{2^d}{d}\right)
+  =O_\gamma(2^n/n),
+\]
+and they run in parallel at depth $O_\gamma(n)$.
+The prefix map, the constant number of scheduling phases, routing,
+resource evaluation, and decoding therefore have total depth
+$O_\gamma(n)$ and total size $O_\gamma(2^n/n)$.
+Enlarge both constants to handle the finitely many initial input lengths.
+\end{proof}
+
+The power-of-two packing and \cref{lem:size-depth-synthesis} allow
+constant losses, so this proof controls the size order without retaining
+the leading coefficient of \cref{thm:coefficient}.
+
+\subsection{Randomized construction from the truth table}
+
+Amplifying the menu union bound turns the preceding existence proof into
+a randomized construction.
+
+\begin{corollary}[Randomized construction]\label{cor:randomized-construction}
+For every fixed $0\le\gamma<1$, there is a randomized algorithm that,
+given the truth table of $f:\bits^n\to\bits$ and an integer
+$1\le t\le2^{\gamma n}$, runs in time polynomial in $2^n$ and outputs
+a circuit of size $O_\gamma(2^n/n)$ and depth $O_\gamma(n)$.
+With probability at least $1-2^{-n}$ over the construction, that circuit
+computes $f^{\times t}$ correctly on every input batch.
+\end{corollary}
+
+\begin{proof}
+Choose a rational rate $\gamma<\widehat\gamma<1$ and use the proof of
+\cref{thm:linear-depth} at rate $\widehat\gamma$, also choosing rational
+$\delta$.  Its fixed numerical parameters are then rational, and its
+bounds remain $O_\gamma(2^n/n)$ and $O_\gamma(n)$.
+Let $P=O_\gamma(1)$ be its number of phases.  The successive pending
+request counts $k$ are fixed before any input is supplied.  In each phase,
+sample a menu of independent uniform direction tuples, replacing its
+length by
+\[
+ r_k'=\left\lceil
+ \frac{E_g+n+\lceil\log_2P\rceil+2}
+      {h_k\log_2(1/\alpha)}
+ \right\rceil.
+\]
+The proof of \cref{lem:small-remainder-menus} bounds the probability that
+this menu fails on any state by
+\[
+ 2^{E_g-r_k'h_k\log_2(1/\alpha)}
+ \le 2^{-n-\lceil\log_2P\rceil-2}.
+\]
+A union bound over the phases is at most $2^{-n-2}$.  On the
+complementary event all menus work for every state, hence for every
+input batch and every choice of the resource truth tables.  Since
+$E_g=\Theta_\gamma(gn)$, the enlarged menus still satisfy
+$r_k'k=O_\gamma(g/\alpha)$, preserving both circuit bounds.
+
+All remaining construction steps take polynomial time in $2^n$.
+The field has $b=O_\gamma(n)$ bits per element; exhaustive search and
+trial division find an irreducible polynomial of degree $b$ in
+$2^{O_\gamma(n)}$ time.  Product-grid interpolation constructs
+the resource truth tables in polynomially many field operations in their
+total table length, which is $2^{O_\gamma(n)}$.  The synthesis in
+\cref{lem:size-depth-synthesis} explicitly lists the required gates.
+The sorting circuits are log-space uniform
+\cite[Lemmas~8--9]{HolmgrenRothblum2024}, and the other scheduling and
+routing gates are explicitly specified above.
+
+For a worst-case polynomial running time, implement each uniform
+direction choice by rejection sampling an index in $[D_q]_0$.
+If $L$ directions are needed in total, cap each choice at
+$n+\lceil\log_2(L+1)\rceil+2$ trials.  Each trial succeeds with probability
+at least $1/2$, so the probability of any exhausted cap is at most
+$2^{-n-2}$.  On that event output the all-zero circuit.  Otherwise the
+chosen directions remain independent and uniform.  Combining the two
+failure bounds proves the stated probability.  The finitely many initial
+input lengths use elementary truth-table synthesis, with constants enlarged.
+\end{proof}
+
+The output circuit uses no runtime randomness.  The algorithm does not
+certify that its sampled menus work, and its time bound is polynomial
+in the full truth table, which may be exponentially larger than a
+succinct description of $f$.
+
+
 \section{Optimal approximate quantum state mass production}
 \label{sec:quantum}
 
-We now prove \cref{thm:quantum}.  Its upper bound transfers Boolean mass
-production to quantum state preparation.  Its lower bound counts how many
-states become distinguishable after taking tensor powers.  Both depend on
-charging all elementary gates and measuring error on the entire batch.
+The upper bound in \cref{thm:quantum} has three steps: evaluate Boolean
+functions coherently, use their outputs to select rotation angles, and
+assemble the target state from conditional rotations.  The lower bound
+compares a packing of tensor-power states with the number of finite-gate
+circuits.  Throughout, we charge every elementary gate and measure error
+on the entire batch.
 
 \subsection{Model and coherent Boolean evaluation}
 
 Fix the finite gate set
 $\mathcal G=\{H,T,T^\dagger,\mathrm{CNOT}\}$, with arbitrary connectivity.
 Here $H$ is the Hadamard gate, $T=\operatorname{diag}(1,e^{i\pi/4})$,
-and CNOT is the controlled-NOT gate.  Every gate has cost one.  A synthesis
-circuit starts with all qubits in zero, has $nt$ fixed designated output
-qubits, and returns every other qubit exactly to zero.  The number of
-scratch qubits is unrestricted.  Circuits have no measurements or
-postselection and may depend on the target state.
+and CNOT is the controlled-NOT gate.  Every gate has cost one; quantum
+depth counts layers of gates acting on pairwise disjoint qubits.
+Circuits have no measurements or postselection.
+
+For state preparation, all qubits start in zero, the $nt$ output qubits
+are fixed, and every scratch qubit returns exactly to zero.  The number
+of scratch qubits is unrestricted, and the circuit may depend on the
+target state.  The coherent subroutines below instead act on arbitrary
+input states, with the same requirement on scratch qubits.
 
 For normalized pure states, write
 \[
@@ -1303,9 +1689,13 @@ The construction below bounds these integer-valued minima uniformly,
 so the maximum is well-defined.  The state is specified when the circuit
 is designed; no copy of it is supplied as an input.
 
+We first implement Boolean mass production reversibly.  The simulation
+also gives a depth bound for the resulting oracle.
+
 \begin{lemma}[Coherent Boolean mass production]\label{lem:coherent}
-If a Boolean circuit of size $s$ computes $f^{\times t}$, there is a
-quantum circuit of size $O(s+t+1)$ implementing
+If a Boolean circuit of size $s$ and depth $D$ computes $f^{\times t}$,
+there is a quantum circuit of size $O(s+t+1)$, depth
+$O((D+1)\log(s+t+2))$, and $O(s+t+1)$ scratch qubits implementing
 \[
  |x_1,\ldots,x_t\rangle|z_1,\ldots,z_t\rangle|0^a\rangle
  \longmapsto
@@ -1318,20 +1708,48 @@ $k$-bit Boolean function $f$.
 \end{lemma}
 
 \begin{proof}
-Compute each Boolean gate into a fresh zero qubit, preserving its source
-qubits.  NOT, AND, and OR each require a constant number of NOT, CNOT,
-and Toffoli gates; repeated sources and constants are handled by their
+Delete gates outside the output cones.  Assign a separate control qubit
+to each use of a Boolean wire, including its uses as a designated output.
+A wire with $r$ uses supplies these controls by a balanced CNOT tree,
+using $O(r)$ gates and scratch qubits
+at depth $O(\log(r+1))$.  The total number of uses is at most $2s+t$,
+so this costs $O(s+t+1)$ gates and scratch qubits in all.
+
+Compute the Boolean gates in depth order, each into a fresh zero qubit.
+NOT, AND, and OR each require a constant number of NOT, CNOT, and
+Toffoli gates; repeated sources and constants are handled by their
 one-input or constant simplifications.  These gates have exact
-constant-size implementations over $\mathcal G$.  Copy the $t$ output
-bits to the $z$ register with CNOTs, and reverse the computation.
-Prepared constant sources are also restored.  Repeated use of a source
-as a control implements classical fan-out without an additional gate
-per use beyond those already charged for computing its successors.
+constant-size implementations over $\mathcal G$.  The separate control
+qubits make the simulations within a Boolean layer disjoint.  After
+each layer, prepare its output fan-out trees in parallel.  The initial
+input fan-out and the $D$ gate layers therefore have total depth
+$O((D+1)\log(s+t+2))$.
+
+Copy the designated output controls to the distinct $z$ qubits in
+parallel, then reverse all gate computations and fan-out trees.
+Prepared constant sources and all scratch qubits are restored.
 
 The displayed equality holds on every computational basis state, hence
 by linearity on every superposition and on inputs entangled with other
 registers.  Apply \cref{thm:main} for the final assertion.
 \end{proof}
+
+\begin{corollary}[Coherent evaluation at quadratic depth]
+\label{cor:coherent-depth}
+For fixed $0\le\gamma<1$, every $n$-bit Boolean function and every
+$1\le t\le2^{\gamma n}$ admit the exact coherent evaluation map in
+\cref{lem:coherent} with $O_\gamma(2^n/n)$ elementary gates,
+$O_\gamma(n^2)$ depth, and $O_\gamma(2^n/n)$ scratch qubits, all restored
+to zero.
+\end{corollary}
+
+\begin{proof}
+Apply \cref{lem:coherent} to \cref{thm:linear-depth}, using
+$t=O_\gamma(2^n/n)$ and $\log(s+t+2)=O_\gamma(n)$.
+\end{proof}
+
+For state preparation we use the gate bound in \cref{lem:coherent}.
+The remaining rotation and synthesis steps below are analyzed for size only.
 
 \subsection{Conditional rotations with clean scratch space}
 
@@ -1431,6 +1849,12 @@ only an irrelevant global phase.
 
 \subsection{Upper bound and precision allocation}
 
+To control the error of the whole batch, we give each copy an $O(1/t)$
+error budget.  We allocate most of that budget to the largest address
+tables, which then need only $O(\log(t+1))$ angle bits.  Smaller tables
+use finer precision at a geometrically smaller synthesis cost.  Related
+allocations appear in \cite[Appendix~B]{GossetKothariWu2026}.
+
 \begin{proposition}[Quantum upper bound]\label{prop:quantum-upper}
 For every fixed $0\le\gamma<1$, every $n$-qubit pure state $\psi$,
 and every $1\le t\le2^{\gamma n}$,
@@ -1493,13 +1917,11 @@ absorptions.  The scratch space is restored exactly at each stage.
 Enlarging the constant covers the finitely many remaining input lengths.
 \end{proof}
 
-The geometric precision allocation is useful even for one copy: the
-largest address tables need only $O(L)$ precision bits, while the
-extra precision at short tables has a geometrically smaller synthesis
-cost.  Related allocations appear in
-\cite[Appendix~B]{GossetKothariWu2026}.
-
 \subsection{Packing tensor powers and counting circuits}
+
+Taking tensor powers makes nearby states easier to distinguish.  We
+therefore pack one-copy states at distance of order $1/\sqrt t$; their
+tensor powers remain separated by a constant.
 
 \begin{lemma}[Packing tensor-power states]\label{lem:quantum-packing}
 For $D\ge2$ and $t\ge1$, there is a set $\mathcal P$ of pure states
@@ -1581,30 +2003,133 @@ Thus $M(n,t)\ge nt/2$.  Combining the two lower bounds proves the claim.
 \end{proof}
 
 \Cref{prop:quantum-upper,prop:quantum-lower} prove
-\cref{thm:quantum}.  The lower bound is a worst-case existence statement;
-it does not identify an explicit family of hard states.  Together the
-bounds determine the order of growth, not its leading constant, and
-do not assert an efficient uniform procedure for finding the circuits.
+\cref{thm:quantum}.  The packing argument gives a worst-case lower bound;
+it does not identify an explicit family of hard states.
 
 
 \section{Implications and open problems}\label{sec:discussion}
 
-The Boolean results leave questions about efficient construction of the
-menus, the optimal leading coefficient, and copy rates approaching one.
-The quantum application determines the fixed-rate order of growth, but
-also leaves a transition near the endpoint.
+Secure evaluation gives a direct application of the simultaneous size
+and depth bound.  We then examine what lower bounds say about restricted
+circuit architectures and specified hard functions, before returning to
+deterministic construction and endpoint copy rates.
 
-\paragraph{Can the menus be constructed efficiently?}
-\Cref{lem:universal-menus} proves that short menus exist simultaneously for
-all inputs.  Exhaustive search is a finite construction, but no efficient
-uniform procedure for finding such menus is supplied.
+\subsection{Secure batch evaluation}\label{sec:secure-evaluation}
+The simultaneous size and depth bound has a standard secure-computation
+corollary.  Fix integers $m\ge4$ and $0\le c<m/3$, and assume a synchronous
+network of $m$ parties with private authenticated channels and broadcast.
+For every public $f:\bits^n\to\bits$, fixed $0\le\gamma<1$, and
+$1\le t\le2^{\gamma n}$, there is a nonuniform protocol computing
+$f^{\times t}$ with perfect security against a static malicious adversary
+corrupting at most $c$ parties, using $O_{\gamma,m}(2^n/n)$ communication
+bits and $O_{\gamma,m}(n)$ rounds.  The input bits may be distributed
+arbitrarily among the parties, and all parties receive the output vector.
 
-\paragraph{What is the optimal leading coefficient?}
-The normalized worst-case size has lower limiting coefficient at least $1$
-by one-copy counting, and \cref{thm:coefficient} gives an upper limiting
-coefficient $1/(1-\gamma)$.
-In particular, preserving coefficient $1$ at a positive fixed exponential
-copy rate remains unresolved here.
+To obtain this protocol, apply the Ben-Or--Goldwasser--Wigderson framework
+\cite{BenOrGoldwasserWigderson1988}, with the quantitative bound of
+\cite[Theorem~1.2 of the full version]{AbrahamAsharovYanai2021}, to
+\cref{thm:linear-depth}.  Over a fixed field $\F_Q$ of characteristic two
+with $Q>m$, AND, OR, and NOT become $xy$, $x+y+xy$, and $1+x$.
+First mapping each supplied field element $u$ to $u^{Q-1}$ ensures Boolean
+inputs at constant cost per input for fixed $m$.  Secure evaluation then
+uses $O_m(S+nt)$ communication bits and $O_m(D+1)$ rounds for a Boolean
+circuit of size $S$ and depth $D$, including input sharing and output
+reconstruction.  Substitute the simultaneous bounds and
+$nt=o_\gamma(2^n/n)$.  The correct circuit and its menus are public
+nonuniform protocol data; scheduling and routing are evaluated on shares.
+
+The communication bound comes from secure circuit evaluation.
+Circuit lower bounds do not establish its optimality among protocols:
+under suitable homomorphic-encryption assumptions, computationally secure
+protocols can limit communication according to input and output lengths
+and security parameters despite large local computation
+\cite[Section~1]{Couteau2018}.  The perfect-security lower bounds in
+\cite{DamgaardSchwartzbach2020} concern functions with circuits linear
+in their input length and do not settle this larger-circuit regime.
+
+\subsection{Lower bounds and the leading coefficient}\label{sec:lower-bounds}
+
+For fixed $0<\gamma<1$ and $t=\lfloor2^{\gamma n}\rfloor$, the normalized
+worst-case size has lower limiting coefficient at least $1$ by one-copy
+counting, while \cref{thm:coefficient} gives upper limiting coefficient
+$1/(1-\gamma)$.  Achieving coefficient $1$ at a positive fixed exponential
+copy rate remains unresolved.  It is also open whether the upper
+coefficient $1/(1-\gamma)+o_\gamma(1)$ can be attained at depth
+$O_\gamma(n)$, as the proof of \cref{thm:linear-depth} allows constant losses.
+
+\Cref{thm:module-bound} supplies a matching lower coefficient for a
+restricted resource architecture.  At this batch size, suppose a circuit
+is partitioned into at most $2^{\mu n}$ modules, for a fixed $0<\mu<1$,
+each with polynomially many input and output ports, and an exterior of
+$W$ gates.  If gate-count caps $S=O(2^n/n)$ and $W$ suffice to compute
+$f^{\times t}$ for every
+$f$, then
+\[
+ (1-\gamma)S+\gamma W\ge(1-o(1))\frac{2^n}{n}.
+\]
+Consequently $W=o(2^n/n)$ forces the coefficient $1/(1-\gamma)$.
+The modules and their wiring may depend on $f$.  The bound applies to
+separately synthesized resource banks of the kind used here, but leaves
+unrestricted circuits open.  Its proof in \cref{app:module-bound} cuts the
+largest modules at their output ports and counts the remaining circuitry.
+
+\paragraph{A conditional bound for a specified function.}
+The counting arguments above do not identify a hard function.  An
+inversion assumption gives a bound for the following specified Boolean
+family.  A batch can request different bits of one inverse; collecting
+those bits recovers the full preimage.
+
+\begin{samepage}
+\begin{proposition}[Inverse-bit reduction]\label{prop:inverse-bit}
+Let $(P_m)_{m\ge2}$ be a polynomial-time computable family of permutations
+of $\bits^m$.  Suppose every nonuniform Boolean circuit $I:\bits^m\to\bits^m$
+satisfying
+\[
+ \Pr_{y\ \mathrm{uniform\ in}\ \bits^m}
+       [I(y)=P_m^{-1}(y)]\ge\tfrac12
+\]
+has at least $H(m)$ gates.  Define a Boolean function on
+$m+\lceil\log_2m\rceil$ bits by
+\[
+ h_m(y,j)=
+ \begin{cases}
+  (P_m^{-1}(y))_j,&j\in[m]_0,\\
+  0,&\text{otherwise}.
+ \end{cases}
+\]
+Then, for every integer $t\ge1$,
+\[
+ \C(h_m^{\times t})\ge\frac{H(m)}{\lceil m/t\rceil}.
+\]
+\end{proposition}
+\end{samepage}
+
+\begin{proof}
+Let a circuit of size $S$ compute $h_m^{\times t}$ exactly.
+Use $\lceil m/t\rceil$ copies of it, wiring the same $y$ into every
+request slot and hardwiring the indices $0,\ldots,m-1$ across those
+slots.  Pad any remaining slots with index zero and discard their
+outputs.  The retained outputs give $P_m^{-1}(y)$ for every $y$,
+using at most $\lceil m/t\rceil S$ gates.  The assumption gives the
+inequality.
+\end{proof}
+
+For $1\le t\le m$, the lower bound is at least $tH(m)/(2m)$; for
+$t\ge m$, it is $H(m)$.  Exponential inversion hardness therefore gives
+an exponential circuit lower bound, but this reduction supplies no
+further growth once $t\ge m$.  The predicate $h_m$ itself need not be
+efficiently evaluable.  The result neither compares $\C(h_m^{\times t})$
+with $t\C(h_m)$ nor closes the unrestricted leading-coefficient gap.
+
+\subsection{Open problems}
+
+\paragraph{Can the menus be constructed deterministically?}
+\Cref{cor:randomized-construction} constructs circuits attaining the
+simultaneous size and depth bounds in time polynomial in the supplied
+truth-table length, with high probability of correctness on all batches.
+It samples fixed menus without certifying their universal property.
+Efficient deterministic construction of such menus, or efficient
+certification of a sampled menu, remains open here.
 
 \paragraph{Where does the plateau end?}
 The theorem reaches $2^{(1-\varepsilon)n}$ copies for every fixed
@@ -2153,6 +2678,167 @@ has exactly the real-rate and $\varepsilon$ quantifiers of
 \cref{thm:coefficient}, without substituting growing dimensions into a
 fixed-dimension estimate.
 
+\section{A lower bound for modules with polynomial interfaces}
+\label[appendix]{app:module-bound}
+
+We count the functions representable by circuits built from modules
+whose input and output interfaces are small.  The internal gates of
+different modules are disjoint.  Each module receives all external
+signals through its input ports, and its internal gates may be used
+outside the module only through its designated output ports.  All other
+gates form the \emph{exterior}.  The assembled circuit is acyclic;
+wiring, constants, and output designations remain free.
+
+\begin{theorem}[Module counting bound]\label{thm:module-bound}
+Fix $0<\gamma,\mu<1$ and polynomial bounds $a(n),b(n)\ge1$.  Put
+$N=2^n$ and $t=\lfloor2^{\gamma n}\rfloor$.  Let $\mathcal F_n(S,W)$
+be the family of functions $f:\bits^n\to\bits$ for which $f^{\times t}$
+has a circuit with at most $S$ gates, partitioned into at most
+$2^{\mu n}$ modules and an exterior of at most $W$ gates, with at most
+$a(n)$ input and $b(n)$ output ports per module.
+For $0\le W\le S=O(N/n)$,
+\[
+ |\mathcal F_n(S,W)|
+ \le 2^{\,n((1-\gamma)S+\gamma W)+o(N)}.
+\]
+The error is uniform under the fixed rate, port, and size bounds.
+In particular, gate-count caps covering every $f$ must satisfy
+\begin{equation}\label{eq:module-lower}
+ (1-\gamma)S+\gamma W\ge(1-o(1))\frac{N}{n}.
+\end{equation}
+Any fixed positive gap below $N/n$ on the left makes the fraction
+of representable functions exponentially small in $N$.
+\end{theorem}
+
+The proof cuts the largest modules at fewer than $t$ output ports.
+For each fixed remainder, their possible replacements account for only
+$2^{o(N)}$ functions.  The modules left behind are small enough to
+describe at a lower cost per gate.  Two elementary counting facts
+make these steps precise.
+
+\begin{lemma}[Cutting module outputs]\label{lem:module-cut}
+Fix the exterior, all interconnections, and all but a selected group of
+modules whose output ports total $r<t$.  Let $\mathcal F$ be the family
+of functions $f$ for which some choice of the selected modules completes
+the circuit to $f^{\times t}$.  Then
+\[
+ |\mathcal F|\le\sum_{i=0}^r\binom Ni\le(r+1)N^r.
+\]
+\end{lemma}
+
+\begin{proof}
+Regard a Boolean function as a subset of its $N$-point domain.
+A set of points is \emph{shattered} if the family realizes every Boolean
+labeling of those points.  If $\mathcal F$ shattered $r+1$ distinct
+points, place them in the first
+$r+1$ request slots of a fixed batch and fill the remaining slots
+arbitrarily.  Cut the selected output ports and treat their values as
+$r$ independent Boolean sources.  There are at most $2^r$ resulting
+output vectors from the fixed remainder, whereas shattering requires
+$2^{r+1}$ labelings of those points.  This is impossible.  Cutting all
+selected outputs also handles connections between selected modules.
+
+Thus the VC dimension of $\mathcal F$, the largest size of a shattered
+set, is at most $r$.  Sauer's bound
+\cite{Sauer1972} gives the first inequality.  For completeness, its
+induction splits a family by the last domain point, with projected
+families $\mathcal F_0,\mathcal F_1$.  The original cardinality is
+$|\mathcal F_0\cup\mathcal F_1|+|\mathcal F_0\cap\mathcal F_1|$.
+The union has VC dimension at most $r$ and the intersection at most
+$r-1$, so Pascal's identity gives the binomial sum.  The empty-family
+and zero-dimension cases supply the induction bases.  Finally
+$\binom Ni\le N^i$ proves the second inequality.
+\end{proof}
+
+\begin{lemma}[Descriptions with several outputs]\label{lem:multi-output-count}
+After deleting unused gates, circuits with $A$ named input sources,
+$Q$ designated outputs, and $u$ gates can be described, up to relabeling
+of internal gates, in at most $12^u2^Q(u+A+2)^{u+Q}$ ways.
+The base-two logarithm of this count is at most
+\[
+ u\log_2 12+Q+(u+Q)\log_2(u+A+2).
+\]
+\end{lemma}
+
+\begin{proof}
+Traverse the output cones depth first, with the roots in output order.
+At each root or incoming edge, record whether a new gate is discovered
+or an existing gate, input, or constant is named.  There are at most
+$2u+Q$ such flags.  Exactly $u$ positions discover a gate, whose type
+has three possibilities, leaving at most $u+Q$ names from a set of
+size $u+A+2$.  Number gates in discovery order.  Padding unused
+description positions gives the stated count; invalid descriptions
+can only increase it.
+\end{proof}
+
+\begin{proof}[Proof of \cref{thm:module-bound}]
+First fix exact gate counts $S,W$ and a module count $M\le2^{\mu n}$.
+Pad the ports to the bounds $a=a(n)$ and $b=b(n)$, rounding these
+bounds up to integers if needed.  Put $B=S-W$ and
+\[
+ k=\left\lfloor\frac{t-1}{b}\right\rfloor.
+\]
+Remove the $k$ largest modules by gate count, or all modules if there
+are fewer.  They expose at most $kb<t$ output ports.  For each fixed
+remainder, \cref{lem:module-cut} bounds the logarithm of the number of
+possible functions by
+\[
+ \log_2(r+1)+r\log_2N=O(tn)=o(N).
+\]
+This step accounts for the removed modules without describing their
+potentially large interiors.
+
+Every remaining module has at most $B/(k+1)$ gates.  Applying
+\cref{lem:multi-output-count} to their $a$ named inputs and $b$ outputs
+shows that the logarithm of their total description count is at most
+\[
+ B\log_2\!\left(\frac{B}{k+1}+a+2\right)
+ +O(B)+O\bigl(Mb\log(S+a+2)\bigr).
+\]
+Here $\log_2(k+1)=\gamma n+O(\log(n+2))$.  Since $a,b$ are polynomial
+and $\mu<1$, the displayed bound is at most
+\[
+ (1-\gamma)nB+o(N).
+\]
+This remains true if no modules remain.  Specifying module gate counts
+and the removed subset costs $O(M\log(S+1)+M)=o(N)$ additional bits.
+
+To include all interconnections, describe the exterior as a circuit
+on the $nt$ original inputs and the $Mb$ module output ports, with
+designated outputs supplying the $Ma$ module input ports and the $t$
+final outputs.  In \cref{lem:multi-output-count}, take
+\[
+ A_{\rm ext}=nt+Mb,\qquad Q_{\rm ext}=Ma+t,\qquad u=W.
+\]
+This description includes direct wires between modules, constant
+connections, and output designations.  Because $\mu,\gamma<1$,
+the terms involving $Q_{\rm ext}$ are $o(N)$, while
+$\log_2(W+A_{\rm ext}+2)\le n+O(\log(n+2))$.  The exterior therefore
+contributes at most $nW+o(N)$ to the logarithm.  Descriptions that create cycles
+when the modules are reattached merely overcount the valid circuits.
+
+For each such description, the cut bound supplies at most $2^{o(N)}$
+functions.  Multiplication of the counts gives
+\[
+ \log_2|\mathcal F_n(S,W)|
+ \le (1-\gamma)n(S-W)+nW+o(N)
+ =n((1-\gamma)S+\gamma W)+o(N).
+\]
+Summing over exact counts up to the caps adds only $o(N)$ to the
+logarithm; the final expression is increasing in both caps.
+There are $2^N$ truth tables, proving \eqref{eq:module-lower} and the
+fixed-gap assertion.
+\end{proof}
+
+When $W=o(N/n)$, the required coefficient of $S$ is at least
+$1/(1-\gamma)$.  Conversely, if $S\le(1+o(1))N/n$ suffices for every
+function, \eqref{eq:module-lower} forces $W\ge(1-o(1))N/n$ and hence
+$S-W=o(N/n)$.  Thus coefficient one cannot be attained by keeping a
+positive fraction of the leading cost inside such a bank of modules.
+Substantial sharing across module interiors, larger interfaces, or a
+leading-order exterior can escape these hypotheses; the theorem makes
+no unrestricted lower-bound claim.
+
 \ifanonymous\else
 \section*{Acknowledgements}
 
@@ -2177,8 +2863,18 @@ scheduler and the high-rate-code refinement, and with their Lean formalization
 through the sharp real-rate theorem.  Codex also assisted with the
 quantum state preparation application and its packing lower bound.
 
+\clearpage
 \begin{thebibliography}{HPPV20}
 \small
+\interlinepenalty=10000
+
+\bibitem[AAY21]{AbrahamAsharovYanai2021}
+Ittai Abraham, Gilad Asharov, and Avishay Yanai.
+\newblock Efficient perfectly secure computation with optimal resilience.
+\newblock In \emph{Theory of Cryptography---TCC 2021, Part II}, LNCS 13043,
+pages 66--96. Springer, 2021.
+\newblock \href{https://doi.org/10.1007/978-3-030-90453-1_3}{doi:10.1007/978-3-030-90453-1\_3}.
+\newblock Full version: \url{https://eprint.iacr.org/2021/1206}.
 
 \bibitem[Alb89]{Albrecht1989}
 Andreas Albrecht.
@@ -2194,6 +2890,27 @@ Kenneth E. Batcher.
 \newblock In \emph{Proceedings of the 1968 Spring Joint Computer Conference},
 AFIPS Conference Proceedings 32, pages 307--314, 1968.
 \newblock \href{https://doi.org/10.1145/1468075.1468121}{doi:10.1145/1468075.1468121}.
+
+\bibitem[BGW88]{BenOrGoldwasserWigderson1988}
+Michael Ben-Or, Shafi Goldwasser, and Avi Wigderson.
+\newblock Completeness theorems for non-cryptographic fault-tolerant
+distributed computation.
+\newblock In \emph{Proceedings of the 20th Annual ACM Symposium on Theory
+of Computing}, pages 1--10. ACM, 1988.
+\newblock \href{https://doi.org/10.1145/62212.62213}{doi:10.1145/62212.62213}.
+
+\bibitem[Cou18]{Couteau2018}
+Geoffroy Couteau.
+\newblock A note on the communication complexity of multiparty computation
+in the correlated randomness model.
+\newblock Cryptology ePrint Archive, Report 2018/465, 2018.
+\newblock \url{https://eprint.iacr.org/2018/465}.
+
+\bibitem[DS20]{DamgaardSchwartzbach2020}
+Ivan Damg{\aa}rd and Nikolaj I. Schwartzbach.
+\newblock Communication lower bounds for perfect maliciously secure MPC.
+\newblock Cryptology ePrint Archive, Report 2020/251, 2020.
+\newblock \url{https://eprint.iacr.org/2020/251}.
 
 \bibitem[DN06]{DawsonNielsen2006}
 Christopher M. Dawson and Michael A. Nielsen.
@@ -2292,6 +3009,12 @@ Wolfgang J. Paul.
 \newblock \emph{Theoretical Computer Science}, 2(3):383--396, 1976.
 \newblock \href{https://doi.org/10.1016/0304-3975(76)90089-X}{doi:10.1016/0304-3975(76)90089-X}.
 
+\bibitem[Sau72]{Sauer1972}
+Norbert Sauer.
+\newblock On the density of families of sets.
+\newblock \emph{Journal of Combinatorial Theory, Series A}, 13(1):145--147, 1972.
+\newblock \href{https://doi.org/10.1016/0097-3165(72)90019-2}{doi:10.1016/0097-3165(72)90019-2}.
+
 \bibitem[SBM06]{ShendeBullockMarkov2006}
 Vivek V. Shende, Stephen S. Bullock, and Igor L. Markov.
 \newblock Synthesis of quantum logic circuits.
@@ -2305,6 +3028,12 @@ Claude E. Shannon.
 \newblock The synthesis of two-terminal switching circuits.
 \newblock \emph{Bell System Technical Journal}, 28(1):59--98, 1949.
 \newblock \href{https://doi.org/10.1002/j.1538-7305.1949.tb03624.x}{doi:10.1002/j.1538-7305.1949.tb03624.x}.
+
+\bibitem[Sur24]{Suruga2024}
+Daiki Suruga.
+\newblock Direct sum theorems beyond query complexity.
+\newblock arXiv:2408.15570, 2024. Version~2, revised January~2025.
+\newblock \url{https://arxiv.org/abs/2408.15570v2}.
 
 \bibitem[Uhl74]{Uhlig1974}
 Dietmar Uhlig.

@@ -267,3 +267,128 @@ bibliography entries resolve. The 1,451-character ASCII submission abstract
 exactly matches the manuscript abstract. The regenerated source-only archive
 compiles independently without warnings and reproduces the reviewed PDF text.
 `git diff --check` passes.
+
+
+## Simultaneous size and depth (September 10, 2026)
+
+Theorem 1.3 and Section 10 add a written proof that, for every fixed
+`0 <= gamma < 1`, every n-bit Boolean function admits simultaneous evaluation
+on `1 <= t <= 2^(gamma*n)` inputs with `O_gamma(2^n/n)` gates and
+`O_gamma(n)` depth in the same circuit. NOT gates count toward both resources.
+The sharp leading coefficient is not claimed for these circuits, and this
+refinement is outside the pinned Lean companion. No priority claim is made.
+
+The proof strengthens the existing forest-conditioning collision estimate.
+If a phase may leave v requests unfinished, a bad outcome yields a set of
+`h = ceil((v+1)/2)` requests with collision witnesses outside that set.
+Conditioning on outside directions gives failure probability at most
+`binom(k,h)*(2*g*q/D_q)^h`. Under `4*e*g*q/D_q <= alpha^2`, this supports
+menus leaving exactly `floor(alpha*k)` requests, with at most
+`g + 2*(E_g+1)/(alpha*log2(1/alpha))` candidate directions per phase.
+The exponential geometric slack permits `alpha = 2^(-floor(rho*n))`:
+there are only constantly many phases, and the larger menus still have
+negligible total gate count.
+
+The proof also accounts for parallel occupancy propagation, fixed-wire
+selection and compaction, a power-of-two information packing that removes
+live division from the prefix map, and resource circuits with simultaneous
+`O(2^d/d)` size and `d+O(log(d+2))` depth. The local proof audit checked the
+collision conditioning, rounding and final phase, state-count union bound,
+record widths, and the strict exponential margins. These are written
+arguments, not claims of new Lean verification or finite computational proof.
+
+The depth implementation uses Justin Holmgren and Ron Rothblum,
+[Linear-Size Boolean Circuits for Multiselection, CCC 2024](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.CCC.2024.11),
+Lemma 6 and its Section 4 proof. Their sorting construction credits Ajtai,
+Komlos, and Szemeredi. Lemma 26's related prefix propagation credits Ladner
+and Fischer. The main theorem and these selected sections were read; the
+entire multiselection proof was not audited. Batcher's original sorting
+network construction was also consulted during the initial depth estimate;
+the sharper Holmgren-Rothblum bound is the one used here. Sources and reading
+scope are also recorded in the depth workspace's SOURCES.md.
+
+Validation: the 37-page manuscript builds without warnings. All pages were
+rendered for layout review, and the theorem and new proof were inspected at
+higher resolution. The README and local submission metadata identify the
+new result and its formalization boundary; the 1,561-character ASCII abstract
+matches the manuscript. These changes are local and have not been submitted.
+
+## Additional corollaries and lower bounds (September 10, 2026)
+
+Corollary 10.4 gives a randomized construction from the full truth table,
+polynomial in its length, with size `O_gamma(2^n/n)` and depth `O_gamma(n)`.
+Enlarged menus fail on any state in any phase with probability at most
+`2^(-n-2)`. Capped rejection sampling adds at most the same failure probability,
+so the stated correctness probability is at least `1 - 2^(-n)`. Success means
+one deterministic circuit is correct on every input batch. The proof chooses
+rational fixed parameters above the requested rate and uses the log-space
+uniform sorting circuits of Holmgren and Rothblum, Lemmas 8-9. Efficient
+deterministic menu construction and certification remain open. This is a
+written algorithmic result; no general circuit generator was implemented.
+
+Lemma 11.1 now accounts for quantum depth and scratch space: separate control
+qubits for all wire uses, supplied by balanced CNOT trees, preserve linear
+gate overhead and give depth `O((D+1) log(s+t+2))`. Reversing both the gate
+computations and fan-out trees restores all scratch qubits. Corollary 11.2
+therefore gives exact coherent Boolean batch evaluation at quadratic depth.
+No depth bound for the full state-preparation construction is inferred.
+
+Proposition 12.1 states the quantitative nonuniform inversion assumption
+explicitly and proves `C(h_m^t) >= H(m)/ceil(m/t)` by recovering all inverse
+bits with repeated images and hardwired indices. Its growth stops at `t=m`;
+it neither proves a general direct-sum theorem nor closes the leading-constant
+gap. The secure-computation discussion distinguishes gate hardness from
+communication hardness, with references to Couteau and Damgaard-Schwartzbach.
+
+Appendix D promotes the existing restricted module-counting argument into
+the manuscript. Theorem D.1 allows function-dependent modules and wiring,
+at most `2^(mu*n)` modules for fixed `mu<1`, and polynomial input/output
+interfaces. It cuts the largest modules, applies a VC-dimension bound with
+a self-contained proof of Sauer's inequality, and counts the remaining
+modules and the entire exterior, including free interconnections. The result
+matches the coefficient `1/(1-gamma)` only when the exterior is negligible
+under these architecture restrictions. None of these additions is covered
+by the pinned Lean companion.
+
+Validation: the final 42-page PDF builds without warnings and passes
+`./build.sh --check`. All pages were inspected in rendered overview sheets;
+the added statements and proofs were inspected at full-page resolution, and
+the final changed pages were re-rendered after pagination adjustments.
+All 71 labels are unique, all references resolve, and all 27 bibliography
+entries resolve. The existing cut-family audit passes 45,404 exact finite
+cases; this checks the finite combinatorial implication, not the asymptotic
+theorem. The abstract, construction discussion, and README now distinguish
+randomized construction from deterministic construction and certification.
+
+## Expositional coherence pass (September 10, 2026)
+
+Reviewed the complete manuscript, including the appendices, after the new
+corollaries and lower bounds. The introduction and reading guide now separate
+the Boolean size and depth results, the quantum application, and the later
+implications. The circuit conventions distinguish construction time from
+evaluation size and depth. The scheduler discussion explains which version
+feeds the main proof and which feeds the recursive appendix.
+
+Section 10 now previews the packing and scheduling changes needed for linear
+depth. Section 11 gives a proof roadmap, distinguishes state preparation from
+coherent subroutines, and places the precision-allocation intuition before its
+proof. The repeated formalization qualifications are consolidated while
+retaining the distinction between Lean-checked size bounds and written proofs.
+
+Section 12 is organized into secure evaluation, lower bounds and the leading
+coefficient, and open problems. The restricted lower-bound summary now states
+its fixed exponential batch size explicitly. The inverse-bit result follows
+that discussion with its reduction mechanism and limitations together. The
+menu question now asks for deterministic construction, reflecting the new
+randomized construction. Appendix D explains the cutting strategy before the
+counting lemmas, defines shattering and VC dimension, and clarifies that the
+description bound is a logarithm of a count. The README follows this structure.
+
+Validation: comparison with the manuscript at the start of this pass preserves
+the formulas in all 33 formal statements and all 141 displayed calculations.
+All 74 labels are unique, all cross-references resolve, and all 27 bibliography
+entries remain cited and resolve. The 42-page PDF builds without warnings and
+passes `./build.sh --check`. All pages were inspected in rendered overviews,
+and the revised passages were inspected at reading size. `git diff --check`
+passes. This was an editorial and consistency review, not a new independent
+proof audit or an extension of the Lean companion.

@@ -17,3 +17,5 @@ tmp/
 # Python checks.
 __pycache__/
 *.pyc
+
+research/
