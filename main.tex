@@ -96,6 +96,9 @@ The error is at most $1/10$ in trace distance for the entire batch, and
 scratch qubits are restored to zero.  Coherent Boolean evaluation gives
 the upper bound; a packing and circuit-counting argument gives the
 matching lower bound.
+We also apply the Boolean theorem to local hardness amplification:
+an encoded function can remain hard to approximate while exponentially
+many evaluations share the synthesis cost of its source truth table.
 \end{abstract}
 
 \section{Introduction}
@@ -322,7 +325,7 @@ A Lean~4 companion verifies the recursive size bound and the complete
 nonuniform construction yielding \cref{thm:coefficient}, including its
 real-rate and additive-error quantifiers.  \Cref{sec:formal-accounting}
 records the theorem endpoints, pinned sources, and finite accounting.
-The depth, randomized-construction, quantum, and lower-bound results
+The depth, randomized-construction, quantum, local-encoding, and lower-bound results
 are written proofs outside this companion.
 
 \paragraph{Development methodology.}
@@ -337,9 +340,11 @@ model.  \Cref{sec:two-copy} illustrates disjoint recovery with two requests.
 composition bound for the direct proof in \cref{sec:direct}.
 \Cref{sec:high-rate,sec:linear-depth} refine the coefficient and depth;
 the latter also gives the randomized construction.
-\Cref{sec:quantum} proves the quantum state preparation tradeoff, and
-\cref{sec:discussion} treats secure evaluation, lower bounds, and open
-problems.
+\Cref{sec:quantum} proves the quantum state preparation tradeoff.
+\Cref{sec:amplification} combines local hardness amplification with mass
+production and relates the construction to Hirahara's partial-MCSP
+reduction.  \Cref{sec:discussion} records a secure-evaluation consequence
+and discusses the leading coefficient and open problems.
 
 The appendices give an explicit recursive alternative
 (\cref{sec:induction}), circuit implementation details
@@ -838,68 +843,20 @@ then routes only the coordinates actually selected.
 
 \section{Deterministic scheduling and routing}\label{sec:scheduling}
 
-The scheduler maps target coordinates to disjoint recovery sets.  A greedy
-construction first shows how the blocking bound gives a circuit of size
-$\widetilde O_\ell(g^2q)$ for $g$ requests.  Fixed menus reduce this cost to
-$\widetilde O_\ell(gq)$.  Routing then connects the selected addresses to the
-resource circuits.  The main proof uses the menu scheduler; the greedy
-version supplies the explicit recursive alternative in \cref{sec:induction}.
+The scheduler maps target coordinates to disjoint recovery sets by testing
+fixed menus, using $\widetilde O_\ell(gq)$ gates for $g$ requests.  Routing
+then connects the selected addresses to the resource circuits.
 
-\subsection{Greedy line scheduling}
-
-The geometric count says that a suitable line exists, but a circuit must find
-one from the target points.  We do this greedily.  Previously occupied points
-rule out directions; projective ranking and sorting let an ordinary Boolean
-circuit choose the first direction that remains.
-
-Consider a multiset of $g$ requested information points
-$u_1,\ldots,u_g\in A^\ell$.  Process the requests in order.  Suppose disjoint
-recovery sets have been selected for requests $1,\ldots,j-1$, and let $U$ be
-their union.  Then
-\[
-  |U|=(j-1)(q-1)<gq.
-\]
-For the target $u_j$, every point $y\in U\setminus\{u_j\}$ forbids at most one
-projective direction, namely the direction of $y-u_j$.  The point $u_j$
-itself forbids none because it is omitted from the new recovery set.
-
-\begin{lemma}[Projective indexing]\label{lem:projective-indexing}
-Projective directions in $\F_q^\ell$ have rank and unrank circuits of size
-$\poly_\ell(b)$, with ranks in $[D_q]_0$.
-\end{lemma}
-
-\emph{Implementation idea.}
-The indexing normalizes the first nonzero coordinate to one and orders the
-normalized vectors by the position of that coordinate and then by their
-remaining base-$q$ digits.  The explicit circuits are given in
-\cref{app:projective-indexing}.
-
-\begin{lemma}[Greedy line scheduler]\label{lem:scheduler}
-If
-\begin{equation}\label{eq:group-condition}
-  gq<D_q,
-\end{equation}
-then every multiset of $g$ target points admits pairwise disjoint affine-line
-recovery sets.  Given the targets, the recovery sets can be selected by a
-Boolean circuit of size
-\[
-  \widetilde O_\ell(g^2q).
-\]
-\end{lemma}
-
-\emph{Proof idea.}
-At stage $j$, the blocking property in \cref{prop:local-gadget} leaves a valid
-direction because fewer than $D_q$ directions are forbidden.  The circuit
-ranks the forbidden directions, sorts those ranks, and selects the least
-missing one; stage $j$ costs $\widetilde O_\ell(jq)$.  The treatment of
-duplicate targets, sentinel ranks, and the least-missing-rank circuit is given
-in \cref{app:scheduler-proof}.  Summing over the stages gives the stated cost.
+The blocking bound also supports a greedy approach: occupied points rule out
+directions, and a circuit selects the first available direction for each
+request.  Its $\widetilde O_\ell(g^2q)$ cost leads to the recursive
+construction in \cref{sec:induction}, where this scheduler is developed.
 
 \subsection{A nonuniform scheduler with linear dependence on the batch size}
 \label{subsec:linear-scheduler}
 
-The quadratic scan can be replaced by phases that accept half the remaining
-requests.  We prove that a small fixed menu of candidate directions works for
+The menu scheduler works in phases that accept half the remaining requests.
+We prove that a small fixed menu of candidate directions works for
 every possible phase state, then give a circuit that tests the menu.  The
 existence proof uses randomness only to choose constants of the circuit; its
 evaluation is deterministic on every input.
@@ -911,6 +868,42 @@ sorting circuit finds such an assignment without multiplying the occupied-set
 cost by the menu length.  Here $g$ is the original batch size, $k$ is the
 number of pending requests, and $U$ contains the points reserved earlier.
 A menu entry is a tuple of $k$ directions, one for each pending request.
+
+\begin{lemma}[Collision tail]\label{lem:collision-tail}
+Let $1\le k\le g$, let $U$ be a union of at most $g$ recovery sets, and
+fix any ordered list of $k$ target points.  Choose their directions
+independently and uniformly.  A request is bad if its candidate recovery
+set meets $U$ or another candidate recovery set.
+For every integer $0\le v<k$, put $h=\lceil(v+1)/2\rceil$.  Then
+\[
+  \Pr\{\text{more than }v\text{ requests are bad}\}
+  \le \binom{k}{h}\left(\frac{2gq}{D_q}\right)^h.
+\]
+\end{lemma}
+
+\begin{proof}
+For any fixed set $B$, a random recovery set through a fixed target meets
+$B$ with probability at most $|B|/D_q$: each point other than the target
+blocks exactly one direction.  Pairwise collision events can be dependent.
+We handle this by selecting a set of requests with witnesses outside it
+and conditioning on the other directions.
+
+Form a graph on the requests and a vertex $0$ representing $U$.  Join a
+request to $0$ when its recovery set meets $U$, and join two requests when
+their recovery sets meet.  The bad requests are precisely the nonisolated
+vertices other than $0$.  If more than $v$ requests are bad, two-color a
+spanning forest of the nontrivial components.  One color contains at least
+$h$ bad requests, not counting vertex $0$.  Choose exactly $h$ of them as
+$S$.  Every member of $S$ has a forest neighbor outside $S$, which may be
+vertex $0$.
+
+For a fixed $S$, condition on all directions outside $S$.  Their recovery
+sets together with $U$ contain at most $2g(q-1)$ points.  Each target in
+$S$ independently chooses a direction whose recovery set meets this fixed
+union with probability at most $2gq/D_q$.  Averaging over the outside
+directions and taking a union bound over the $\binom{k}{h}$ choices of
+$S$ gives the estimate.
+\end{proof}
 
 \begin{lemma}[A partial schedule with exponentially small failure]
 \label{lem:partial-schedule}
@@ -926,40 +919,14 @@ candidate recovery set.  Then
 \end{lemma}
 
 \begin{proof}
-For any fixed set $B$, a random recovery set through any fixed target meets
-$B$ with probability at most $|B|/D_q$: each point other than the target
-blocks exactly one direction.  Consequently, the probability of
-meeting $U$ is at most $a_0=g(q-1)/D_q$, and that of meeting another fixed
-candidate recovery set is at most $a_1=(q-1)/D_q$.
-
-Pairwise collision events are dependent, so we cannot multiply these bounds
-directly.  Instead, we extract a set of bad requests whose collision witnesses
-all lie outside that set, and condition on the outside directions.
-
-Form a graph on $\{0,1,\ldots,k\}$.  Join a request to vertex $0$ when its
-recovery set meets $U$, and join two requests when their recovery sets meet.
-The nonclean requests are exactly the nonisolated vertices other than $0$.
-Take a spanning forest of the nontrivial components and two-color it.
-Every nonclean request has a forest neighbor of the opposite color.  If at
-least $\lceil k/2\rceil$ requests are nonclean, one color contains at least
-$h=\lceil k/4\rceil$ of them.  Choose exactly $h$ such requests as a set
-$S$, excluding vertex $0$.  Every request in $S$ then has a collision witness
-outside $S$, either vertex $0$ or an unselected request.
-
-For each fixed set $S$ of size $h$, condition on all directions outside $S$.
-Their recovery sets, together with $U$, form a fixed set of at most
-$(g+k)(q-1)$ points.  Each selected request meets that set with probability
-at most $a_0+ka_1$.  These $h$ tests are conditionally independent, since
-each uses only its own unexposed direction.  Averaging over the complementary
-directions and taking a union bound over $S$ gives
+Take $v=\lfloor k/2\rfloor$ in \cref{lem:collision-tail}.  Fewer than
+$\lceil k/2\rceil$ clean sets means more than $v$ bad requests.  Since
+$h=\lceil(v+1)/2\rceil\ge k/4$ and $2gq/D_q\le1/256$, the failure
+probability is at most
 \[
-  \Pr\{\text{such a collision cut exists}\}
-  \le \binom{k}{h}(a_0+ka_1)^h
-  \le 2^k(1/256)^{k/4}=2^{-k}.
+ \binom{k}{h}\left(\frac{2gq}{D_q}\right)^h
+ \le2^k(1/256)^{k/4}=2^{-k}.
 \]
-Here $a_0+ka_1\le2gq/D_q\le1/256$.  Failure of the stated progress condition
-implies at least $\lceil k/2\rceil$ nonclean requests, so this proves the
-claim.
 \end{proof}
 
 \begin{lemma}[Universal menus]\label{lem:universal-menus}
@@ -1332,8 +1299,8 @@ leave only an exponentially small fraction of requests unfinished.
 A constant number of phases then suffices, with total gate count still
 negligible beside $2^n/n$.
 
-The collision estimate below refines the same forest-conditioning argument
-used in \cref{lem:partial-schedule}.  To implement a phase at low depth we use
+We apply \cref{lem:collision-tail} with a smaller allowed remainder.
+To implement a phase at low depth we use
 Holmgren and Rothblum's sorting theorem
 \cite[Lemma~6]{HolmgrenRothblum2024}: $R$ records of $w$ bits, with
 $\kappa$-bit keys, can be sorted by a bounded-fan-in Boolean circuit of size
@@ -1343,33 +1310,6 @@ with a bit-position argument that bounds the depth of the complete Boolean
 network \cite[Section~4]{HolmgrenRothblum2024}.
 
 \subsection{Menus that leave few requests unfinished}
-
-\begin{lemma}[Collision tail]\label{lem:collision-tail}
-Let $1\le k\le g$, let $U$ be a union of at most $g$ recovery sets, and
-fix any ordered list of $k$ target points.  Choose their directions
-independently and uniformly.  A request is bad if its candidate recovery
-set meets $U$ or another candidate recovery set.
-For every integer $0\le v<k$, put $h=\lceil(v+1)/2\rceil$.  Then
-\[
-  \Pr\{\text{more than }v\text{ requests are bad}\}
-  \le \binom{k}{h}\left(\frac{2gq}{D_q}\right)^h.
-\]
-\end{lemma}
-
-\begin{proof}
-Form the collision graph on the requests and a vertex $0$ representing
-$U$, as in \cref{lem:partial-schedule}.  If more than $v$ requests are
-bad, two-color a spanning forest of its nontrivial components.  One color
-contains at least $h$ bad requests, not counting vertex $0$.  Choose
-exactly $h$ of them as $S$.  Every member of $S$ has a forest neighbor
-outside $S$, which may be vertex $0$.
-
-For a fixed $S$, condition on all directions outside $S$.  Their recovery
-sets together with $U$ contain at most $2g(q-1)$ points.  Each target in
-$S$ independently chooses a direction whose recovery set meets this
-fixed union with probability at most $2gq/D_q$.  A union bound over
-the $\binom{k}{h}$ possible choices of $S$ gives the estimate.
-\end{proof}
 
 \begin{lemma}[Menus with a prescribed remainder]\label{lem:small-remainder-menus}
 Put $N=q^\ell$ and $E_g=g(1+3\log_2N)$.  Suppose $0<\alpha\le1/2$ and
@@ -2007,45 +1947,179 @@ Thus $M(n,t)\ge nt/2$.  Combining the two lower bounds proves the claim.
 it does not identify an explicit family of hard states.
 
 
+\section{Local hardness amplification and mass production}\label{sec:amplification}
+
+Mass production can coexist with strong average-case circuit hardness.
+We construct encoded functions for which even prediction with exponentially
+small advantage requires almost $2^n/n$ gates, while exponentially many
+exact evaluations cost $O(2^n/n)$ gates in total.  The construction combines
+Hirahara's local hardness amplifier with our synthesis theorem.
+
+Fix a universal machine and let $K(f)$ denote the plain, time-unbounded
+Kolmogorov complexity of the truth table of $f$.  For $0\le\rho<1/2$, write
+\[
+ K_\rho(g)=\min_{h:\,\Pr_x[h(x)\ne g(x)]\le\rho}K(h),
+ \qquad
+ \C_\rho(g)=\min_{h:\,\Pr_x[h(x)\ne g(x)]\le\rho}\C(h),
+\]
+where $h$ has the same domain as $g$ and $x$ is uniform on that domain.
+
+\begin{theorem}[Local amplification with an exponential batch]
+\label{thm:amplification-batch}
+For every fixed $0\le\tau<1$ and $\eta>0$, there exist an integer
+$c\ge1$, a rational constant $\alpha>0$, and encodings $E_n$ taking
+functions on $n$ bits to functions on $cn$ bits with the following
+properties.  Write $g=E_n(f)$ and
+$\varepsilon_n=2^{-\lfloor\alpha n\rfloor}$.  Uniformly over all $f$
+and integers $1\le t\le2^{\tau n}$, for all sufficiently large $n$,
+\begin{align}
+ K_{1/2-\varepsilon_n}(g)&\ge K(f)-o(2^n),
+       \label{eq:amplification-retention}\\
+ \C(g^{\times t})&\le
+    \left(\frac{1}{1-\tau}+\eta\right)\frac{2^n}{n}.
+       \label{eq:amplification-batch-size}
+\end{align}
+There are also circuits for these batches of size
+$O_{\tau,\eta}(2^n/n)$ and depth $O_{\tau,\eta}(n)$.
+Given the source truth table, the full encoded table is computable
+in time polynomial in $2^n$.
+\end{theorem}
+
+\begin{proof}
+Hirahara's amplifier \cite[Lemma~8.1]{Hirahara2022}, based on
+Impagliazzo--Wigderson \cite{ImpagliazzoWigderson1997}, supplies constants
+$c\in\mathbb N$ and $a,b\ge1$ with the following properties.  For
+rational parameters $\varepsilon,\delta\in(0,1/2)$, it encodes $f$ as a function
+$g$ on $cn$ bits using a nonadaptive $f$-oracle circuit with
+\[
+ q=O(1/(\varepsilon\delta)),\quad
+ s=O\!\left((n/(\varepsilon\delta))^a\right),\quad
+ d=O(\log(n/(\varepsilon\delta))),
+\]
+queries, ordinary gates, and depth, respectively.  Taking its
+reconstruction exponent to be $1/2$ gives
+\begin{equation}\label{eq:amplifier-description}
+ K_{1/2-\varepsilon}(g)
+ \ge K(f)-O\!\left(2^{n/2}(1/(\varepsilon\delta))^b\right)
+              -2^nH_2(\delta)-O(n),
+\end{equation}
+where $H_2$ is binary entropy.  The encoded table is computable from
+the source table in time polynomial in $2^n$ and $1/(\varepsilon\delta)$.
+
+Choose $\gamma\in(\tau,1)$ with
+$1/(1-\gamma)<1/(1-\tau)+\eta/2$, and then a rational $\alpha>0$ such that
+\begin{equation}\label{eq:amplification-margins}
+ \tau+\alpha<\gamma,\qquad
+ \tau+a\alpha<1,\qquad
+ \frac12+b\alpha<1.
+\end{equation}
+Set $\varepsilon=\varepsilon_n$ and $\delta=1/n$.  For all sufficiently
+large $n$, the total queries and ordinary gates for $t$ encoded evaluations
+satisfy
+\[
+ tq=O\!\left(n2^{(\tau+\alpha)n}\right)\le2^{\gamma n},
+ \qquad
+ ts\le2^{(\tau+a\alpha)n}\poly(n)=o(2^n/n).
+\]
+Nonadaptivity lets us compute all addresses first and feed them to one
+circuit for $f^{\times tq}$, then use its answers in the output circuits.
+The total size is at most $ts+\C(f^{\times tq})$, even when addresses
+repeat or share input bits.  \Cref{thm:coefficient} gives
+\eqref{eq:amplification-batch-size}; \cref{thm:linear-depth} gives the
+separate simultaneous size and depth bound, since the ordinary circuitry
+before and after the oracle layer has total depth at most $2d=O(n)$.
+
+The description loss in \eqref{eq:amplifier-description} is at most
+\[
+ 2^{(1/2+b\alpha)n}\poly(n)+2^nH_2(1/n)+O(n)=o(2^n),
+\]
+proving \eqref{eq:amplification-retention}.  The margins in
+\eqref{eq:amplification-margins} are fixed independently of $f$ and $t$,
+so all estimates are uniform.  The encoding time is polynomial in $2^n$
+because $1/(\varepsilon_n\delta)\le n2^{\alpha n}$.
+The finitely many smaller $n$ may be assigned arbitrary encodings.
+\end{proof}
+
+\begin{corollary}[Approximation retains the source synthesis cost]
+\label{cor:robust-synthesis}
+For the encoding in \cref{thm:amplification-batch} and all sufficiently
+large $n$, a uniformly random $f:\bits^n\to\bits$ satisfies,
+with probability at least $1-2^{-n}$,
+\[
+ \C_{1/2-\varepsilon_n}(E_n(f))
+       \ge (1-o(1))\frac{2^n}{n}.
+\]
+On the same event, all the exact batch upper bounds in that theorem
+hold.  In particular, for $\tau=0$ and any fixed $\eta>0$, there
+are functions $g$ with
+\[
+ (1-o(1))\frac{2^n}{n}
+ \le\C_{1/2-\varepsilon_n}(g)
+ \le\C(g)\le(1+\eta)\frac{2^n}{n}.
+\]
+\end{corollary}
+
+\begin{proof}
+With probability at least $1-2^{-n}$, counting programs gives
+$K(f)\ge2^n-n$.  By \eqref{eq:amplification-retention}, every $h$
+agreeing with $E_n(f)$ on at least a $1/2+\varepsilon_n$ fraction of
+inputs then has $K(h)\ge(1-o(1))2^n$.  A smallest circuit for $h$ with
+$S$ gates and $cn$ inputs has a description of length
+\[
+ K(h)\le(S+1)\log_2(S+cn+2)+O(S+\log(n+2))
+\]
+by \cref{lem:multi-output-count}, including the specification of $n,S$
+and a fixed evaluation procedure.  For $S\le2^{n+1}/n$, this is at most
+$nS+o(2^n)$, uniformly in $S$; larger $S$ already satisfies the desired
+lower bound.  The upper bounds hold for every source.
+\end{proof}
+
+The size scale is the source length $L=2^n$, although the encoded table
+has length $2^{cn}$.  The source is random, so this does not identify an
+explicit family with exponential circuit complexity.  The advantage
+exponent $\alpha$ may decrease as $\tau$ approaches one or $\eta$ approaches
+zero, and the sharp coefficient and linear depth are separate guarantees.
+Hardwiring the source into the multiselection circuits of
+\cite{HolmgrenRothblum2024} gives $O(L+tq\poly(\log L))$ size for the same
+local queries; our bound saves a factor $\log L$ and controls the
+leading coefficient.
+
+\paragraph{Relation to Hirahara's reduction.}
+In Hirahara's NP-hardness proof for partial MCSP
+\cite[Lemmas~8.1--8.3]{Hirahara2022}, locally amplified random tables mask
+secret shares.  A satisfying assignment selects tables that let a
+completeness circuit recover the secret; Uhlig's theorem keeps this
+circuit small despite the amplifier's many queries.  For a source table
+of length $L$, our theorem expands the available query range from
+$L^{o(1/\log\log L)}$ to $L^\gamma$ for each fixed $\gamma<1$, retaining
+size $O_\gamma(L/\log L)$ and depth $O_\gamma(\log L)$ for the table
+evaluations.  This strengthens the local synthesis step.  It does not
+improve the final approximation exponent in Hirahara's Theorem~8.5:
+his choice $\Delta=(\log v)^{1/2}$, with $v$ the number of source variables,
+already fits Uhlig's range, and the explicit output length
+$2^{O(\log v+\Delta^2)}$ must also remain polynomially bounded.
+
 \section{Implications and open problems}\label{sec:discussion}
 
-Secure evaluation gives a direct application of the simultaneous size
-and depth bound.  We then examine what lower bounds say about restricted
-circuit architectures and specified hard functions, before returning to
-deterministic construction and endpoint copy rates.
+We record a standard secure-evaluation consequence and examine the leading
+coefficient, deterministic construction, and endpoint copy rates.
 
-\subsection{Secure batch evaluation}\label{sec:secure-evaluation}
-The simultaneous size and depth bound has a standard secure-computation
-corollary.  Fix integers $m\ge4$ and $0\le c<m/3$, and assume a synchronous
-network of $m$ parties with private authenticated channels and broadcast.
-For every public $f:\bits^n\to\bits$, fixed $0\le\gamma<1$, and
-$1\le t\le2^{\gamma n}$, there is a nonuniform protocol computing
-$f^{\times t}$ with perfect security against a static malicious adversary
-corrupting at most $c$ parties, using $O_{\gamma,m}(2^n/n)$ communication
-bits and $O_{\gamma,m}(n)$ rounds.  The input bits may be distributed
-arbitrarily among the parties, and all parties receive the output vector.
-
-To obtain this protocol, apply the Ben-Or--Goldwasser--Wigderson framework
+\paragraph{Secure batch evaluation.}
+Fix integers $m\ge4$ and $0\le c<m/3$, and a synchronous network of $m$
+parties with private authenticated channels and broadcast.
+For every public $f:\bits^n\to\bits$,
+fixed $0\le\gamma<1$, and $1\le t\le2^{\gamma n}$, there is a nonuniform
+protocol computing $f^{\times t}$ with perfect security against a static
+malicious adversary corrupting at most $c$ parties, using
+$O_{\gamma,m}(2^n/n)$ communication bits and $O_{\gamma,m}(n)$ rounds.
+The inputs may be distributed arbitrarily, and all parties receive the
+output vector.  Apply the Ben-Or--Goldwasser--Wigderson framework
 \cite{BenOrGoldwasserWigderson1988}, with the quantitative bound of
 \cite[Theorem~1.2 of the full version]{AbrahamAsharovYanai2021}, to
-\cref{thm:linear-depth}.  Over a fixed field $\F_Q$ of characteristic two
-with $Q>m$, AND, OR, and NOT become $xy$, $x+y+xy$, and $1+x$.
-First mapping each supplied field element $u$ to $u^{Q-1}$ ensures Boolean
-inputs at constant cost per input for fixed $m$.  Secure evaluation then
-uses $O_m(S+nt)$ communication bits and $O_m(D+1)$ rounds for a Boolean
-circuit of size $S$ and depth $D$, including input sharing and output
-reconstruction.  Substitute the simultaneous bounds and
-$nt=o_\gamma(2^n/n)$.  The correct circuit and its menus are public
-nonuniform protocol data; scheduling and routing are evaluated on shares.
-
-The communication bound comes from secure circuit evaluation.
-Circuit lower bounds do not establish its optimality among protocols:
-under suitable homomorphic-encryption assumptions, computationally secure
-protocols can limit communication according to input and output lengths
-and security parameters despite large local computation
-\cite[Section~1]{Couteau2018}.  The perfect-security lower bounds in
-\cite{DamgaardSchwartzbach2020} concern functions with circuits linear
-in their input length and do not settle this larger-circuit regime.
+\cref{thm:linear-depth}: secure evaluation of a Boolean circuit with size
+$S$ and depth $D$ costs $O_m(S+nt)$ bits and $O_m(D+1)$ rounds, including
+input sharing and output reconstruction, and $nt=o_\gamma(2^n/n)$.
+The circuit and its menus are public nonuniform protocol data.
 
 \subsection{Lower bounds and the leading coefficient}\label{sec:lower-bounds}
 
@@ -2072,54 +2146,6 @@ The modules and their wiring may depend on $f$.  The bound applies to
 separately synthesized resource banks of the kind used here, but leaves
 unrestricted circuits open.  Its proof in \cref{app:module-bound} cuts the
 largest modules at their output ports and counts the remaining circuitry.
-
-\paragraph{A conditional bound for a specified function.}
-The counting arguments above do not identify a hard function.  An
-inversion assumption gives a bound for the following specified Boolean
-family.  A batch can request different bits of one inverse; collecting
-those bits recovers the full preimage.
-
-\begin{samepage}
-\begin{proposition}[Inverse-bit reduction]\label{prop:inverse-bit}
-Let $(P_m)_{m\ge2}$ be a polynomial-time computable family of permutations
-of $\bits^m$.  Suppose every nonuniform Boolean circuit $I:\bits^m\to\bits^m$
-satisfying
-\[
- \Pr_{y\ \mathrm{uniform\ in}\ \bits^m}
-       [I(y)=P_m^{-1}(y)]\ge\tfrac12
-\]
-has at least $H(m)$ gates.  Define a Boolean function on
-$m+\lceil\log_2m\rceil$ bits by
-\[
- h_m(y,j)=
- \begin{cases}
-  (P_m^{-1}(y))_j,&j\in[m]_0,\\
-  0,&\text{otherwise}.
- \end{cases}
-\]
-Then, for every integer $t\ge1$,
-\[
- \C(h_m^{\times t})\ge\frac{H(m)}{\lceil m/t\rceil}.
-\]
-\end{proposition}
-\end{samepage}
-
-\begin{proof}
-Let a circuit of size $S$ compute $h_m^{\times t}$ exactly.
-Use $\lceil m/t\rceil$ copies of it, wiring the same $y$ into every
-request slot and hardwiring the indices $0,\ldots,m-1$ across those
-slots.  Pad any remaining slots with index zero and discard their
-outputs.  The retained outputs give $P_m^{-1}(y)$ for every $y$,
-using at most $\lceil m/t\rceil S$ gates.  The assumption gives the
-inequality.
-\end{proof}
-
-For $1\le t\le m$, the lower bound is at least $tH(m)/(2m)$; for
-$t\ge m$, it is $H(m)$.  Exponential inversion hardness therefore gives
-an exponential circuit lower bound, but this reduction supplies no
-further growth once $t\ge m$.  The predicate $h_m$ itself need not be
-efficiently evaluable.  The result neither compares $\C(h_m^{\times t})$
-with $t\C(h_m)$ nor closes the unrestricted leading-coefficient gap.
 
 \subsection{Open problems}
 
@@ -2174,6 +2200,58 @@ Apply the composition bound recursively.  At level $k$, split the input
 into $k+1$ approximately equal blocks, encode one block, and invoke the
 preceding level on the remaining $k$.
 
+\subsection{Greedy line scheduling}
+
+The geometric count says that a suitable line exists, but a circuit must find
+one from the target points.  We do this greedily.  Previously occupied points
+rule out directions; projective ranking and sorting let an ordinary Boolean
+circuit choose the first direction that remains.
+
+Consider a multiset of $g$ requested information points
+$u_1,\ldots,u_g\in A^\ell$.  Process the requests in order.  Suppose disjoint
+recovery sets have been selected for requests $1,\ldots,j-1$, and let $U$ be
+their union.  Then
+\[
+  |U|=(j-1)(q-1)<gq.
+\]
+For the target $u_j$, every point $y\in U\setminus\{u_j\}$ forbids at most one
+projective direction, namely the direction of $y-u_j$.  The point $u_j$
+itself forbids none because it is omitted from the new recovery set.
+
+\begin{lemma}[Projective indexing]\label{lem:projective-indexing}
+Projective directions in $\F_q^\ell$ have rank and unrank circuits of size
+$\poly_\ell(b)$, with ranks in $[D_q]_0$.
+\end{lemma}
+
+\emph{Implementation idea.}
+The indexing normalizes the first nonzero coordinate to one and orders the
+normalized vectors by the position of that coordinate and then by their
+remaining base-$q$ digits.  The explicit circuits are given in
+\cref{app:projective-indexing}.
+
+\begin{lemma}[Greedy line scheduler]\label{lem:scheduler}
+If
+\begin{equation}\label{eq:group-condition}
+  gq<D_q,
+\end{equation}
+then every multiset of $g$ target points admits pairwise disjoint affine-line
+recovery sets.  Given the targets, the recovery sets can be selected by a
+Boolean circuit of size
+\[
+  \widetilde O_\ell(g^2q).
+\]
+\end{lemma}
+
+\emph{Proof idea.}
+At stage $j$, the blocking property in \cref{prop:local-gadget} leaves a valid
+direction because fewer than $D_q$ directions are forbidden.  The circuit
+ranks the forbidden directions, sorts those ranks, and selects the least
+missing one; stage $j$ costs $\widetilde O_\ell(jq)$.  The treatment of
+duplicate targets, sentinel ranks, and the least-missing-rank circuit is given
+in \cref{app:scheduler-proof}.  Summing over the stages gives the stated cost.
+
+\subsection{Grouping and composition}
+
 For $r\ge1$, define
 \[
   L_r(n)=\max_{f:\bits^n\to\bits}\C(f^{\times r}).
@@ -2182,8 +2260,6 @@ For each $f$, choose a circuit for $f^{\times r}$ of size at most $L_r(n)$.  If
 a construction supplies fewer than $r$ live inputs, the unused inputs of this
 circuit may be fixed arbitrarily and their outputs ignored.  Thus a bound for
 $L_r(n)$ also applies to every smaller number of copies.
-
-\subsection{Grouping and composition}
 
 Partition the $t$ requests into $C$ fixed groups, each of size at most
 \[
@@ -2247,6 +2323,7 @@ as in \cref{prop:scheduler-sensitive}.  Prefix mapping, routing, and decoding
 together cost $\widetilde O_\ell(tq+Cq^\ell)$.
 \end{proof}
 
+\begin{samepage}
 \begin{proposition}[Composition bound]\label{prop:master}
 Fix $\ell\ge2$.  Let $n=p+d$ with $p$ sufficiently large depending on
 $\ell$, choose $q=2^b$ minimally so that $s_0^\ell b\ge2^p$, and suppose
@@ -2263,6 +2340,7 @@ $f:\bits^n\to\bits$ satisfies
 \right).
 \end{equation}
 \end{proposition}
+\end{samepage}
 
 The induction keeps the resource term at scale $2^n/n$ while making all
 three overhead terms exponentially smaller.
@@ -2861,7 +2939,8 @@ responsibility for the correctness, originality, and integrity of the paper.
 Codex also assisted with development and testing of the nonuniform menu
 scheduler and the high-rate-code refinement, and with their Lean formalization
 through the sharp real-rate theorem.  Codex also assisted with the
-quantum state preparation application and its packing lower bound.
+quantum state preparation application and its packing lower bound,
+and with the local hardness amplification application.
 
 \clearpage
 \begin{thebibliography}{HPPV20}
@@ -2898,19 +2977,6 @@ distributed computation.
 \newblock In \emph{Proceedings of the 20th Annual ACM Symposium on Theory
 of Computing}, pages 1--10. ACM, 1988.
 \newblock \href{https://doi.org/10.1145/62212.62213}{doi:10.1145/62212.62213}.
-
-\bibitem[Cou18]{Couteau2018}
-Geoffroy Couteau.
-\newblock A note on the communication complexity of multiparty computation
-in the correlated randomness model.
-\newblock Cryptology ePrint Archive, Report 2018/465, 2018.
-\newblock \url{https://eprint.iacr.org/2018/465}.
-
-\bibitem[DS20]{DamgaardSchwartzbach2020}
-Ivan Damg{\aa}rd and Nikolaj I. Schwartzbach.
-\newblock Communication lower bounds for perfect maliciously secure MPC.
-\newblock Cryptology ePrint Archive, Report 2020/251, 2020.
-\newblock \url{https://eprint.iacr.org/2020/251}.
 
 \bibitem[DN06]{DawsonNielsen2006}
 Christopher M. Dawson and Michael A. Nielsen.
@@ -2958,6 +3024,15 @@ Ne\v{c}iporuk slice.
 \newblock \emph{Computational Complexity}, 5(2):132--154, 1995.
 \newblock \href{https://doi.org/10.1007/BF01268142}{doi:10.1007/BF01268142}.
 
+\bibitem[Hir22]{Hirahara2022}
+Shuichi Hirahara.
+\newblock NP-hardness of learning programs and partial MCSP.
+\newblock In \emph{2022 IEEE 63rd Annual Symposium on Foundations of
+Computer Science (FOCS)}, pages 968--979. IEEE, 2022.
+\newblock \href{https://doi.org/10.1109/FOCS54457.2022.00095}{doi:10.1109/FOCS54457.2022.00095}.
+\newblock Full version, used for theorem numbering:
+\url{https://eccc.weizmann.ac.il/report/2022/119/}.
+
 \bibitem[HPPV20]{HolzbaurEtAl2020}
 Lukas Holzbaur, Rina Polyanskaya, Nikita Polyanskii, and Ilya Vorobyev.
 \newblock Lifted Reed--Solomon codes with application to batch codes.
@@ -2972,6 +3047,14 @@ Justin Holmgren and Ron D. Rothblum.
 \newblock In \emph{39th Computational Complexity Conference (CCC 2024)},
 LIPIcs 300, Article 11, pages 11:1--11:20, 2024.
 \newblock \href{https://doi.org/10.4230/LIPIcs.CCC.2024.11}{doi:10.4230/LIPIcs.CCC.2024.11}.
+
+\bibitem[IW97]{ImpagliazzoWigderson1997}
+Russell Impagliazzo and Avi Wigderson.
+\newblock $\mathrm{P}=\mathrm{BPP}$ if $\mathrm{E}$ requires exponential
+circuits: Derandomizing the XOR lemma.
+\newblock In \emph{Proceedings of the 29th Annual ACM Symposium on Theory
+of Computing}, pages 220--229. ACM, 1997.
+\newblock \href{https://doi.org/10.1145/258533.258590}{doi:10.1145/258533.258590}.
 
 \bibitem[IKOS04]{IKOS2004}
 Yuval Ishai, Eyal Kushilevitz, Rafail Ostrovsky, and Amit Sahai.

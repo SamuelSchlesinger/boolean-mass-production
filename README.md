@@ -18,8 +18,9 @@ several smaller codes give a resource count of `(1 + o(1)) 2^p`.
 The scheduler's small fixed menus are proved to exist for every input batch.
 Efficient deterministic construction of those menus remains open here.
 Both Boolean size-only upper-bound variants are formally proved in the
-pinned Lean companion. The depth, randomized-construction, quantum, and
-lower-bound results below are written proofs outside that companion.
+pinned Lean companion. The depth, randomized-construction, quantum,
+local-encoding, and lower-bound results below are written proofs outside
+that companion.
 
 The simultaneous bound attains `O_gamma(2^n/n)` gates and `O_gamma(n)` depth
 throughout the same range. It uses the geometric slack to leave
@@ -48,26 +49,41 @@ The coherent Boolean evaluation lemma also gives exact batch oracles with
 This depth bound applies to Boolean evaluation; no corresponding depth
 bound is asserted for the full state-preparation construction.
 
+The local hardness amplification section combines Hirahara's amplifier with
+our synthesis theorem.
+For any fixed `0 <= tau < 1` and `eta > 0`, the resulting encoding of an `n`-bit
+function supports `2^(tau*n)` exact evaluations at total size at most
+`(1/(1-tau) + eta) 2^n/n`. For some constant `alpha > 0`, approximating the
+encoding with advantage `2^(-floor(alpha*n))` preserves the source's
+Kolmogorov complexity up to `o(2^n)`. A random source therefore yields
+approximate circuit complexity at least `(1-o(1)) 2^n/n`.
+Thus functions that are expensive even to predict can support an exponential
+batch at the same size order. A short comparison identifies the improved
+query range in Hirahara's partial-MCSP reduction; its final approximation
+exponent is unchanged by this substitution alone. Broader comparisons and
+open directions are kept in the separate
+[hardness magnification research note](notes/hardness-magnification.md).
+
 Appendix D proves the restricted lower bound
 `(1-gamma) S + gamma W >= (1-o(1)) 2^n/n` for circuits covering all
 functions at `t = floor(2^(gamma*n))`, fixed `0 < gamma < 1`, with total
 size `S = O(2^n/n)`. They may use at most `2^(mu*n)` modules, fixed
 `0 < mu < 1`, with polynomial interfaces and `W` exterior gates.
 A negligible exterior forces the coefficient `1/(1-gamma)` within this
-architecture. A separate inverse-bit reduction transfers assumed nonuniform
-inversion hardness to the bound `C(h_m^t) >= H(m)/ceil(m/t)`.
-Neither lower bound closes the
-unrestricted coefficient gap.
+architecture. The unrestricted coefficient gap remains open.
 
-For a first reading, the introduction states both the Boolean and quantum
-results and explains the sharing obstacle. Section 2 gives the full prior-work
+For a first reading, the introduction states the Boolean and quantum
+results, previews the encoding application, and explains the sharing obstacle.
+Section 2 gives the full prior-work
 comparison, including recent quantum work, before the constructions.
 Section 4 works through two independent Boolean requests; Sections 5-9 give
 the code, scheduler, composition, and coefficient arguments. Section 10 gives
 the simultaneous size and depth bound and its randomized construction.
-Section 11 proves the quantum tradeoff. Section 12 groups secure evaluation,
-lower bounds, and open problems into separate subsections.
-Appendices A-D give the explicit recursive alternative, gate-level details,
+Section 11 proves the quantum tradeoff. Section 12 proves the local hardness
+amplification application and briefly relates it to Hirahara's reduction.
+Section 13 records a short secure-evaluation consequence and discusses the
+leading coefficient and open problems. Appendix A develops greedy scheduling
+and the explicit recursive alternative. Appendices B-D give gate-level details,
 exact finite accounting used in Lean, and the restricted module lower bound.
 
 ## Machine-checked companion
@@ -118,6 +134,9 @@ and takes responsibility for the paper.
 - `ARXIV_SUBMISSION.md` contains paste-ready metadata and the final submission
   checklist.
 - `REVIEW.md` records the improvements, proof boundaries, and validation.
+- `notes/hardness-magnification.md` preserves the broader literature comparisons,
+  parameter calculations, conditional inverse-bit bound, and research directions
+  outside the manuscript.
 - `scripts/linear_scheduler.py` implements fixed-menu evaluation with record
   sorting networks and a small exact high-rate code.
 - `scripts/check_improvements.py` checks the combinatorial and implementation

@@ -392,3 +392,150 @@ passes `./build.sh --check`. All pages were inspected in rendered overviews,
 and the revised passages were inspected at reading size. `git diff --check`
 passes. This was an editorial and consistency review, not a new independent
 proof audit or an extension of the Lean companion.
+
+## Hardness magnification and local encodings (September 13, 2026)
+
+Added Section 12, on pages 28–33 of the revised manuscript, and updated the
+abstract, organization paragraph, README, bibliography, and disclosure.
+The previous implications section is now Section 13. The new material is
+written mathematics outside the pinned Lean companion.
+
+Proposition 12.1 replaces a nonadaptive layer of repeated queries to one
+fixed function by a single mass-production circuit. Its accounting allows
+shared intermediate values before the oracle layer, repeated or correlated
+addresses, and free routing. Different fixed functions require separate
+batches, and adaptive rounds must be evaluated in sequence. The simultaneous
+depth bound uses the size-order theorem, not the sharp-coefficient theorem.
+
+Lemma 12.2 explicitly attributes the local amplifier to Hirahara's
+Lemma 8.1, which uses Impagliazzo–Wigderson. Theorem 12.3 combines that
+amplifier with our synthesis theorem. For any fixed `tau < 1` and `eta > 0`,
+it chooses a positive constant `alpha` such that the encoding retains
+`K(f) - o(2^n)` description bits under error `1/2 - 2^(-floor(alpha*n))`,
+while up to `2^(tau*n)` exact evaluations fit within
+`(1/(1-tau) + eta) 2^n/n` gates. A separate implementation has size
+`O(2^n/n)` and depth `O(n)`.
+
+The proof audit checked the order of parameter choices and three strict
+exponent margins: `tau + alpha < gamma`, `tau + a*alpha < 1`, and
+`1/2 + b*alpha < 1`. They respectively control the total query count,
+the ordinary encoding gates, and the reconstruction description loss.
+The choice `delta = 1/n` makes the entropy loss vanish. All constants are
+fixed independently of the source and batch, and the advantage exponent
+may decrease as the batch rate or coefficient requirement becomes tighter.
+Computing the full encoded table is polynomial in the supplied source
+table length; this does not assert deterministic construction of the batch
+circuit or efficient computation from a succinct source description.
+
+Corollary 12.4 applies this result to a random source. With probability at
+least `1 - 2^(-n)`, even an approximate circuit needs
+`(1-o(1)) 2^n/n` gates. Its leading coefficient uses the depth-first circuit
+description in Lemma D.3, giving `S log(S+cn+2) + O(S+n)` bits, rather
+than the less precise `O(S log S)` bound. The result concerns a randomized
+family at the source table's scale, not an explicit exponential lower bound
+or a bound at the longer encoded table's worst-case scale.
+
+The Hirahara comparison uses the ECCC full version of *NP-Hardness of
+Learning Programs and Partial MCSP*, especially Lemmas 8.1–8.3 and
+Theorem 8.5. The relevant query count is read directly from the completeness
+proof: `O(Delta^3 log(v) / epsilon_0)`. The new allowable range is
+`L^gamma` in a fixed table length `L`, replacing
+`L^(o(1/log log L))`. The section also accounts for encoding gates and
+reconstruction losses before discussing a larger polynomial choice of
+the table-length parameter. It does not assert an improved final
+partial-MCSP approximation exponent: Theorem 8.5's choice
+`Delta = sqrt(log v)` already fits Uhlig's range, and the explicit
+output has length `2^(O(log v + Delta^2))`.
+
+The broader comparison covers Oliveira–Santhanam, Oliveira–Pich–Santhanam,
+the Chen–Hirahara–Oliveira–Pich–Rajgopal–Santhanam locality analysis,
+Hirahara's meta-computational framework, and shared Nisan–Wigderson
+evaluation. The displayed magnification accounting retains the better of
+replicating the conditional oracle circuit and absolute synthesis. It
+does not infer preservation of formulas, constant depth, or branching
+programs, or permit hardwiring a hypothesis supplied on a live input.
+The fast-derandomization discussion cites Doron et al. (2022 and 2026) and
+Chen–Tell (2021), distinguishing uniform printing of an entire table from
+nonuniform circuits for live queries. The 2026 reference uses revision 1
+of ECCC TR26-082. Primary sources were consulted for these comparisons;
+this is not an independent verification of all their proofs.
+
+Validation: the 48-page PDF builds without warnings and passes the
+byte-for-byte `build.sh --check`. The final introduction, new section,
+transition to Section 13, and bibliography were inspected as rendered
+pages. All 87 labels are unique, all references resolve, and all 37
+bibliography entries are cited. The existing nine Boolean checks and five
+quantum checks pass; these do not formally verify the new asymptotic
+arguments. `git diff --check` passes.
+
+The validation environment lacked `latexmk`, `enumitem`, `aliascnt`, and
+`cleveref`; public copies were placed under `/tmp`. Its installed `array`
+package required a newer LaTeX kernel than the available format, so the
+installed `array-2024-06-01.sty` compatibility version was selected through
+the temporary TeX search path. Both build commands used
+`TEXINPUTS=/tmp/mass-production-texmf//: PATH=/tmp:$PATH`.
+No system installation or repository build script was changed.
+
+## Local amplification section condensed (September 13, 2026)
+
+Renamed Section 12 to *Local hardness amplification and mass production*
+and reduced it from pages 28–33 to pages 28–30. The section now leads
+with the encoding theorem and its random-source circuit-hardness
+corollary, numbered 12.1 and 12.2. Both statements and their proofs are
+retained. Hirahara's imported amplification lemma and the elementary
+oracle-substitution observation are incorporated into the theorem's proof.
+The three exponent margins, uniformity, encoding-time bound, and sharp
+circuit-description accounting remain explicit.
+
+The comparison with Hirahara's reduction is one paragraph, distinguishing
+the improved local query range from his unchanged final approximation
+exponent. The broader literature comparisons, parameter calculations,
+pseudorandom-generator discussion, and proposed directions are preserved
+in [a separate research note](notes/hardness-magnification.md), together
+with the eight references removed from the manuscript bibliography.
+The note also explains why replication of a polynomial-size oracle is
+asymptotically cheaper than absolute synthesis throughout every fixed
+exponential query range below one, and why an unconditional oracle
+implementation gives an unconditional synthesis upper bound. These
+limitations rule out the previously suggested direct use in the usual
+polynomial-collapse substitution step.
+
+Validation: all 35 retained labelled formal statements are unchanged
+modulo whitespace from the six-page-section draft. All 81 labels are
+unique, all cross-references resolve, and all 29 bibliography entries
+remain cited. The 44-page PDF builds without warnings and passes the
+byte-for-byte `build.sh --check`, using the same temporary TeX setup
+described above. The revised section, introduction's organization
+paragraph, transition to Section 13, and bibliography were inspected as
+rendered pages. No executable or Lean code changed; the new application
+remains outside the pinned formalization.
+
+## Focused scope and proof structure (September 13, 2026)
+
+Moved the inverse-bit proposition, its proof, and its limitations to the
+research notes. Reduced secure batch evaluation to one paragraph retaining
+the security assumptions, communication and round bounds, generic evaluation
+cost, and supporting citations. Removed its two now-unused background
+references. The quantum tradeoff, module lower bound, randomized
+construction, local amplification results, and two-copy example remain.
+
+The general collision tail is now Lemma 6.1, with one self-contained proof
+using a forest and conditioning. Lemma 6.2 specializes it at
+`v = floor(k/2)`, with `h = ceil((v+1)/2) >= k/4`, to obtain the same
+`2^(-k)` failure bound under `512 g q <= D_q`. Section 10 applies the same
+tail bound with a smaller remainder, eliminating the repeated proof.
+Projective indexing and greedy scheduling are now Lemmas A.1 and A.2 at
+the start of the recursive appendix; Section 6 retains a brief explanation.
+Their detailed circuit implementations remain in Appendix B.
+
+Validation: all 34 retained labelled formal statements are unchanged modulo
+whitespace from the preceding draft. All 79 labels are unique, every
+cross-reference resolves, and all 27 bibliography entries are cited.
+The nine Boolean checks and five quantum checks pass, including the forest
+witness and menu-bound checks. These finite checks do not formally verify
+the asymptotic arguments or the imported amplification theorem. The PDF
+builds without warnings and now has 43 pages, with the main text ending
+on page 30. The revised scheduler, depth argument, discussion, recursive
+appendix, and bibliography were inspected as rendered pages; the composition
+proposition is kept together across a page break. No implementation or Lean
+code changed. The README and research-note description follow the new scope.
